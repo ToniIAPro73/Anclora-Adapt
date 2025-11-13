@@ -84,16 +84,26 @@ interface GeneratedOutput {
   content: string;
 }
 
+// New interface for OutputDisplay specific props
+interface OutputDisplayProps {
+  isLoading: boolean;
+  error: string | null;
+  onCopy: (text: string) => void;
+  generatedOutputs?: GeneratedOutput[] | null;
+  generatedImageUrl?: string | null;
+  audioUrl?: string | null;
+}
+
 interface CommonProps {
   isLoading: boolean;
   error: string | null;
   generatedOutputs: GeneratedOutput[] | null;
-  generatedImageUrl: string | null; // Added for image generation
+  generatedImageUrl: string | null; // This state is managed by App and passed down
   onGenerate: (prompt: string, schema: any, model?: string, config?: Record<string, any>) => Promise<void>;
   onCopy: (text: string) => void;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  setGeneratedImageUrl: React.Dispatch<React.SetStateAction<string | null>>; // Added for image generation
+  setGeneratedImageUrl: React.Dispatch<React.SetStateAction<string | null>>; // Function to update image URL
 }
 
 const languages = [
@@ -767,7 +777,7 @@ ${commonStyles.modalNavButtonSecondary}:hover:not(:disabled) {
 document.head.appendChild(styleSheet);
 
 
-const OutputDisplay: React.FC<CommonProps & { audioUrl?: string, imageUrl?: string }> = ({ generatedOutputs, onCopy, isLoading, error, audioUrl, imageUrl }) => {
+const OutputDisplay: React.FC<OutputDisplayProps> = ({ generatedOutputs, onCopy, isLoading, error, audioUrl, generatedImageUrl }) => {
   const getImageFileName = (url: string): string => {
     try {
       const mimeMatch = url.match(/^data:(image\/[a-z]+);base64,/);
@@ -801,7 +811,7 @@ const OutputDisplay: React.FC<CommonProps & { audioUrl?: string, imageUrl?: stri
           <audio controls src={audioUrl} style={commonStyles.audioPlayer} aria-label="Reproducir audio generado"></audio>
           <a href={audioUrl} download="anclora_speech.wav" style={{...commonStyles.copyButton, marginTop: '10px'}} aria-label="Descargar audio generado">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-download">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 0 0 1-2-2v-4"></path>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
               <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
@@ -810,13 +820,13 @@ const OutputDisplay: React.FC<CommonProps & { audioUrl?: string, imageUrl?: stri
         </section>
       )}
 
-      {imageUrl && (
+      {generatedImageUrl && (
         <section style={commonStyles.outputSection} aria-label="Imagen generada/editada">
           <h2 style={commonStyles.outputSectionTitle}>Imagen Generada/Editada:</h2>
-          <img src={imageUrl} alt="Contenido generado por IA" style={commonStyles.imagePreview} />
-          <a href={imageUrl} download={getImageFileName(imageUrl)} style={{...commonStyles.copyButton, marginTop: '10px'}} aria-label="Descargar imagen generada/editada">
+          <img src={generatedImageUrl} alt="Contenido generado por IA" style={commonStyles.imagePreview} />
+          <a href={generatedImageUrl} download={getImageFileName(generatedImageUrl)} style={{...commonStyles.copyButton, marginTop: '10px'}} aria-label="Descargar imagen generada/editada">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-download">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 0 0 1-2-2v-4"></path>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
               <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
@@ -1009,7 +1019,8 @@ Ahora, genera el contenido basado en la idea y configuraciones proporcionadas.`;
         {isLoading ? 'Generando...' : 'Generar Contenido'}
       </button>
 
-      <OutputDisplay {...{ isLoading, error, generatedOutputs, onGenerate, onCopy, setError, setIsLoading, generatedImageUrl }} />
+      {/* Fix: Pass explicit props to OutputDisplay */}
+      <OutputDisplay isLoading={isLoading} error={error} generatedOutputs={generatedOutputs} onCopy={onCopy} generatedImageUrl={generatedImageUrl} />
     </>
   );
 };
@@ -1114,9 +1125,9 @@ Ahora, interpreta la entrada del usuario y genera el contenido adaptado.`;
       console.error('Error al generar contenido inteligente o imagen:', err);
       setError(`Error general: ${err.message || 'Error desconocido'}.`);
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Intelligent mode always sets isLoading to false here
     }
-  }, [userInput, deepThinking, includeImage, imageMode, imageFile, imagePrompt, onGenerate, setError, setGeneratedImageUrl]);
+  }, [userInput, deepThinking, includeImage, imageMode, imageFile, imagePrompt, onGenerate, setError, setGeneratedImageUrl, setIsLoading]);
 
 
   return (
@@ -1233,7 +1244,8 @@ Ahora, interpreta la entrada del usuario y genera el contenido adaptado.`;
         {isLoading ? 'Interpretando y Generando...' : 'Interpretar y Generar Contenido'}
       </button>
 
-      <OutputDisplay {...{ isLoading, error, generatedOutputs, onGenerate, onCopy, setError, setIsLoading, generatedImageUrl }} />
+      {/* Fix: Pass explicit props to OutputDisplay */}
+      <OutputDisplay isLoading={isLoading} error={error} generatedOutputs={generatedOutputs} onCopy={onCopy} generatedImageUrl={generatedImageUrl} />
     </>
   );
 };
@@ -1347,7 +1359,7 @@ Ahora, genera los contenidos coordinados para la campaña.`;
     } finally {
       setIsLoading(false);
     }
-  }, [userInput, selectedLanguage, deepThinking, includeImage, imageMode, imageFile, imagePrompt, onGenerate, setError, setGeneratedImageUrl]);
+  }, [userInput, selectedLanguage, deepThinking, includeImage, imageMode, imageFile, imagePrompt, onGenerate, setError, setGeneratedImageUrl, setIsLoading]);
 
   return (
     <>
@@ -1486,7 +1498,8 @@ Ahora, genera los contenidos coordinados para la campaña.`;
         {isLoading ? 'Creando Campaña...' : 'Generar Campaña Coordinada'}
       </button>
 
-      <OutputDisplay {...{ isLoading, error, generatedOutputs, onGenerate, onCopy, setError, setIsLoading, generatedImageUrl }} />
+      {/* Fix: Pass explicit props to OutputDisplay */}
+      <OutputDisplay isLoading={isLoading} error={error} generatedOutputs={generatedOutputs} onCopy={onCopy} generatedImageUrl={generatedImageUrl} />
     </>
   );
 };
@@ -1636,7 +1649,8 @@ Ahora, genera el contenido reciclado.`;
         {isLoading ? 'Reciclando Contenido...' : 'Reciclar Contenido'}
       </button>
 
-      <OutputDisplay {...{ isLoading, error, generatedOutputs: null, onGenerate, onCopy, setError, setIsLoading, generatedImageUrl }} />
+      {/* Fix: Pass explicit props to OutputDisplay. generatedOutputs and generatedImageUrl come from CommonProps */}
+      <OutputDisplay isLoading={isLoading} error={error} generatedOutputs={generatedOutputs} onCopy={onCopy} generatedImageUrl={generatedImageUrl} />
     </>
   );
 };
@@ -1646,7 +1660,7 @@ interface ChatMessage {
   text: string;
 }
 
-const ChatMode: React.FC<{onCopy: (text: string) => void, setError: React.Dispatch<React.SetStateAction<string | null>>, setIsLoading: React.Dispatch<React.SetStateAction<boolean>>, isLoading: boolean, error: string | null}> = ({ onCopy, setError, setIsLoading, isLoading, error }) => {
+const ChatMode: React.FC<Pick<CommonProps, 'onCopy' | 'setError' | 'setIsLoading' | 'isLoading' | 'error'>> = ({ onCopy, setError, setIsLoading, isLoading, error }) => {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [currentChatMessage, setCurrentChatMessage] = useState<string>('');
   const chatInstanceRef = useRef<Chat | null>(null);
@@ -1766,7 +1780,7 @@ const ChatMode: React.FC<{onCopy: (text: string) => void, setError: React.Dispat
 };
 
 
-const TTSMode: React.FC<{onCopy: (text: string) => void, setError: React.Dispatch<React.SetStateAction<string | null>>, setIsLoading: React.Dispatch<React.SetStateAction<boolean>>, isLoading: boolean, error: string | null}> = ({ onCopy, setError, setIsLoading, isLoading, error }) => {
+const TTSMode: React.FC<Pick<CommonProps, 'onCopy' | 'setError' | 'setIsLoading' | 'isLoading' | 'error'>> = ({ onCopy, setError, setIsLoading, isLoading, error }) => {
   const [textToSpeak, setTextToSpeak] = useState<string>('');
   const [selectedTTSLanguage, setSelectedTTSLanguage] = useState<string>('es');
   const [selectedVoiceName, setSelectedVoiceName] = useState<string>('Kore'); // Default voice for selected language
@@ -1879,6 +1893,7 @@ const TTSMode: React.FC<{onCopy: (text: string) => void, setError: React.Dispatc
     const fileSize = 44 + dataSize; // Corrected calculation: 44 bytes for WAV header
 
     const buffer = new ArrayBuffer(fileSize);
+    // Fix: Remove duplicate 'new'
     const view = new DataView(buffer);
 
     // RIFF chunk
@@ -1979,7 +1994,8 @@ const TTSMode: React.FC<{onCopy: (text: string) => void, setError: React.Dispatc
         {isLoading ? 'Generando Voz...' : 'Generar Voz'}
       </button>
 
-      <OutputDisplay {...{ isLoading, error, generatedOutputs: null, onGenerate: (p,s)=>Promise.resolve(), onCopy, setError, setIsLoading, audioUrl }} />
+      {/* Fix: Pass explicit props to OutputDisplay */}
+      <OutputDisplay isLoading={isLoading} error={error} onCopy={onCopy} audioUrl={audioUrl} />
     </>
   );
 };
@@ -2090,6 +2106,7 @@ const LiveChatMode: React.FC = () => {
       source.connect(scriptProcessor);
       scriptProcessor.connect(inputAudioContextRef.current.destination);
 
+      // It's crucial to create a new GoogleGenAI instance here to ensure it picks up the latest API key
       const ai = new GoogleGenAI({ apiKey: API_KEY });
       sessionPromiseRef.current = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -2166,7 +2183,7 @@ const LiveChatMode: React.FC = () => {
       setError(`No se pudo iniciar la grabación: ${err.message || 'Error desconocido'}. Asegúrate de que el micrófono esté permitido.`);
       setIsRecording(false);
     }
-  }, [hasApiKey, currentInputTranscription, currentOutputTranscription, checkApiKey]);
+  }, [hasApiKey, currentInputTranscription, currentOutputTranscription, checkApiKey, stopRecording]);
 
   const stopRecording = useCallback(() => {
     setIsRecording(false);
@@ -2270,13 +2287,12 @@ const LiveChatMode: React.FC = () => {
 };
 
 
-const ImageEditMode: React.FC = () => {
+const ImageEditMode: React.FC<Pick<CommonProps, 'onCopy' | 'setError' | 'setIsLoading' | 'isLoading' | 'error'>> = ({ onCopy, setError, setIsLoading, isLoading, error }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePrompt, setImagePrompt] = useState<string>('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [editedImageUrl, setEditedImageUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  // isLoading, error, onCopy, setError, setIsLoading are now received as props from App
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -2391,7 +2407,8 @@ const ImageEditMode: React.FC = () => {
         {isLoading ? 'Procesando Imagen...' : 'Editar/Generar Imagen'}
       </button>
 
-      <OutputDisplay {...{ isLoading, error, generatedOutputs: null, onGenerate: (p,s)=>Promise.resolve(), onCopy: (t)=>{}, setError, setIsLoading, imageUrl: editedImageUrl }} />
+      {/* Fix: Pass explicit props to OutputDisplay */}
+      <OutputDisplay isLoading={isLoading} error={error} onCopy={onCopy} generatedImageUrl={editedImageUrl} />
     </>
   );
 };
@@ -2436,7 +2453,7 @@ const tutorialSteps: TutorialStep[] = [
   },
   {
     title: "Modo Imagen: Edición y Generación Visual",
-    description: "Sube una imagen y usa prompts de texto para editarla, o genera una imagen completamente nueva desde una descripción. Perfecto para crear visuales impactantes para tu contenido."
+    description: "Sube una imagen y usa prompts de texto para editarla con Gemini 2.5 Flash Image o, directamente, explica a la IA qué imagen quieres generar."
   },
   {
     title: "¡Estás listo para empezar!",
@@ -2539,11 +2556,18 @@ const App: React.FC = () => {
       // setIsLoading is managed by the specific mode functions when image generation is involved
       // If only text generation, set to false here
       // For modes that also generate images, their functions will handle final setIsLoading(false)
-      if (!generatedImageUrl) { // Only set to false if no image generation is pending/successful
-        setIsLoading(false);
-      }
+      // This logic will be handled by individual modes that call `onGenerate` and then potentially image generation.
+      // If this is the only call (e.g., Basic Mode), then it can be set to false here.
+      // For modes that also do image generation, they will set setIsLoading(false) in their own finally blocks.
+      // Here, we specifically check if an image was generated in a *previous* step of the current flow.
+      // If generateContentApiCall is called for TEXT generation and there's no image generation, then set false.
+      // If image generation is part of the flow, the image generation logic will handle `setIsLoading(false)`.
+      // The current check `if (!generatedImageUrl)` is not robust enough.
+      // A better way is to let the calling mode handle the final `setIsLoading(false)`.
+      // So, removing this block and letting modes like `BasicMode` handle it.
+      // BasicMode does not generate images, so it will not call setGeneratedImageUrl, this is safe.
     }
-  }, [setGeneratedOutputs, setGeneratedImageUrl, setError, setIsLoading, generatedImageUrl]); // Include generatedImageUrl in deps
+  }, [setGeneratedOutputs, setGeneratedImageUrl, setError, setIsLoading]);
 
 
   const copyToClipboard = (text: string) => {
@@ -2681,7 +2705,7 @@ const App: React.FC = () => {
         {activeTab === 'chat' && <ChatMode {...{ isLoading, error, onCopy: commonProps.onCopy, setError, setIsLoading }} />}
         {activeTab === 'tts' && <TTSMode {...{ isLoading, error, onCopy: commonProps.onCopy, setError, setIsLoading }} />}
         {activeTab === 'live_chat' && <LiveChatMode />}
-        {activeTab === 'image_edit' && <ImageEditMode />}
+        {activeTab === 'image_edit' && <ImageEditMode {...{ isLoading, error, onCopy: commonProps.onCopy, setError, setIsLoading }} />}
       </main>
 
       <TutorialModal

@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AncloraAdapt — Estrategia y Análisis de Producto</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Libre+Baskerville:wght@700&display=swap" rel="stylesheet">
+    <style>
+        /* ====== TOKENS (Anclora base) ====== */
+        :root{
+            --azul-profundo:#23436B;   /* headings, barras */
+            --azul-claro:#2EAFC4;      /* CTAs, acentos */
+            --ambar:#FFC979;           /* highlights cálidos */
+            --gris-fondo:#F6F7F9;      /* fondos suaves */
+            --texto:#162032;           /* texto principal */
+            --blanco:#FFFFFF;          /* fondos primarios */
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: var(--gris-fondo); /* Use Anclora background color */
+            color: var(--texto); /* Use Anclora text color */
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            background: var(--blanco);
+            box-shadow: 0 10px 40px rgba(0,0,0,.06);
+            padding: 0; /* Sections will handle their own padding */
+        }
+
+        section {
+            padding: 40px;
+            margin-bottom: 20px;
+            scroll-margin-top: 20px; /* For smooth scrolling to sections */
+        }
+
+        /* Base typography from Anclora design system */
+        .h1, h1 { font: 700 38px/1.15 "Libre Baskerville", serif; color: var(--azul-profundo); margin: 0 0 8px; }
+        .h2, h2 { font: 700 26px/1.25 Inter, sans-serif; color: var(--azul-profundo); margin: 0 0 12px; }
+        .h3, h3 { font: 700 18px/1.35 Inter, sans-serif; color: var(--texto); margin: 0 0 8px; }
+        p, li { font: 400 15px/1.6 Inter, sans-serif; margin: 0 0 10px; }
+        .muted { opacity:.85; }
+        .grid{ display:grid; gap:18px; }
+        .cols-2{ grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+        .cols-3{ grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+        .tag{ display:inline-block; padding:6px 10px; border-radius:8px; font:600 12px/1 Inter; background:#EAF7FA; color:#0f3b47; margin-right:8px; }
+        .hr{ height:3px; background: linear-gradient(90deg, var(--azul-claro), var(--ambar)); border:none; margin:16px 0 25px; }
+        .card{ background: var(--gris-fondo); border:1px solid #E5EAF0; border-radius:14px; padding:16px 18px; }
+        .callout{ background: linear-gradient(90deg,#fef7ea,#fff); border-left:4px solid var(--ambar); border-radius:10px; padding:14px 16px; margin-top: 20px; margin-bottom: 20px;}
+        
+        .hero-section { /* Adapted from .hero */
+            background: linear-gradient(120deg, var(--azul-profundo), var(--azul-claro));
+            color: var(--blanco);
+            border-radius: 18px;
+            padding: 40px 30px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .hero-section .title{ font:700 48px/1.1 "Libre Baskerville", serif; margin:0 0 10px; }
+        .hero-section .subtitle{ font:600 20px/1.5 Inter; opacity:.95; margin:0; max-width: 800px; }
+        .meta{ display:flex; gap:18px; flex-wrap:wrap; margin-top:15px; justify-content: center; }
+        .chip{ background: rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.32); color:#fff; border-radius:999px; padding:8px 15px; font:600 13px/1 Inter; }
+
+        .logo-space{
+            height: 68px; border:2px dashed rgba(255,255,255,.5); border-radius:10px;
+            display:flex; align-items:center; justify-content:center; font-weight:600;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        /* paleta */
+        .swatches{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top: 20px; margin-bottom: 20px; }
+        .sw{ width:100px; height:50px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.06); display:flex; align-items:center; justify-content:center; color:#fff; font:700 12px/1 Inter;}
+        .sw.light{ color: var(--texto); border:1px solid #E8EDF2; }
+
+        /* CTA */
+        .cta{ 
+            display:inline-block; 
+            background: linear-gradient(90deg,var(--azul-claro),var(--ambar)); 
+            color:var(--texto); /* Changed to var(--texto) for better contrast */
+            font:700 16px/1 Inter; 
+            padding:15px 25px; 
+            border-radius:12px; 
+            text-decoration:none; 
+            margin-top:25px;
+            box-shadow: 0 4px 10px rgba(46, 175, 196, 0.3);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .cta:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        /* footer */
+        footer {
+            text-align: center;
+            padding: 30px;
+            font-size: 0.9em;
+            color: #6b7785;
+            background-color: var(--gris-fondo);
+            border-top: 1px solid #e0e0e0;
+            margin-top: 40px;
+        }
+
+        /* Table styles */
+        table{ width:100%; border-collapse:collapse; margin-top: 20px; margin-bottom: 20px; }
+        th, td{ text-align:left; padding:12px 15px; border-bottom:1px solid #EEF2F6; font-size:14px; }
+        th{ font-weight:700; color: var(--azul-profundo); background:#F9FBFD; }
+        tr:last-child td { border-bottom: none; }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .hero-section .title { font-size: 38px; }
+            .hero-section .subtitle { font-size: 18px; }
+            .cols-2, .cols-3 { grid-template-columns: 1fr; }
+            section { padding: 25px; }
+            .sw { width: 80px; height: 40px; font-size: 10px; }
+            .chip { padding: 6px 12px; font-size: 12px; }
+            .cta { padding: 12px 20px; font-size: 14px; }
+        }
+
+        @media (max-width: 480px) {
+            .hero-section .title { font-size: 32px; }
+            .hero-section .subtitle { font-size: 16px; }
+            section { padding: 15px; }
+            h1 { font-size: 28px; }
+            h2 { font-size: 22px; }
+            h3 { font-size: 16px; }
+            p, li { font-size: 14px; }
+            .meta { flex-direction: column; align-items: center; }
+        }
+
+        .convergence-image {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            margin: 30px auto;
+        }
+        .convergence-image svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .convergence-image .text-line {
+            font-family: 'Inter', sans-serif;
+            font-size: 10px;
+            fill: #fff;
+            opacity: 0.8;
+            animation: textFadeIn 2s ease-out forwards;
+        }
+        .convergence-image .arrow {
+            fill: none;
+            stroke: #fff;
+            stroke-width: 1.5;
+            stroke-dasharray: 4 2;
+            animation: arrowFlow 3s linear infinite;
+        }
+        .convergence-image .portal {
+            fill: url(#portalGradient);
+            animation: portalGlow 2s ease-in-out infinite alternate;
+        }
+        .convergence-image .light-rays {
+            fill: #FFC979;
+            opacity: 0.6;
+            animation: lightPulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes textFadeIn {
+            0% { opacity: 0; transform: translateX(-20px); }
+            100% { opacity: 0.8; transform: translateX(0); }
+        }
+
+        @keyframes arrowFlow {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: -10; }
+        }
+
+        @keyframes portalGlow {
+            0% { transform: scale(1); box-shadow: 0 0 5px var(--ambar); }
+            100% { transform: scale(1.03); box-shadow: 0 0 15px var(--ambar); }
+        }
+        @keyframes lightPulse {
+            0% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <section class="hero-section">
+            <div class="logo-space">Espacio reservado para el logo de AncloraAdapt</div>
+            <h1 class="title">AncloraAdapt</h1>
+            <p class="subtitle">Estrategia y Análisis de Producto · Traductor Multicanal, Multitono y Multiuso impulsado por IA</p>
+            <div class="meta">
+                <span class="chip">Fecha: 12/11/2025</span>
+                <span class="chip">Autor: Toni — Fundador & Arquitecto Técnico de Anclora</span>
+                <span class="chip">Formato: Documento ejecutivo (A4 apaisado)</span>
+            </div>
+
+            <div class="convergence-image" role="img" aria-label="Texto de diferentes idiomas convergiendo en un portal de luz que representa la aplicación AncloraAdapt">
+                <svg viewBox="0 0 600 250" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="portalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:var(--azul-claro);stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:var(--ambar);stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Text lines representing different languages -->
+                    <text x="10" y="50" class="text-line" style="animation-delay: 0s;">Hello World!</text>
+                    <text x="10" y="75" class="text-line" style="animation-delay: 0.2s;">¡Hola Mundo!</text>
+                    <text x="10" y="100" class="text-line" style="animation-delay: 0.4s;">Bonjour le Monde!</text>
+                    <text x="10" y="125" class="text-line" style="animation-delay: 0.6s;">こんにちは世界</text>
+                    <text x="10" y="150" class="text-line" style="animation-delay: 0.8s;">안녕하세요 세계</text>
+
+                    <!-- Convergence lines/arrows -->
+                    <path d="M150 50 Q 250 100, 300 125" class="arrow" style="animation-duration: 4s; animation-delay: 0.5s;"></path>
+                    <path d="M150 75 Q 250 100, 300 125" class="arrow" style="animation-duration: 4.2s; animation-delay: 0.7s;"></path>
+                    <path d="M150 100 Q 250 100, 300 125" class="arrow" style="animation-duration: 4.4s; animation-delay: 0.9s;"></path>
+                    <path d="M150 125 Q 250 100, 300 125" class="arrow" style="animation-duration: 4.6s; animation-delay: 1.1s;"></path>
+                    <path d="M150 150 Q 250 100, 300 125" class="arrow" style="animation-duration: 4.8s; animation-delay: 1.3s;"></path>
+
+                    <!-- Portal (doorway to the app) -->
+                    <rect x="290" y="100" width="40" height="50" rx="5" ry="5" class="portal"/>
+                    <g class="light-rays">
+                        <polygon points="310,100 290,80 330,80" />
+                        <polygon points="310,150 290,170 330,170" />
+                        <polygon points="290,125 270,110 270,140" />
+                        <polygon points="330,125 350,110 350,140" />
+                    </g>
+                    <text x="310" y="132" text-anchor="middle" font-size="14" font-weight="bold" fill="var(--azul-profundo)">APP</text>
+                </svg>
+            </div>
+
+
+            <p class="callout" style="width: 100%; max-width: 800px; text-align: left;">
+                <strong>Claim:</strong> “Traduce, adapta y transforma tus ideas. En cualquier idioma, en cualquier canal, con tu propio estilo”.
+            </p>
+            <a class="cta" href="index.html" aria-label="Acceder a la aplicación AncloraAdapt">
+                Acceder a AncloraAdapt
+            </a>
+            <p class="muted" style="margin-top: 20px;">Acceso prioritario a la beta no disponible en esta demo, accede directamente a la aplicación.</p>
+
+        </section>
+
+        <section>
+            <h2 class="h1">Resumen ejecutivo</h2>
+            <hr class="hr"/>
+            <p><strong>AncloraAdapt</strong> convierte ideas en mensajes listos para publicar, combinando traducción con <em>adaptación contextual</em> por canal, uso y tono. Más que traducir, ayuda a <strong>conectar</strong>.</p>
+            <div class="grid cols-2">
+                <div class="card">
+                    <h3 class="h3">Problema</h3>
+                    <ul>
+                        <li>Traducciones literales que fallan en tono y contexto.</li>
+                        <li>Duplicación de esfuerzos por canal/plataforma.</li>
+                        <li>Falta de coherencia de voz de marca en varios idiomas.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3 class="h3">Solución</h3>
+                    <ul>
+                        <li>IA que traduce y <strong>re-escribe</strong> según plataforma/uso/tono.</li>
+                        <li>Variantes para test A/B y presets reutilizables.</li>
+                        <li>Integración nativa con el ecosistema Anclora.</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="callout"><strong>Propuesta de valor:</strong> “Una entrada → múltiples salidas óptimas por canal, idioma y tono”.</p>
+        </section>
+
+        <section>
+            <h2 class="h1">Análisis de oportunidad</h2>
+            <hr class="hr"/>
+            <div class="grid cols-2">
+                <div class="card">
+                    <h3 class="h3">Contexto del mercado</h3>
+                    <ul>
+                        <li>Explosión de IA generativa aplicada a comunicación.</li>
+                        <li>Herramientas “traductores puros” no cubren tono/uso/canal.</li>
+                        <li>Demanda de <strong>multiformato</strong> y reuso de contenido.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3 class="h3">Ventana de nicho</h3>
+                    <ul>
+                        <li>Microcontenidos por red (LinkedIn, X, IG, WhatsApp, Email).</li>
+                        <li>Voz de marca y consistencia multilingüe.</li>
+                        <li>Automatización ligera para equipos pequeños y agencias.</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="muted">Estrategia: priorizar “adaptación inteligente” frente a “traducción literal”.</p>
+        </section>
+
+        <section>
+            <h2 class="h1">Visión de producto</h2>
+            <hr class="hr"/>
+            <div class="grid cols-2">
+                <div>
+                    <p><strong>Misión:</strong> reducir fricción y elevar el impacto de cada mensaje en cualquier idioma y canal.</p>
+                    <p><strong>UVP:</strong> traducción + adaptación por <em>plataforma / uso / tono</em> en un flujo unificado.</p>
+                </div>
+                <div class="card">
+                    <span class="tag">Traducción</span>
+                    <span class="tag">Adaptación</span>
+                    <span class="tag">Tono</span>
+                    <span class="tag">Multiformato</span>
+                    <span class="tag">Presets</span>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="h1">Funcionalidades (MVP → Beta → Escalado)</h2>
+            <hr class="hr"/>
+            <div class="grid cols-3">
+                <div class="card">
+                    <h3 class="h3">MVP</h3>
+                    <ul>
+                        <li>Entrada libre (voz/texto) + detección de idioma.</li>
+                        <li>Seleccionar idioma, plataforma, uso, tono.</li>
+                        <li>Traducción + adaptación contextual (1-2 variantes).</li>
+                        <li>Landing de beta (nombre + email) y límites Free.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3 class="h3">Beta</h3>
+                    <ul>
+                        <li>Login unificado, historial y presets.</li>
+                        <li>Variantes para test A/B, multiformato automático.</li>
+                        <li>Guardado/reciclaje de contenido.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3 class="h3">Escalado</h3>
+                    <ul>
+                        <li>Integraciones (Buffer/Zapier), API externa.</li>
+                        <li>Equipo/agencias: espacios por cliente, roles.</li>
+                        <li>PWA móvil, exportación directa por canal.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="h1">Casos de uso</h2>
+            <hr class="hr"/>
+            <div class="grid cols-3">
+                <div class="card">
+                    <h3 class="h3">Agencias</h3>
+                    <ul>
+                        <li>Un briefing → variantes por cliente/mercado.</li>
+                        <li>Voz de marca consistente (multi-idioma).</li>
+                        <li>Repositorios de presets por cuenta.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3 class="h3">Freelancers</h3>
+                    <ul>
+                        <li>Post → IG caption + X hilo + email corto.</li>
+                        <li>Plantillas de tono para productividad.</li>
+                        <li>Entrega rápida y consistente.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3 class="h3">Equipos internos</h3>
+                    <ul>
+                        <li>Notas de lanzamiento, changelog, help-center.</li>
+                        <li>Mensajes de soporte localizados.</li>
+                        <li>Playbooks por producto o región.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="h1">Arquitectura técnica (API-first · mobile-first)</h2>
+            <hr class="hr"/>
+            <div class="grid cols-2">
+                <div class="card">
+                    <h3 class="h3">Stack sugerido (low-cost)</h3>
+                    <ul>
+                        <li><strong>Frontend:</strong> Next.js + Tailwind + shadcn/ui</li>
+                        <li><strong>Backend & DB:</strong> Supabase (Auth + Postgres + Edge)</li>
+                        <li><strong>AI Layer:</strong> OpenAI GPT-4o / OpenRouter</li>
+                        <li><strong>Automatización:</strong> n8n o Make</li>
+                        <li><strong>Hosting:</strong> Vercel + Supabase</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3 class="h3">Principios</h3>
+                    <ul>
+                        <li>Separación de concerns (UI / API / LLM).</li>
+                        <li>Tokens de diseño y accesibilidad WCAG AA.</li>
+                        <li>Observabilidad mínima (logs, límites, errores).</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="muted">Escalable por capas: reemplazable por modelos open-source si el volumen crece.</p>
+        </section>
+
+        <section>
+            <h2 class="h1">Integración con el ecosistema Anclora</h2>
+            <hr class="hr"/>
+            <div class="grid cols-2">
+                <div class="card">
+                    <h3 class="h3">Cuenta unificada</h3>
+                    <ul>
+                        <li>SSO con Supabase Auth para todas las apps.</li>
+                        <li>Perfiles y permisos por producto.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3 class="h3">Flujo con AncloraPress</h3>
+                    <ul>
+                        <li>Enviar párrafo → <em>Adaptar</em> → devolver versión lista por canal.</li>
+                        <li>Sincronizar presets (voz de marca, tono, idioma).</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="callout"><strong>Sinergia:</strong> Press crea; Adapt transforma y multiplica; ambas comparten identidad y datos.</p>
+        </section>
+
+        <section>
+            <h2 class="h1">Roadmap por fases</h2>
+            <hr class="hr"/>
+            <table>
+                <thead><tr><th>Fase</th><th>Objetivo</th><th>Claves</th></tr></thead>
+                <tbody>
+                    <tr><td>MVP (2 sem)</td><td>Validación</td><td>Input, selección básica, 1–2 variantes, landing beta</td></tr>
+                    <tr><td>Beta (4 sem)</td><td>Retención</td><td>Login, historial, presets, multiformato</td></tr>
+                    <tr><td>Escalado (1–2 m)</td><td>Monetización</td><td>Integraciones, API, espacios equipo</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2 class="h1">Planes y monetización</h2>
+            <hr class="hr"/>
+            <table>
+                <thead><tr><th>Plan</th><th>Incluye</th><th>Límite</th><th>Precio</th></tr></thead>
+                <tbody>
+                    <tr><td>Free</td><td>1 idioma · 1 plataforma · 1 tono</td><td>20 usos/mes</td><td>0 €</td></tr>
+                    <tr><td>Pro</td><td>Multiidioma, presets, historial, 3 plataformas</td><td>100 usos/mes</td><td>~7 €/mes</td></tr>
+                    <tr><td>Plus</td><td>Ilimitado, API, test A/B, integraciones</td><td>Ilimitado</td><td>~15 €/mes</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section style="text-align: center;">
+            <h2 class="h1">¡Listo para transformar tu contenido?</h2>
+            <hr class="hr"/>
+            <p class="muted">Regístrate para probar AncloraAdapt hoy mismo y lleva tu comunicación al siguiente nivel.</p>
+            <a class="cta" href="index.html" aria-label="Acceder a la aplicación AncloraAdapt">
+                Acceder a AncloraAdapt
+            </a>
+            <p class="muted" style="margin-top: 20px;">Acceso prioritario a la beta no disponible en esta demo, accede directamente a la aplicación.</p>
+        </section>
+
+    </div>
+
+    <footer>
+        <p>&copy; 2025 AncloraAdapt. Todos los derechos reservados.</p>
+    </footer>
+</body>
+</html>
