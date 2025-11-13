@@ -9,13 +9,48 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Libre+Baskerville:wght@700&display=swap" rel="stylesheet">
     <style>
         /* ====== TOKENS (Anclora base) ====== */
-        :root{
+        /* Light Theme Defaults (Anclora base) */
+        :root, body.light-theme {
             --azul-profundo:#23436B;   /* headings, barras */
             --azul-claro:#2EAFC4;      /* CTAs, acentos */
             --ambar:#FFC979;           /* highlights cálidos */
             --gris-fondo:#F6F7F9;      /* fondos suaves */
             --texto:#162032;           /* texto principal */
             --blanco:#FFFFFF;          /* fondos primarios */
+            /* Additional vars for dynamic elements */
+            --input-bg: var(--gris-fondo);
+            --input-border: #ddd;
+            --card-bg: var(--blanco);
+            --card-border: #E5EAF0;
+            --checkbox-bg: #ecf0f1;
+            --tab-border-bottom: #e0e0e0;
+            --chat-message-ai-bg: #e0e0e0;
+            /* Warning message specific for light theme */
+            --warning-bg: var(--ambar);
+            --warning-text-color: var(--texto);
+            --warning-link-color: var(--azul-profundo);
+        }
+
+        /* Dark Theme Overrides */
+        body.dark-theme {
+            --azul-profundo:#A0C4FF;   /* Lighter blue for dark mode */
+            --azul-claro:#87CEEB;      /* Lighter turquoise */
+            --ambar:#FDD793;           /* Lighter amber */
+            --gris-fondo:#1C2C3A;      /* Darker background */
+            --texto:#E0E6EB;           /* Light text */
+            --blanco:#2B3B4C;          /* Darker primary background */
+            /* Additional vars for dynamic elements */
+            --input-bg: #3C4C5D;
+            --input-border: #556677;
+            --card-bg: #2B3B4C;
+            --card-border: #405060;
+            --checkbox-bg: #3C4C5D;
+            --tab-border-bottom: #405060;
+            --chat-message-ai-bg: #3C4C5D;
+            /* Warning message specific for dark theme */
+            --warning-bg: #3A3020; /* Darker, desaturated amber for warning background */
+            --warning-text-color: var(--texto); /* Light text for warning content */
+            --warning-link-color: var(--azul-claro); /* Lighter blue for links within dark warnings */
         }
 
         body {
