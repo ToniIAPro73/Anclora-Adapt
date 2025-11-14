@@ -144,6 +144,8 @@ const i18n = {
     responseSpeedLabel: "Velocidad de Respuesta:",
     normalSpeed: "Normal (gemini-2.5-flash)",
     fastSpeed: "Rápida (gemini-2.5-flash-lite)",
+    literalTranslationCheckbox: "Traducción Literal",
+    literalTranslationHint: "(Deshabilita la adaptación a plataformas)",
     generateContentButton: "Generar Contenido",
     generating: "Generando...",
     errorEmptyInput: "Por favor, escribe lo que quieres comunicar.",
@@ -167,7 +169,7 @@ const i18n = {
     imagePromptGeneratePlaceholder: "Ej: 'Un robot con una patineta roja en un estilo futurista'",
     imagePromptEditPlaceholder: "Ej: 'Añade un filtro retro', 'Quita a la persona del fondo', 'Haz el cielo más azul'",
     interpretAndGenerateButton: "Interpretar y Generar Contenido",
-    interpretingAndGenerating: "Interpretando y Generando...",
+    interpretingAndGenerating: "Interpreando y Generando...",
     errorImageEditNoFile: "Por favor, sube una imagen para editar.",
     errorImagePromptEmpty: "Por favor, introduce un prompt para la imagen.",
     errorNoImageReceived: "No se recibió imagen de la IA. Inténtalo de nuevo.",
@@ -314,6 +316,7 @@ const i18n = {
     platform_WhatsApp: 'WhatsApp',
     platform_Email: 'Email',
     platform_Web: 'Web (Blog/Artículo)',
+    platform_LiteralTranslation: 'Traducción Literal', // New platform for literal translation
 
     // TTS Voices (labels)
     voice_Kore_es: 'Kore (Femenina) - español neutral',
@@ -374,6 +377,8 @@ const i18n = {
     responseSpeedLabel: "Response Speed:",
     normalSpeed: "Normal (gemini-2.5-flash)",
     fastSpeed: "Fast (gemini-2.5-flash-lite)",
+    literalTranslationCheckbox: "Literal Translation",
+    literalTranslationHint: "(Disables platform adaptation)",
     generateContentButton: "Generate Content",
     generating: "Generating...",
     errorEmptyInput: "Please write what you want to communicate.",
@@ -484,88 +489,89 @@ const i18n = {
     imageEditModeDesc: "Sube una imagen y usa prompts de texto para editarla con Gemini 2.5 Flash Image o, directamente, explica a la IA qué imagen quieres generar.",
     uploadImageOrGenerate: "Sube tu imagen (opcional para generación, necesario para edición):",
     imagePromptEditGenerateLabel: "Prompt de Imagen (Generación o Edición):",
-    imagePromptEditGeneratePlaceholder: "Ej: 'Un robot con una patineta roja en un estilo futurista' (para generar) o 'Añade un filtro retro' (para editar)",
-    editGenerateImageButton: "Editar/Generar Imagen",
-    processingImage: "Procesando Imagen...",
-    errorGeneratingOrEditingImage: "Error al editar/generar imagen: %s. Asegúrate de que el prompt sea claro.",
+    imagePromptEditGeneratePlaceholder: "E.g.: 'A robot with a red skateboard in a futuristic style' (to generate) or 'Add a retro filter' (to edit)",
+    editGenerateImageButton: "Edit/Generate Image",
+    processingImage: "Processing Image...",
+    errorGeneratingOrEditingImage: "Error generating/editing image: %s. Make sure the prompt is clear.",
 
     // Tutorial
-    tutorialNext: "Siguiente",
-    tutorialPrev: "Anterior",
-    tutorialClose: "Cerrar tutorial",
-    tutorialStepCount: "Paso %d de %d",
-    tutorialTitleWelcome: "Bienvenido a AncloraAdapt",
-    tutorialDescWelcome: "Esta guía te ayudará a descubrir cómo transformar y potenciar tu contenido con IA. ¡Vamos a explorar sus modos principales!",
-    tutorialTitleBasic: "Modo Básico: Generador Multiformato",
-    tutorialDescBasic: "Ideal para generar contenido adaptado a plataformas específicas, tonos e idiomas. Define tu idea, selecciona las opciones y obtén publicaciones listas para usar.",
-    tutorialTitleIntelligent: "Modo Inteligente: 'Dime lo que quieres y yo lo adapto'",
-    tutorialDescIntelligent: "Describe tu necesidad en lenguaje natural y deja que la IA infiera el mejor contenido, tono y plataformas. Incluso puedes optar por generar o editar imágenes para complementar tu mensaje.",
-    tutorialTitleCampaign: "Modo Campaña: 'Multiplica tu mensaje'",
-    tutorialDescCampaign: "Crea campañas de marketing coordinadas para múltiples plataformas desde una única idea. La IA adaptará cada mensaje y Call To Action (CTA), y podrás añadir imágenes si lo deseas.",
-    tutorialTitleRecycle: "Modo Reciclar de Contenidos",
-    tutorialDescRecycle: "Reutiliza contenido existente transformándolo en nuevos formatos como resúmenes, hilos para X, captions de Instagram o títulos persuasivos. ¡Maximiza la vida útil de tu contenido!",
-    tutorialTitleChat: "Modo Chat con AncloraAI",
-    tutorialDescChat: "Conversa con AncloraAI para obtener ayuda contextual y sugerencias sobre creación y adaptación de contenido. Un asistente siempre a tu disposición para resolver tus dudas.",
-    tutorialTitleTTS: "Modo Voz: Texto a Voz",
-    tutorialDescTTS: "Convierte texto en audio con voces de IA. Selecciona el idioma de la voz y la IA traducirá automáticamente el texto original a ese idioma antes de generarlo en audio.",
-    tutorialTitleLiveChat: "Modo Live Chat: Conversación en Tiempo Real",
-    tutorialDescLiveChat: "Experimenta una conversación bidireccional en tiempo real con Gemini. Habla con la IA y recibe respuestas de voz al instante. Requiere una clave API configurada y puede incurrir en costos de facturación.",
-    tutorialTitleImage: "Modo Imagen: Edición y Generación Visual",
-    tutorialDescImage: "Sube una imagen y usa prompts de texto para editarla con Gemini 2.5 Flash Image o, directamente, explica a la IA qué imagen quieres generar.",
-    tutorialTitleReady: "¡Estás listo para empezar!",
-    tutorialDescReady: "Hemos cubierto las funcionalidades principales de AncloraAdapt. ¡Ahora explora cada modo y potencia tu comunicación como nunca!",
+    tutorialNext: "Next",
+    tutorialPrev: "Previous",
+    tutorialClose: "Close tutorial",
+    tutorialStepCount: "Step %d of %d",
+    tutorialTitleWelcome: "Welcome to AncloraAdapt",
+    tutorialDescWelcome: "This guide will help you discover how to transform and empower your content with AI. Let's explore its main modes!",
+    tutorialTitleBasic: "Basic Mode: Multiformat Generator",
+    tutorialDescBasic: "Ideal for generating content adapted to specific platforms, tones, and languages. Define your idea, select the options, and get ready-to-use posts.",
+    tutorialTitleIntelligent: "Intelligent Mode: 'Tell me what you want and I'll adapt it'",
+    tutorialDescIntelligent: "Describe your need in natural language and let the AI infer the best content, tone, and platforms. You can even choose to generate or edit images to complement your message.",
+    tutorialTitleCampaign: "Campaign Mode: 'Multiply your message'",
+    tutorialDescCampaign: "Create coordinated marketing campaigns for multiple platforms from a single idea. The AI will adapt each message and Call To Action (CTA), and you can add images if desired.",
+    tutorialTitleRecycle: "Content Recycling Mode",
+    tutorialDescRecycle: "Reuse existing content by transforming it into new formats such as summaries, X threads, Instagram captions, or persuasive titles. Maximize the lifespan of your content!",
+    tutorialTitleChat: "Chat Mode with AncloraAI",
+    tutorialDescChat: "Chat with AncloraAI for contextual help and suggestions on content creation and adaptation. An assistant always at your disposal to answer your questions.",
+    tutorialTitleTTS: "Voice Mode: Text to Speech",
+    tutorialDescTTS: "Convert text to audio with AI voices. Select the voice language and the AI will automatically translate the original text to that language before generating it in audio.",
+    tutorialTitleLiveChat: "Live Chat Mode: Real-time Conversation",
+    tutorialDescLiveChat: "Experience a real-time, bidirectional conversation with Gemini. Talk to the AI and get instant voice responses. Requires a configured API key and may incur billing costs.",
+    tutorialTitleImage: "Image Mode: Visual Editing and Generation",
+    tutorialDescImage: "Upload an image and use text prompts to edit it with Gemini 2.5 Flash Image or, directly, explain to the AI what image you want to generate.",
+    tutorialTitleReady: "You're ready to start!",
+    tutorialDescReady: "We've covered AncloraAdapt's main functionalities. Now explore each mode and boost your communication like never before!",
 
     // Language/Tones/Platforms (labels)
-    lang_detect: 'Detectar automáticamente',
+    lang_detect: 'Auto-detect',
     lang_es: 'Español',
     lang_en: 'English',
     lang_fr: 'Français',
     lang_de: 'Deutsch',
     lang_pt: 'Português',
     lang_it: 'Italiano',
-    lang_zh: 'Chino',
-    lang_ja: 'Japonés',
-    lang_ru: 'Ruso',
-    lang_ar: 'Árabe',
+    lang_zh: 'Chinese',
+    lang_ja: 'Japanese',
+    lang_ru: 'Russian',
+    lang_ar: 'Arabic',
 
-    tone_detect: 'Detectar automáticamente',
-    tone_Profesional: 'Profesional',
-    tone_Amistoso: 'Amistoso',
+    tone_detect: 'Auto-detect',
+    tone_Profesional: 'Professional',
+    tone_Amistoso: 'Friendly',
     tone_Formal: 'Formal',
     tone_Casual: 'Casual',
-    tone_Motivador: 'Motivador',
-    tone_Emocional: 'Emocional',
-    tone_Directo: 'Directo',
-    tone_Creativo: 'Creativo',
+    tone_Motivador: 'Motivational',
+    tone_Emocional: 'Emotional',
+    tone_Directo: 'Direct',
+    tone_Creativo: 'Creative',
 
     platform_LinkedIn: 'LinkedIn',
     platform_X: 'X (Twitter)',
     platform_Instagram: 'Instagram',
     platform_WhatsApp: 'WhatsApp',
     platform_Email: 'Email',
-    platform_Web: 'Web (Blog/Artículo)',
+    platform_Web: 'Web (Blog/Article)',
+    platform_LiteralTranslation: 'Literal Translation', // New platform for literal translation
 
     // TTS Voices (labels)
-    voice_Kore_es: 'Kore (Femenina) - español neutral',
-    voice_Charon_es: 'Charon (Masculina) - español neutral',
+    voice_Kore_es: 'Kore (Female) - neutral Spanish',
+    voice_Charon_es: 'Charon (Male) - neutral Spanish',
     voice_Zephyr_en: 'Zephyr (Female) - English (US)',
     voice_Puck_en: 'Puck (Male) - English (US)',
-    voice_Kore_fr: 'Kore (Féminine) - Français',
-    voice_Charon_fr: 'Charon (Masculin) - Français',
-    voice_Zephyr_de: 'Zephyr (Weiblich) - Deutsch',
-    voice_Puck_de: 'Puck (Männlich) - Deutsch',
-    voice_Kore_pt: 'Kore (Feminina) - Português',
-    voice_Charon_pt: 'Charon (Masculino) - Português',
-    voice_Zephyr_it: 'Zephyr (Femminile) - Italiano',
-    voice_Puck_it: 'Puck (Maschile) - Italiano',
-    voice_Kore_zh: 'Kore (女性) - 中文',
-    voice_Charon_zh: 'Charon (男性) - 中文',
-    voice_Zephyr_ja: 'Zephyr (女性) - 日本語',
-    voice_Puck_ja: 'Puck (男性) - 日本語',
-    voice_Kore_ru: 'Kore (Женский) - Русский',
-    voice_Charon_ru: 'Charon (Мужской) - Русский',
-    voice_Zephyr_ar: 'Zephyr (أنثى) - العربية',
-    voice_Puck_ar: 'Puck (ذكر) - العربية',
+    voice_Kore_fr: 'Kore (Female) - French',
+    voice_Charon_fr: 'Charon (Male) - French',
+    voice_Zephyr_de: 'Zephyr (Female) - German',
+    voice_Puck_de: 'Puck (Male) - German',
+    voice_Kore_pt: 'Kore (Female) - Portuguese',
+    voice_Charon_pt: 'Charon (Male) - Portuguese',
+    voice_Zephyr_it: 'Zephyr (Female) - Italian',
+    voice_Puck_it: 'Puck (Male) - Italian',
+    voice_Kore_zh: 'Kore (Female) - Chinese',
+    voice_Charon_zh: 'Charon (Male) - Chinese',
+    voice_Zephyr_ja: 'Zephyr (Female) - Japanese',
+    voice_Puck_ja: 'Puck (Male) - Japanese',
+    voice_Kore_ru: 'Kore (Female) - Russian',
+    voice_Charon_ru: 'Charon (Male) - Russian',
+    voice_Zephyr_ar: 'Zephyr (Female) - Arabic',
+    voice_Puck_ar: 'Puck (Male) - Arabic',
   }
 };
 
@@ -692,7 +698,7 @@ const outputSchema = {
         properties: {
           platform: {
             type: Type.STRING,
-            description: "The platform for which the content is generated (e.g., LinkedIn, X, Instagram, WhatsApp, Email, Web).",
+            description: "The platform for which the content is generated (e.g., LinkedIn, X, Instagram, WhatsApp, Email, Web, or Literal Translation).",
           },
           content: {
             type: Type.STRING,
@@ -1399,6 +1405,7 @@ const BasicMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, 
   const [selectedTone, setSelectedTone] = useState<string>('detect');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['LinkedIn', 'X', 'Instagram']);
   const [responseSpeed, setResponseSpeed] = useState<string>('flash'); // 'flash' or 'flash-lite'
+  const [literalTranslation, setLiteralTranslation] = useState<boolean>(false); // New state for literal translation
 
   useEffect(() => {
     setGeneratedImageUrl(null); // Clear image when switching tabs/modes
@@ -1419,16 +1426,39 @@ const BasicMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, 
       setError(translate('errorEmptyInput'));
       return;
     }
-    if (selectedPlatforms.length === 0) {
+    if (!literalTranslation && selectedPlatforms.length === 0) { // Only check platforms if not literal translation
       setError(translate('errorNoPlatformSelected'));
       return;
     }
 
-    const platformList = selectedPlatforms.map(p => (currentLanguage === 'es' ? platforms.find(pl => pl.value === p)?.label : platforms.find(pl => pl.value === p)?.enLabel) || p).join(', ');
     const languageDisplay = (currentLanguage === 'es' ? languages.find(lang => lang.value === selectedLanguage)?.label : languages.find(lang => lang.value === selectedLanguage)?.enLabel) || selectedLanguage;
     const toneDisplay = (currentLanguage === 'es' ? tones.find(t => t.value === selectedTone)?.label : tones.find(t => t.value === selectedTone)?.enLabel) || selectedTone;
 
-    const prompt = `You are an expert in digital communication. I will give you a main idea and the desired platforms, tones, and languages. Generate unique content for each platform, adapted to the specified tone and language. The output must be a JSON object with an 'outputs' property containing an array of objects. Each object in the array must have 'platform' and 'content' properties.
+    let prompt: string;
+    let localOutputSchema = outputSchema;
+
+    if (literalTranslation) {
+      prompt = `You are a professional translator. Translate the following text to ${languageDisplay}. Provide only the translated text.
+Text to translate: '${userInput}'`;
+      // For literal translation, we want a single output object with a specific platform.
+      // The model will just return the text, we'll wrap it in the expected JSON format.
+      // The `onGenerate` function expects a schema that can parse `response.text` as JSON.
+      // So, the prompt instructs the model to provide JSON directly even for literal translation.
+      prompt = `You are a professional translator. Translate the following text to ${languageDisplay}. Provide only the translated text, wrapped in a JSON object with a single 'outputs' array, where the 'platform' is "LiteralTranslation" and 'content' is the translated text.
+
+Text to translate: '${userInput}'
+
+Example output format:
+\`\`\`json
+{
+  "outputs": [
+    { "platform": "LiteralTranslation", "content": "Your literal translation here..." }
+  ]
+}
+\`\`\``;
+    } else {
+      const platformList = selectedPlatforms.map(p => (currentLanguage === 'es' ? platforms.find(pl => pl.value === p)?.label : platforms.find(pl => pl.value === p)?.enLabel) || p).join(', ');
+      prompt = `You are an expert in digital communication. I will give you a main idea and the desired platforms, tones, and languages. Generate unique content for each platform, adapted to the specified tone and language. The output must be a JSON object with an 'outputs' property containing an array of objects. Each object in the array must have 'platform' and 'content' properties.
 
 Main idea: '${userInput}'
 Output Language: ${languageDisplay}
@@ -1445,10 +1475,12 @@ Example output format:
 }
 \`\`\`
 Now, generate the content based on the provided idea and configurations.`;
+    }
+
 
     const modelToUse = responseSpeed === 'flash-lite' ? 'gemini-2.5-flash-lite' : 'gemini-2.5-flash';
-    await onGenerate(prompt, outputSchema, modelToUse);
-  }, [userInput, selectedLanguage, selectedTone, selectedPlatforms, responseSpeed, onGenerate, setError]);
+    await onGenerate(prompt, localOutputSchema, modelToUse);
+  }, [userInput, selectedLanguage, selectedTone, selectedPlatforms, responseSpeed, literalTranslation, onGenerate, setError]);
 
   return (
     <>
@@ -1498,6 +1530,7 @@ Now, generate the content based on the provided idea and configurations.`;
             onChange={(e) => setSelectedTone(e.target.value)}
             style={commonStyles.select}
             aria-label={translate('toneLabel')}
+            disabled={literalTranslation} // Disable tone if literal translation
           >
             {tones.map(tone => (
               <option key={tone.value} value={tone.value}>{currentLanguage === 'es' ? tone.label : tone.enLabel}</option>
@@ -1505,7 +1538,7 @@ Now, generate the content based on the provided idea and configurations.`;
           </select>
         </div>
 
-        <div style={commonStyles.configGroup}>
+        <div style={{ ...commonStyles.configGroup, opacity: literalTranslation ? 0.6 : 1, pointerEvents: literalTranslation ? 'none' : 'auto' }}>
           <label style={commonStyles.label}>{translate('platformsLabel')}</label>
           <div style={commonStyles.platformCheckboxes} role="group" aria-labelledby="platformSelectLabel">
             {platforms.map(platform => (
@@ -1517,6 +1550,7 @@ Now, generate the content based on the provided idea and configurations.`;
                   onChange={() => handlePlatformChange(platform.value)}
                   style={commonStyles.checkboxInput}
                   aria-checked={selectedPlatforms.includes(platform.value)}
+                  disabled={literalTranslation} // Disable platform checkboxes
                 />
                 {currentLanguage === 'es' ? platform.label : platform.enLabel}
               </label>
@@ -1535,6 +1569,18 @@ Now, generate the content based on the provided idea and configurations.`;
             <option value="flash">{translate('normalSpeed')}</option>
             <option value="flash-lite">{translate('fastSpeed')}</option>
           </select>
+        </div>
+        <div style={commonStyles.configGroup}>
+            <label className="checkboxLabel" style={{backgroundColor: 'transparent'}}>
+                <input
+                    type="checkbox"
+                    checked={literalTranslation}
+                    onChange={() => setLiteralTranslation(prev => !prev)}
+                    style={commonStyles.checkboxInput}
+                />
+                <span style={{fontWeight: 600, color: 'var(--azul-profundo)'}}>{translate('literalTranslationCheckbox')}</span>
+                <span style={{marginLeft: '8px', fontSize: '0.9em', opacity: 0.8}}>{translate('literalTranslationHint')}</span>
+            </label>
         </div>
       </section>
 
