@@ -292,6 +292,8 @@ const translations: Record<InterfaceLanguage, {
   title: string;
   subtitle: string;
   help: string;
+  helpTitle: string;
+  helpTips: string[];
   tabs: { basic: string; intelligent: string; campaign: string; recycle: string; chat: string; tts: string; live: string; image: string };
   toggles: { themeLight: string; themeDark: string; themeSystem: string; langEs: string; langEn: string };
   output: { loading: string; downloadAudio: string; downloadImage: string; copy: string };
@@ -308,6 +310,12 @@ const translations: Record<InterfaceLanguage, {
     title: 'AncloraAdapt',
     subtitle: 'Adapta, planifica y recicla contenido con modelos open source.',
     help: 'Explora cada modo, agrega contexto y prueba prompts cortos antes de compartirlos.',
+    helpTitle: 'Guia rapida',
+    helpTips: [
+      'Completa el contexto/destino en cada modo para resultados mas precisos.',
+      'Activa el proxy local (npm run dev) para evitar errores CORS con Hugging Face.',
+      'Recuerda que la interfaz arranca en español; cambia a ingles con el toggle de idioma.',
+    ],
     tabs: { basic: 'Basico', intelligent: 'Inteligente', campaign: 'Campaña', recycle: 'Reciclar', chat: 'Chat', tts: 'Voz', live: 'Live chat', image: 'Imagen' },
     toggles: {
       themeLight: 'Modo claro',
@@ -423,6 +431,12 @@ const translations: Record<InterfaceLanguage, {
     title: 'AncloraAdapt',
     subtitle: 'Adapt, plan and recycle content with open-source models.',
     help: 'Explore each mode, add context and test short prompts before sharing.',
+    helpTitle: 'Quick tips',
+    helpTips: [
+      'Fill the context/destination field to steer the generations.',
+      'Use the local proxy (npm run dev) to avoid Hugging Face CORS issues.',
+      'The UI defaults to Spanish; switch to English with the language toggle anytime.',
+    ],
     tabs: { basic: 'Basic', intelligent: 'Intelligent', campaign: 'Campaign', recycle: 'Repurpose', chat: 'Chat', tts: 'Voice', live: 'Live chat', image: 'Image' },
     toggles: {
       themeLight: 'Light mode',
@@ -765,8 +779,8 @@ const commonStyles: Record<string, React.CSSProperties> = {
   chatContainer: {
     border: '1px solid var(--panel-border, #e0e0e0)',
     borderRadius: '12px',
-    padding: '12px',
-    height: '360px',
+    padding: '16px',
+    minHeight: '360px',
     overflowY: 'auto',
     display: 'flex',
     flexDirection: 'column',
@@ -774,23 +788,32 @@ const commonStyles: Record<string, React.CSSProperties> = {
     backgroundColor: 'var(--panel-bg, #FFFFFF)',
   },
   chatMessage: {
-    borderRadius: '12px',
-    padding: '10px',
+    borderRadius: '14px',
+    padding: '12px 14px',
     maxWidth: '80%',
+    boxShadow: '0 6px 16px rgba(15, 23, 42, 0.1)',
   },
   userMessage: {
     alignSelf: 'flex-end',
     backgroundColor: 'var(--azul-claro, #2EAFC4)',
     color: 'var(--blanco, #FFFFFF)',
+    marginLeft: '40px',
+    marginRight: '4px',
   },
   aiMessage: {
     alignSelf: 'flex-start',
     backgroundColor: 'var(--chip-bg, #ecf0f1)',
     color: 'var(--chip-text, #162032)',
+    marginRight: '40px',
+    marginLeft: '4px',
   },
   chatInputRow: {
     display: 'flex',
     gap: '10px',
+    width: '100%',
+    padding: '0 8px',
+    boxSizing: 'border-box',
+    alignItems: 'stretch',
   },
   chatTextInput: {
     flex: 1,
@@ -799,6 +822,19 @@ const commonStyles: Record<string, React.CSSProperties> = {
     padding: '10px',
     minHeight: '60px',
     backgroundColor: 'var(--input-bg, #FFFFFF)',
+    color: 'var(--texto, #162032)',
+    minWidth: 0,
+    width: '100%',
+  },
+  chatCounters: {
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'flex-end',
+    fontSize: '12px',
+    color: 'var(--texto, #162032)',
+    opacity: 0.75,
+    marginTop: '6px',
+    paddingRight: '8px',
   },
   helpButton: {
     width: '40px',
@@ -809,6 +845,50 @@ const commonStyles: Record<string, React.CSSProperties> = {
     color: 'var(--azul-claro, #2EAFC4)',
     fontWeight: 700,
     cursor: 'pointer',
+  },
+  helpOverlay: {
+    position: 'fixed' as const,
+    inset: 0,
+    backgroundColor: 'rgba(15,23,42,0.55)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '20px',
+    zIndex: 1000,
+  },
+  helpModal: {
+    backgroundColor: 'var(--panel-bg, #FFFFFF)',
+    borderRadius: '16px',
+    padding: '24px',
+    width: 'min(520px, 90vw)',
+    boxShadow: '0 25px 65px rgba(15, 23, 42, 0.35)',
+    border: '1px solid var(--panel-border, #e0e0e0)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  helpModalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  helpModalList: {
+    margin: 0,
+    paddingLeft: '18px',
+    color: 'var(--texto, #162032)',
+  },
+  helpCloseButton: {
+    border: 'none',
+    background: 'transparent',
+    fontSize: '24px',
+    cursor: 'pointer',
+    color: 'var(--texto, #162032)',
+  },
+  helpIntro: {
+    margin: 0,
+    color: 'var(--texto, #162032)',
+    opacity: 0.8,
   },
   liveTranscript: {
     border: '1px solid var(--panel-border, #e0e0e0)',
@@ -1208,6 +1288,10 @@ const ChatMode: React.FC<{ interfaceLanguage: InterfaceLanguage; onCopy: (text: 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [current, setCurrent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const charCount = current.length;
+  const tokenEstimate = charCount === 0 ? 0 : Math.max(1, Math.round(charCount / 4));
+  const charLabel = interfaceLanguage === 'es' ? 'caracteres' : 'characters';
+  const tokenLabel = interfaceLanguage === 'es' ? 'tokens estimados' : 'estimated tokens';
 
   const sendMessage = async () => {
     if (!current.trim()) return;
@@ -1245,6 +1329,9 @@ const ChatMode: React.FC<{ interfaceLanguage: InterfaceLanguage; onCopy: (text: 
       <div style={commonStyles.chatInputRow}>
         <textarea style={commonStyles.chatTextInput} value={current} onChange={e => setCurrent(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={copy.placeholder} />
         <button type="button" style={commonStyles.generateButton} onClick={sendMessage} disabled={isLoading}>{copy.button}</button>
+      </div>
+      <div style={commonStyles.chatCounters}>
+        <span>{charCount} {charLabel} · ~{tokenEstimate} {tokenLabel}</span>
       </div>
     </section>
   );
@@ -1454,6 +1541,7 @@ const App: React.FC = () => {
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const copy = translations[interfaceLanguage];
   const toggleCopy = copy.toggles;
 
@@ -1536,7 +1624,10 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
   };
 
   const handleHelp = () => {
-    alert(copy.help);
+    setIsHelpOpen(true);
+  };
+  const closeHelp = () => {
+    setIsHelpOpen(false);
   };
 
   const commonProps: CommonProps = {
@@ -1572,6 +1663,7 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
     en: toggleCopy.langEn,
   };
   const helpLabel = interfaceLanguage === 'es' ? 'Abrir ayuda rapida' : 'Open quick tips';
+  const helpCloseLabel = interfaceLanguage === 'es' ? 'Cerrar ayuda' : 'Close help';
 
   return (
     <div style={commonStyles.container}>
@@ -1642,6 +1734,28 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
         {activeTab === 'live' && <LiveChatMode interfaceLanguage={interfaceLanguage} />}
         {activeTab === 'image' && <ImageEditMode interfaceLanguage={interfaceLanguage} />}
       </main>
+      {isHelpOpen && (
+        <div style={commonStyles.helpOverlay} role="presentation" onClick={closeHelp}>
+          <div
+            style={commonStyles.helpModal}
+            role="dialog"
+            aria-modal="true"
+            aria-label={copy.helpTitle}
+            onClick={event => event.stopPropagation()}
+          >
+            <div style={commonStyles.helpModalHeader}>
+              <h2 style={{ margin: 0 }}>{copy.helpTitle}</h2>
+              <button type="button" style={commonStyles.helpCloseButton} onClick={closeHelp} aria-label={helpCloseLabel} title={helpCloseLabel}>×</button>
+            </div>
+            <p style={commonStyles.helpIntro}>{copy.help}</p>
+            <ul style={commonStyles.helpModalList}>
+              {copy.helpTips.map((tip, index) => (
+                <li key={index}>{tip}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
