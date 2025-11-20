@@ -288,8 +288,8 @@ const translations: Record<InterfaceLanguage, {
   tabs: { basic: string; intelligent: string; campaign: string; recycle: string; chat: string; tts: string; live: string; image: string };
   toggles: { themeLight: string; themeDark: string; themeSystem: string; langEs: string; langEn: string };
   output: { loading: string; downloadAudio: string; downloadImage: string; copy: string };
-  basic: { ideaLabel: string; ideaPlaceholder: string; languageLabel: string; toneLabel: string; speedLabel: string; speedDetailed: string; speedFlash: string; platformLabel: string; buttonIdle: string; buttonLoading: string; errors: { idea: string; platforms: string } };
-  intelligent: { ideaLabel: string; ideaPlaceholder: string; contextLabel: string; contextPlaceholder: string; deepThinkingLabel: string; includeImageLabel: string; imagePromptLabel: string; imagePromptPlaceholder: string; buttonIdle: string; buttonLoading: string; errors: { idea: string; imagePrompt: string } };
+  basic: { ideaLabel: string; ideaPlaceholder: string; languageLabel: string; toneLabel: string; speedLabel: string; speedDetailed: string; speedFlash: string; platformLabel: string; literalLabel: string; maxCharsLabel: string; buttonIdle: string; buttonLoading: string; errors: { idea: string; platforms: string } };
+  intelligent: { ideaLabel: string; ideaPlaceholder: string; contextLabel: string; contextPlaceholder: string; languageLabel: string; deepThinkingLabel: string; includeImageLabel: string; imagePromptLabel: string; imagePromptPlaceholder: string; buttonIdle: string; buttonLoading: string; errors: { idea: string; imagePrompt: string } };
   campaign: { ideaLabel: string; ideaPlaceholder: string; contextLabel: string; contextPlaceholder: string; languageLabel: string; buttonIdle: string; buttonLoading: string; errors: { idea: string } };
   recycle: { originalLabel: string; originalPlaceholder: string; contextLabel: string; contextPlaceholder: string; formatLabel: string; languageLabel: string; toneLabel: string; buttonIdle: string; buttonLoading: string; errors: { original: string } };
   chat: { intro: string; placeholder: string; button: string; typing: string };
@@ -324,6 +324,8 @@ const translations: Record<InterfaceLanguage, {
       speedDetailed: 'Detallado',
       speedFlash: 'Flash',
       platformLabel: 'Plataformas',
+      literalLabel: 'Forzar traduccion literal (sin tono ni plataformas)',
+      maxCharsLabel: 'Maximo de caracteres',
       buttonIdle: 'Generar contenido',
       buttonLoading: 'Generando...',
       errors: {
@@ -336,6 +338,7 @@ const translations: Record<InterfaceLanguage, {
       ideaPlaceholder: 'Necesito adaptar un anuncio...',
       contextLabel: 'Contexto / Destino',
       contextPlaceholder: 'Equipo de ventas, newsletter, etc.',
+      languageLabel: 'Idioma de salida',
       deepThinkingLabel: 'Pensamiento profundo',
       includeImageLabel: 'Incluir imagen generada',
       imagePromptLabel: 'Prompt de imagen',
@@ -436,6 +439,8 @@ const translations: Record<InterfaceLanguage, {
       speedDetailed: 'Detailed',
       speedFlash: 'Flash',
       platformLabel: 'Platforms',
+      literalLabel: 'Literal translation only (disable tone/platforms)',
+      maxCharsLabel: 'Maximum characters',
       buttonIdle: 'Generate content',
       buttonLoading: 'Generating...',
       errors: {
@@ -448,6 +453,7 @@ const translations: Record<InterfaceLanguage, {
       ideaPlaceholder: 'I need to adapt an offer...',
       contextLabel: 'Context / Destination',
       contextPlaceholder: 'Sales team, newsletter, etc.',
+      languageLabel: 'Output language',
       deepThinkingLabel: 'Deep thinking',
       includeImageLabel: 'Include generated image',
       imagePromptLabel: 'Image prompt',
@@ -573,6 +579,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     borderRadius:
     '999px',
     backgroundColor: 'var(--toggle-track, var(--gris-fondo, #f6f7f9))',
+    border: '1px solid var(--panel-border, #e0e0e0)',
   },
   toggleButton: {
     border: 'none',
@@ -585,7 +592,8 @@ const commonStyles: Record<string, React.CSSProperties> = {
   },
   toggleButtonActive: {
     backgroundColor: 'var(--toggle-active-bg, var(--blanco, #FFFFFF))',
-    boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+    color: 'var(--azul-claro, #2EAFC4)',
   },
   title: {
     fontFamily: 'Libre Baskerville, serif',
@@ -648,6 +656,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     fontSize: '1em',
     resize: 'vertical',
     backgroundColor: 'var(--input-bg, #FFFFFF)',
+    color: 'var(--texto, #162032)',
   },
   select: {
     width: '100%',
@@ -655,6 +664,14 @@ const commonStyles: Record<string, React.CSSProperties> = {
     border: '1px solid var(--panel-border, #e0e0e0)',
     padding: '10px',
     backgroundColor: 'var(--input-bg, #FFFFFF)',
+    color: 'var(--texto, #162032)',
+  },
+  checkboxLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontWeight: 600,
+    color: 'var(--texto, #162032)',
   },
   configSection: {
     display: 'flex',
@@ -674,6 +691,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     borderRadius: '16px',
     backgroundColor: 'var(--chip-bg, #ecf0f1)',
     color: 'var(--chip-text, #162032)',
+    border: '1px solid var(--panel-border, #e0e0e0)',
     cursor: 'pointer',
   },
   generateButton: {
@@ -857,6 +875,8 @@ const BasicMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, 
   const [tone, setTone] = useState('detect');
   const [platforms, setPlatforms] = useState<string[]>(['LinkedIn', 'Instagram']);
   const [speed, setSpeed] = useState<'detailed' | 'flash'>('detailed');
+  const [literalTranslation, setLiteralTranslation] = useState(false);
+  const [maxChars, setMaxChars] = useState('');
 
   useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
   useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
@@ -870,14 +890,22 @@ const BasicMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, 
       setError(copy.errors.idea);
       return;
     }
-    if (platforms.length === 0) {
+    if (!literalTranslation && platforms.length === 0) {
       setError(copy.errors.platforms);
       return;
     }
     const languageDisplay = languages.find(l => l.value === language)?.label || language;
     const toneDisplay = tones.find(t => t.value === tone)?.label || tone;
     const speedDisplay = speed === 'detailed' ? copy.speedDetailed : copy.speedFlash;
-    const prompt = `Eres un estratega de contenidos. Genera una lista JSON bajo la clave "outputs" siguiendo ${structuredOutputExample}. Idea: "${idea}". Idioma solicitado: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas: ${platforms.join(', ')}. Nivel de detalle: ${speedDisplay}.`;
+    const parsedLimit = Number.parseInt(maxChars, 10);
+    const charLimit = Number.isNaN(parsedLimit) ? null : parsedLimit;
+    const limitSuffix = charLimit && charLimit > 0 ? ` Limita la respuesta a un maximo de ${charLimit} caracteres.` : '';
+    let prompt: string;
+    if (literalTranslation) {
+      prompt = `Actua como traductor literal especializado en marketing. Devuelve la traduccion en formato JSON bajo la clave "outputs" siguiendo ${structuredOutputExample}. Texto original: "${idea}". Idioma de destino: ${languageDisplay}.${limitSuffix}`;
+    } else {
+      prompt = `Eres un estratega de contenidos. Genera una lista JSON bajo la clave "outputs" siguiendo ${structuredOutputExample}. Idea: "${idea}". Idioma solicitado: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas: ${platforms.join(', ')}. Nivel de detalle: ${speedDisplay}.${limitSuffix}`;
+    }
     await onGenerate(prompt);
   };
 
@@ -896,7 +924,7 @@ const BasicMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, 
         </div>
         <div style={commonStyles.configGroup}>
           <label style={commonStyles.label}>{copy.toneLabel}</label>
-          <select style={commonStyles.select} value={tone} onChange={e => setTone(e.target.value)}>
+          <select style={commonStyles.select} value={tone} onChange={e => setTone(e.target.value)} disabled={literalTranslation}>
             {tones.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
@@ -912,10 +940,21 @@ const BasicMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, 
         <label style={commonStyles.label}>{copy.platformLabel}</label>
         <div style={commonStyles.checkboxRow}>
           {['LinkedIn', 'X', 'Instagram', 'WhatsApp', 'Email'].map(option => (
-            <label key={option} style={commonStyles.checkboxChip}>
-              <input type="checkbox" checked={platforms.includes(option)} onChange={() => togglePlatform(option)} /> {option}
+            <label key={option} style={{ ...commonStyles.checkboxChip, opacity: literalTranslation ? 0.5 : 1, cursor: literalTranslation ? 'not-allowed' : 'pointer' }}>
+              <input type="checkbox" checked={platforms.includes(option)} onChange={() => togglePlatform(option)} disabled={literalTranslation} /> {option}
             </label>
           ))}
+        </div>
+      </section>
+      <section style={commonStyles.section}>
+        <label style={commonStyles.checkboxLabel}>
+          <input type="checkbox" checked={literalTranslation} onChange={e => setLiteralTranslation(e.target.checked)} /> {copy.literalLabel}
+        </label>
+      </section>
+      <section style={commonStyles.configSection}>
+        <div style={commonStyles.configGroup}>
+          <label style={commonStyles.label}>{copy.maxCharsLabel}</label>
+          <input type="number" min="0" style={commonStyles.select} value={maxChars} onChange={e => setMaxChars(e.target.value)} placeholder="280" />
         </div>
       </section>
       <button type="button" style={commonStyles.generateButton} onClick={handleGenerate} disabled={isLoading}>
@@ -930,6 +969,7 @@ const IntelligentMode: React.FC<CommonProps> = ({ isLoading, error, generatedOut
   const copy = translations[interfaceLanguage].intelligent;
   const [idea, setIdea] = useState('');
   const [context, setContext] = useState('');
+  const [language, setLanguage] = useState(interfaceLanguage);
   const [deepThinking, setDeepThinking] = useState(false);
   const [includeImage, setIncludeImage] = useState(false);
   const [imagePrompt, setImagePrompt] = useState('');
@@ -937,6 +977,7 @@ const IntelligentMode: React.FC<CommonProps> = ({ isLoading, error, generatedOut
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
+  useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
@@ -957,7 +998,8 @@ const IntelligentMode: React.FC<CommonProps> = ({ isLoading, error, generatedOut
     setGeneratedImageUrl(null);
     try {
       const thinking = deepThinking ? 'Analiza paso a paso antes de responder.' : 'Responde de forma directa.';
-      const prompt = `Eres un estratega creativo. Necesidad: "${idea}". Contexto/destino: "${context || 'No especificado'}". Idioma del usuario: ${interfaceLanguage.toUpperCase()}. ${thinking} Sigue el formato ${structuredOutputExample}.`;
+      const languageDisplay = languages.find(l => l.value === language)?.label || language;
+      const prompt = `Eres un estratega creativo. Necesidad: "${idea}". Contexto/destino: "${context || 'No especificado'}". Idioma del usuario: ${interfaceLanguage.toUpperCase()}. Idioma de salida solicitado: ${languageDisplay}. ${thinking} Sigue el formato ${structuredOutputExample}.`;
       await onGenerate(prompt);
       if (includeImage && imagePrompt.trim()) {
         const base64 = imageFile ? await fileToBase64(imageFile) : undefined;
@@ -982,6 +1024,12 @@ Contexto: ${context || idea}`, base64);
       <section style={commonStyles.section}>
         <label style={commonStyles.label}>{copy.contextLabel}</label>
         <textarea style={commonStyles.textarea} value={context} onChange={e => setContext(e.target.value)} placeholder={copy.contextPlaceholder} />
+      </section>
+      <section style={commonStyles.section}>
+        <label style={commonStyles.label}>{copy.languageLabel}</label>
+        <select style={commonStyles.select} value={language} onChange={e => setLanguage(e.target.value)}>
+          {languages.map(lang => <option key={lang.value} value={lang.value}>{lang.label}</option>)}
+        </select>
       </section>
       <section style={commonStyles.section}>
         <label>
