@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 
 const API_KEY = process.env.HF_API_KEY || process.env.API_KEY;
 const HF_BASE_URL = 'https://api-inference.huggingface.co/models';
-const TEXT_MODEL_ID = import.meta.env.VITE_TEXT_MODEL_ID || 'meta-llama/Meta-Llama-3-8B-Instruct';
+const TEXT_MODEL_ID = import.meta.env.VITE_TEXT_MODEL_ID || 'mistralai/Mistral-7B-Instruct-v0.2';
 const IMAGE_MODEL_ID = import.meta.env.VITE_IMAGE_MODEL_ID || 'black-forest-labs/FLUX.1-schnell';
 const TTS_MODEL_ID = import.meta.env.VITE_TTS_MODEL_ID || 'suno/bark-small';
 const STT_MODEL_ID = import.meta.env.VITE_STT_MODEL_ID || 'openai/whisper-large-v3-turbo';
@@ -134,6 +134,14 @@ const structuredOutputExample = `{
     { "platform": "Instagram", "content": "Copys breves y visuales" }
   ]
 }`;
+
+const formatCounterText = (value: string, language: InterfaceLanguage) => {
+  const chars = value.length;
+  const tokens = chars === 0 ? 0 : Math.max(1, Math.round(chars / 4));
+  const charLabel = language === 'es' ? 'caracteres' : 'characters';
+  const tokenLabel = language === 'es' ? 'tokens estimados' : 'estimated tokens';
+  return `${chars} ${charLabel} · ~${tokens} ${tokenLabel}`;
+};
 
 interface GeneratedOutput {
   platform: string;
@@ -666,6 +674,9 @@ const commonStyles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
+    padding: '0 12px 16px 12px',
+    width: '100%',
+    boxSizing: 'border-box',
   },
   label: {
     fontWeight: 600,
@@ -701,6 +712,9 @@ const commonStyles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexWrap: 'wrap',
     gap: '20px',
+    padding: '0 12px 16px 12px',
+    width: '100%',
+    boxSizing: 'border-box',
   },
   configGroup: {
     flex: '1 1 240px',
@@ -722,16 +736,18 @@ const commonStyles: Record<string, React.CSSProperties> = {
     padding: '16px',
     borderRadius: '12px',
     border: 'none',
-    background: 'linear-gradient(90deg, var(--azul-claro, #2EAFC4), var(--ambar, #FFC979))',
+    backgroundImage: 'linear-gradient(90deg, var(--azul-claro, #2EAFC4), var(--ambar, #FFC979))',
     fontWeight: 700,
     color: 'var(--button-contrast, #162032)',
     cursor: 'pointer',
+    margin: '0 12px',
   },
   errorMessage: {
     backgroundColor: 'var(--danger-bg, #fdecea)',
     color: 'var(--danger-text, #c0392b)',
     padding: '12px',
     borderRadius: '10px',
+    margin: '0 12px',
   },
   loadingMessage: {
     display: 'flex',
@@ -779,13 +795,15 @@ const commonStyles: Record<string, React.CSSProperties> = {
   chatContainer: {
     border: '1px solid var(--panel-border, #e0e0e0)',
     borderRadius: '12px',
-    padding: '16px',
+    padding: '20px 18px',
     minHeight: '360px',
     overflowY: 'auto',
     display: 'flex',
     flexDirection: 'column',
     gap: '10px',
     backgroundColor: 'var(--panel-bg, #FFFFFF)',
+    width: '100%',
+    boxSizing: 'border-box',
   },
   chatMessage: {
     borderRadius: '14px',
@@ -807,12 +825,18 @@ const commonStyles: Record<string, React.CSSProperties> = {
     marginRight: '40px',
     marginLeft: '4px',
   },
+  chatInputWrapper: {
+    width: '100%',
+    padding: '0 12px 12px 12px',
+    boxSizing: 'border-box',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
   chatInputRow: {
     display: 'flex',
     gap: '10px',
     width: '100%',
-    padding: '0 8px',
-    boxSizing: 'border-box',
     alignItems: 'stretch',
   },
   chatTextInput: {
@@ -832,9 +856,8 @@ const commonStyles: Record<string, React.CSSProperties> = {
     justifyContent: 'flex-end',
     fontSize: '12px',
     color: 'var(--texto, #162032)',
-    opacity: 0.75,
-    marginTop: '6px',
-    paddingRight: '8px',
+    opacity: 0.85,
+    paddingRight: '12px',
   },
   helpButton: {
     width: '40px',
@@ -889,6 +912,13 @@ const commonStyles: Record<string, React.CSSProperties> = {
     margin: 0,
     color: 'var(--texto, #162032)',
     opacity: 0.8,
+  },
+  inputCounter: {
+    alignSelf: 'flex-end',
+    fontSize: '12px',
+    color: 'var(--toggle-inactive-text, #667085)',
+    marginTop: '4px',
+    paddingRight: '12px',
   },
   liveTranscript: {
     border: '1px solid var(--panel-border, #e0e0e0)',
@@ -1004,6 +1034,7 @@ const BasicMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, 
       <section style={commonStyles.section}>
         <label style={commonStyles.label} htmlFor="basic-idea">{copy.ideaLabel}</label>
         <textarea id="basic-idea" style={commonStyles.textarea} value={idea} onChange={e => setIdea(e.target.value)} placeholder={copy.ideaPlaceholder} />
+        <div style={commonStyles.inputCounter}>{formatCounterText(idea, interfaceLanguage)}</div>
       </section>
       <section style={commonStyles.configSection}>
         <div style={commonStyles.configGroup}>
@@ -1118,10 +1149,12 @@ Contexto: ${context || idea}`, base64);
       <section style={commonStyles.section}>
         <label style={commonStyles.label}>{copy.ideaLabel}</label>
         <textarea style={commonStyles.textarea} value={idea} onChange={e => setIdea(e.target.value)} placeholder={copy.ideaPlaceholder} />
+        <div style={commonStyles.inputCounter}>{formatCounterText(idea, interfaceLanguage)}</div>
       </section>
       <section style={commonStyles.section}>
         <label style={commonStyles.label}>{copy.contextLabel}</label>
         <textarea style={commonStyles.textarea} value={context} onChange={e => setContext(e.target.value)} placeholder={copy.contextPlaceholder} />
+        <div style={commonStyles.inputCounter}>{formatCounterText(context, interfaceLanguage)}</div>
       </section>
       <section style={commonStyles.section}>
         <label style={commonStyles.label}>{copy.languageLabel}</label>
@@ -1142,6 +1175,7 @@ Contexto: ${context || idea}`, base64);
           <>
             <input type="file" onChange={handleFileChange} accept="image/*" />
             <textarea style={commonStyles.textarea} value={imagePrompt} onChange={e => setImagePrompt(e.target.value)} placeholder={copy.imagePromptPlaceholder} />
+            <div style={commonStyles.inputCounter}>{formatCounterText(imagePrompt, interfaceLanguage)}</div>
             {imagePreview && <img src={imagePreview} alt="Preview" style={{ width: '100%', borderRadius: '12px' }} />}
           </>
         )}
@@ -1189,10 +1223,12 @@ const CampaignMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutput
       <section style={commonStyles.section}>
         <label style={commonStyles.label}>{copy.ideaLabel}</label>
         <textarea style={commonStyles.textarea} value={idea} onChange={e => setIdea(e.target.value)} placeholder={copy.ideaPlaceholder} />
+        <div style={commonStyles.inputCounter}>{formatCounterText(idea, interfaceLanguage)}</div>
       </section>
       <section style={commonStyles.section}>
         <label style={commonStyles.label}>{copy.contextLabel}</label>
         <textarea style={commonStyles.textarea} value={context} onChange={e => setContext(e.target.value)} placeholder={copy.contextPlaceholder} />
+        <div style={commonStyles.inputCounter}>{formatCounterText(context, interfaceLanguage)}</div>
       </section>
       <section style={commonStyles.section}>
         <label style={commonStyles.label}>{copy.languageLabel}</label>
@@ -1244,10 +1280,12 @@ const RecycleMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs
       <section style={commonStyles.section}>
         <label style={commonStyles.label}>{copy.originalLabel}</label>
         <textarea style={commonStyles.textarea} value={inputText} onChange={e => setInputText(e.target.value)} placeholder={copy.originalPlaceholder} />
+        <div style={commonStyles.inputCounter}>{formatCounterText(inputText, interfaceLanguage)}</div>
       </section>
       <section style={commonStyles.section}>
         <label style={commonStyles.label}>{copy.contextLabel}</label>
         <textarea style={commonStyles.textarea} value={context} onChange={e => setContext(e.target.value)} placeholder={copy.contextPlaceholder} />
+        <div style={commonStyles.inputCounter}>{formatCounterText(context, interfaceLanguage)}</div>
       </section>
       <section style={commonStyles.configSection}>
         <div style={commonStyles.configGroup}>
@@ -1288,10 +1326,6 @@ const ChatMode: React.FC<{ interfaceLanguage: InterfaceLanguage; onCopy: (text: 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [current, setCurrent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const charCount = current.length;
-  const tokenEstimate = charCount === 0 ? 0 : Math.max(1, Math.round(charCount / 4));
-  const charLabel = interfaceLanguage === 'es' ? 'caracteres' : 'characters';
-  const tokenLabel = interfaceLanguage === 'es' ? 'tokens estimados' : 'estimated tokens';
 
   const sendMessage = async () => {
     if (!current.trim()) return;
@@ -1331,7 +1365,7 @@ const ChatMode: React.FC<{ interfaceLanguage: InterfaceLanguage; onCopy: (text: 
         <button type="button" style={commonStyles.generateButton} onClick={sendMessage} disabled={isLoading}>{copy.button}</button>
       </div>
       <div style={commonStyles.chatCounters}>
-        <span>{charCount} {charLabel} · ~{tokenEstimate} {tokenLabel}</span>
+        <span>{formatCounterText(current, interfaceLanguage)}</span>
       </div>
     </section>
   );
@@ -1378,6 +1412,7 @@ const TTSMode: React.FC<{ interfaceLanguage: InterfaceLanguage }> = ({ interface
     <section style={commonStyles.section}>
       <label style={commonStyles.label}>{copy.textLabel}</label>
       <textarea style={commonStyles.textarea} value={textToSpeak} onChange={e => setTextToSpeak(e.target.value)} placeholder={copy.textPlaceholder} />
+      <div style={commonStyles.inputCounter}>{formatCounterText(textToSpeak, interfaceLanguage)}</div>
       <div style={commonStyles.configSection}>
         <div style={commonStyles.configGroup}>
           <label style={commonStyles.label}>{copy.languageLabel}</label>
@@ -1516,6 +1551,7 @@ const ImageEditMode: React.FC<{ interfaceLanguage: InterfaceLanguage }> = ({ int
     <section style={commonStyles.section}>
       <label style={commonStyles.label}>{copy.promptLabel}</label>
       <textarea style={commonStyles.textarea} value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={copy.promptPlaceholder} />
+      <div style={commonStyles.inputCounter}>{formatCounterText(prompt, interfaceLanguage)}</div>
       <input type="file" accept="image/*" onChange={handleFileChange} />
       {preview && <img src={preview} alt="preview" style={{ width: '100%', borderRadius: '12px' }} />}
       <button type="button" style={commonStyles.generateButton} onClick={handleGenerate} disabled={isLoading}>
