@@ -1547,7 +1547,6 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
           </div>
           <button type="button" style={commonStyles.helpButton} onClick={handleHelp} aria-label={helpLabel} title={helpLabel}>?</button>
         </div>
-        </div>
       </header>
 
       <main style={commonStyles.mainContent}>
