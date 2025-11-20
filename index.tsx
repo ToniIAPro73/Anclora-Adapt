@@ -237,6 +237,309 @@ const ttsLanguageOptions = [
   { value: 'ar', label: 'Arabe' },
 ];
 
+const themeIconProps: React.SVGProps<SVGSVGElement> = {
+  width: 20,
+  height: 20,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.5,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+};
+
+const renderThemeIcon = (mode: ThemeMode): React.ReactElement => {
+  switch (mode) {
+    case 'light':
+      return (
+        <svg {...themeIconProps} aria-hidden="true">
+          <circle cx="12" cy="12" r="4" />
+          <line x1="12" y1="3" x2="12" y2="5" />
+          <line x1="12" y1="19" x2="12" y2="21" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="3" y1="12" x2="5" y2="12" />
+          <line x1="19" y1="12" x2="21" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+      );
+    case 'dark':
+      return (
+        <svg {...themeIconProps} aria-hidden="true">
+          <path d="M21 12.79A9 9 0 0 1 11.21 3 7 7 0 1 0 21 12.79z" />
+        </svg>
+      );
+    default:
+      return (
+        <svg {...themeIconProps} aria-hidden="true">
+          <rect x="3" y="4" width="18" height="12" rx="2" />
+          <line x1="8" y1="20" x2="16" y2="20" />
+          <line x1="12" y1="16" x2="12" y2="20" />
+        </svg>
+      );
+  }
+};
+
+const translations: Record<InterfaceLanguage, {
+  title: string;
+  subtitle: string;
+  help: string;
+  tabs: { basic: string; intelligent: string; campaign: string; recycle: string; chat: string; tts: string; live: string; image: string };
+  toggles: { themeLight: string; themeDark: string; themeSystem: string; langEs: string; langEn: string };
+  output: { loading: string; downloadAudio: string; downloadImage: string; copy: string };
+  basic: { ideaLabel: string; ideaPlaceholder: string; languageLabel: string; toneLabel: string; speedLabel: string; speedDetailed: string; speedFlash: string; platformLabel: string; buttonIdle: string; buttonLoading: string; errors: { idea: string; platforms: string } };
+  intelligent: { ideaLabel: string; ideaPlaceholder: string; contextLabel: string; contextPlaceholder: string; deepThinkingLabel: string; includeImageLabel: string; imagePromptLabel: string; imagePromptPlaceholder: string; buttonIdle: string; buttonLoading: string; errors: { idea: string; imagePrompt: string } };
+  campaign: { ideaLabel: string; ideaPlaceholder: string; contextLabel: string; contextPlaceholder: string; languageLabel: string; buttonIdle: string; buttonLoading: string; errors: { idea: string } };
+  recycle: { originalLabel: string; originalPlaceholder: string; contextLabel: string; contextPlaceholder: string; formatLabel: string; languageLabel: string; toneLabel: string; buttonIdle: string; buttonLoading: string; errors: { original: string } };
+  chat: { intro: string; placeholder: string; button: string; typing: string };
+  tts: { textLabel: string; textPlaceholder: string; languageLabel: string; voiceLabel: string; buttonIdle: string; buttonLoading: string; errors: { text: string } };
+  live: { intro: string; buttonStart: string; buttonStop: string; transcriptLabel: string; errors: { microphone: string } };
+  image: { promptLabel: string; promptPlaceholder: string; buttonIdle: string; buttonLoading: string; errors: { prompt: string } };
+}> = {
+  es: {
+    title: 'AncloraAdapt',
+    subtitle: 'Adapta, planifica y recicla contenido con modelos open source.',
+    help: 'Explora cada modo, agrega contexto y prueba prompts cortos antes de compartirlos.',
+    tabs: { basic: 'Basico', intelligent: 'Inteligente', campaign: 'Campana', recycle: 'Reciclar', chat: 'Chat', tts: 'Voz', live: 'Live chat', image: 'Imagen' },
+    toggles: {
+      themeLight: 'Modo claro',
+      themeDark: 'Modo oscuro',
+      themeSystem: 'Seguir el modo del sistema',
+      langEs: 'Interfaz en espanol',
+      langEn: 'Interfaz en ingles',
+    },
+    output: {
+      loading: 'La IA esta trabajando...',
+      downloadAudio: 'Descargar audio',
+      downloadImage: 'Descargar imagen',
+      copy: 'Copiar',
+    },
+    basic: {
+      ideaLabel: 'Tu idea principal',
+      ideaPlaceholder: 'Quiero contar que...',
+      languageLabel: 'Idioma',
+      toneLabel: 'Tono',
+      speedLabel: 'Velocidad',
+      speedDetailed: 'Detallado',
+      speedFlash: 'Flash',
+      platformLabel: 'Plataformas',
+      buttonIdle: 'Generar contenido',
+      buttonLoading: 'Generando...',
+      errors: {
+        idea: 'Describe tu idea principal.',
+        platforms: 'Selecciona al menos una plataforma.',
+      },
+    },
+    intelligent: {
+      ideaLabel: 'Describe tu necesidad',
+      ideaPlaceholder: 'Necesito adaptar un anuncio...',
+      contextLabel: 'Contexto / Destino',
+      contextPlaceholder: 'Equipo de ventas, newsletter, etc.',
+      deepThinkingLabel: 'Pensamiento profundo',
+      includeImageLabel: 'Incluir imagen generada',
+      imagePromptLabel: 'Prompt de imagen',
+      imagePromptPlaceholder: 'Una ilustracion minimalista...',
+      buttonIdle: 'Generar adaptaciones',
+      buttonLoading: 'Interpretando...',
+      errors: {
+        idea: 'Describe lo que necesitas.',
+        imagePrompt: 'Escribe el prompt para la imagen.',
+      },
+    },
+    campaign: {
+      ideaLabel: 'Idea central de la campana',
+      ideaPlaceholder: 'Ej: Lanzamiento express de...',
+      contextLabel: 'Contexto / Destino',
+      contextPlaceholder: 'Canales disponibles, presupuesto, etc.',
+      languageLabel: 'Idioma de salida',
+      buttonIdle: 'Generar campana',
+      buttonLoading: 'Construyendo campana...',
+      errors: {
+        idea: 'Describe la idea base de tu campana.',
+      },
+    },
+    recycle: {
+      originalLabel: 'Contenido original',
+      originalPlaceholder: 'Pega el texto que quieres reciclar...',
+      contextLabel: 'Contexto / Destino',
+      contextPlaceholder: 'Donde se publicara, objetivo, etc.',
+      formatLabel: 'Formato deseado',
+      languageLabel: 'Idioma',
+      toneLabel: 'Tono',
+      buttonIdle: 'Reciclar contenido',
+      buttonLoading: 'Reciclando...',
+      errors: {
+        original: 'Pega el contenido original.',
+      },
+    },
+    chat: {
+      intro: 'Conversa con AncloraAI para resolver dudas rapidas.',
+      placeholder: 'Escribe tu mensaje...',
+      button: 'Enviar',
+      typing: 'Pensando...',
+    },
+    tts: {
+      textLabel: 'Texto a convertir a voz',
+      textPlaceholder: 'Hola, hoy lanzamos...',
+      languageLabel: 'Idioma de la voz',
+      voiceLabel: 'Selecciona la voz',
+      buttonIdle: 'Generar voz',
+      buttonLoading: 'Generando audio...',
+      errors: {
+        text: 'Escribe el texto a convertir.',
+      },
+    },
+    live: {
+      intro: 'Graba un fragmento corto y obten respuesta inmediata.',
+      buttonStart: 'Hablar',
+      buttonStop: 'Detener',
+      transcriptLabel: 'Transcripcion',
+      errors: {
+        microphone: 'No se pudo acceder al microfono.',
+      },
+    },
+    image: {
+      promptLabel: 'Prompt de imagen',
+      promptPlaceholder: 'Describe la escena que necesitas...',
+      buttonIdle: 'Generar/Editar',
+      buttonLoading: 'Procesando...',
+      errors: {
+        prompt: 'Escribe un prompt o sube una imagen.',
+      },
+    },
+  },
+  en: {
+    title: 'AncloraAdapt',
+    subtitle: 'Adapt, plan and recycle content with open-source models.',
+    help: 'Explore each mode, add context and test short prompts before sharing.',
+    tabs: { basic: 'Basic', intelligent: 'Intelligent', campaign: 'Campaign', recycle: 'Repurpose', chat: 'Chat', tts: 'Voice', live: 'Live chat', image: 'Image' },
+    toggles: {
+      themeLight: 'Light mode',
+      themeDark: 'Dark mode',
+      themeSystem: 'Match system theme',
+      langEs: 'Interface in Spanish',
+      langEn: 'Interface in English',
+    },
+    output: {
+      loading: 'The AI is crafting your content...',
+      downloadAudio: 'Download audio',
+      downloadImage: 'Download image',
+      copy: 'Copy',
+    },
+    basic: {
+      ideaLabel: 'Your main idea',
+      ideaPlaceholder: 'I want to announce...',
+      languageLabel: 'Output language',
+      toneLabel: 'Tone',
+      speedLabel: 'Detail level',
+      speedDetailed: 'Detailed',
+      speedFlash: 'Flash',
+      platformLabel: 'Platforms',
+      buttonIdle: 'Generate content',
+      buttonLoading: 'Generating...',
+      errors: {
+        idea: 'Describe your main idea.',
+        platforms: 'Select at least one platform.',
+      },
+    },
+    intelligent: {
+      ideaLabel: 'Describe your need',
+      ideaPlaceholder: 'I need to adapt an offer...',
+      contextLabel: 'Context / Destination',
+      contextPlaceholder: 'Sales team, newsletter, etc.',
+      deepThinkingLabel: 'Deep thinking',
+      includeImageLabel: 'Include generated image',
+      imagePromptLabel: 'Image prompt',
+      imagePromptPlaceholder: 'A minimalist illustration...',
+      buttonIdle: 'Generate adaptations',
+      buttonLoading: 'Interpreting...',
+      errors: {
+        idea: 'Describe what you need.',
+        imagePrompt: 'Provide the image prompt.',
+      },
+    },
+    campaign: {
+      ideaLabel: 'Campaign idea',
+      ideaPlaceholder: 'Ex: Express launch for...',
+      contextLabel: 'Context / Destination',
+      contextPlaceholder: 'Available channels, budget, etc.',
+      languageLabel: 'Output language',
+      buttonIdle: 'Generate campaign',
+      buttonLoading: 'Building campaign...',
+      errors: {
+        idea: 'Describe the core idea for the campaign.',
+      },
+    },
+    recycle: {
+      originalLabel: 'Original content',
+      originalPlaceholder: 'Paste the text you want to repurpose...',
+      contextLabel: 'Context / Destination',
+      contextPlaceholder: 'Where will it be published?',
+      formatLabel: 'Desired format',
+      languageLabel: 'Language',
+      toneLabel: 'Tone',
+      buttonIdle: 'Repurpose content',
+      buttonLoading: 'Repurposing...',
+      errors: {
+        original: 'Paste the original content.',
+      },
+    },
+    chat: {
+      intro: 'Chat with AncloraAI for quick guidance.',
+      placeholder: 'Type your message...',
+      button: 'Send',
+      typing: 'Typing...',
+    },
+    tts: {
+      textLabel: 'Text to convert',
+      textPlaceholder: 'Hello, today we launch...',
+      languageLabel: 'Voice language',
+      voiceLabel: 'Voice',
+      buttonIdle: 'Generate voice',
+      buttonLoading: 'Generating audio...',
+      errors: {
+        text: 'Provide the text to convert.',
+      },
+    },
+    live: {
+      intro: 'Record a short snippet and get an instant reply.',
+      buttonStart: 'Start talking',
+      buttonStop: 'Stop',
+      transcriptLabel: 'Transcript',
+      errors: {
+        microphone: 'Unable to access microphone.',
+      },
+    },
+    image: {
+      promptLabel: 'Image prompt',
+      promptPlaceholder: 'Describe the scene you need...',
+      buttonIdle: 'Generate/Edit',
+      buttonLoading: 'Processing...',
+      errors: {
+        prompt: 'Write a prompt or upload an image.',
+      },
+    },
+  },
+};
+
+const getStoredTheme = (): ThemeMode => {
+  if (typeof window === 'undefined') {
+    return 'system';
+  }
+  const stored = window.localStorage.getItem('anclora.theme');
+  return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+};
+
+const getStoredLanguage = (): InterfaceLanguage => {
+  if (typeof window === 'undefined') {
+    return 'es';
+  }
+  const stored = window.localStorage.getItem('anclora.lang');
+  return stored === 'en' ? 'en' : 'es';
+};
+
+
 const commonStyles: Record<string, React.CSSProperties> = {
   container: {
     display: 'flex',
@@ -269,7 +572,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     padding: '6px',
     borderRadius:
     '999px',
-    backgroundColor: 'var(--gris-fondo, #f6f7f9)',
+    backgroundColor: 'var(--toggle-track, var(--gris-fondo, #f6f7f9))',
   },
   toggleButton: {
     border: 'none',
@@ -281,7 +584,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
   },
   toggleButtonActive: {
-    backgroundColor: '#fff',
+    backgroundColor: 'var(--toggle-active-bg, var(--blanco, #FFFFFF))',
     boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
   },
   title: {
@@ -299,10 +602,10 @@ const commonStyles: Record<string, React.CSSProperties> = {
   },
   mainContent: {
     width: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: 'var(--panel-bg, #FFFFFF)',
     borderRadius: '18px',
     padding: '30px',
-    boxShadow: '0 10px 40px rgba(0,0,0,0.06)',
+    boxShadow: 'var(--panel-shadow, 0 10px 40px rgba(0,0,0,0.06))',
     display: 'flex',
     flexDirection: 'column',
     gap: '30px',
@@ -310,7 +613,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
   tabNavigation: {
     display: 'flex',
     flexWrap: 'wrap',
-    borderBottom: '1px solid #e0e0e0',
+    borderBottom: '1px solid var(--panel-border, #e0e0e0)',
     gap: '10px',
     justifyContent: 'center',
   },
@@ -340,16 +643,18 @@ const commonStyles: Record<string, React.CSSProperties> = {
     width: '100%',
     minHeight: '120px',
     borderRadius: '10px',
-    border: '1px solid #e0e0e0',
+    border: '1px solid var(--panel-border, #e0e0e0)',
     padding: '14px',
     fontSize: '1em',
     resize: 'vertical',
+    backgroundColor: 'var(--input-bg, #FFFFFF)',
   },
   select: {
     width: '100%',
     borderRadius: '10px',
-    border: '1px solid #e0e0e0',
+    border: '1px solid var(--panel-border, #e0e0e0)',
     padding: '10px',
+    backgroundColor: 'var(--input-bg, #FFFFFF)',
   },
   configSection: {
     display: 'flex',
@@ -367,21 +672,22 @@ const commonStyles: Record<string, React.CSSProperties> = {
   checkboxChip: {
     padding: '6px 12px',
     borderRadius: '16px',
-    backgroundColor: '#ecf0f1',
+    backgroundColor: 'var(--chip-bg, #ecf0f1)',
+    color: 'var(--chip-text, #162032)',
     cursor: 'pointer',
   },
   generateButton: {
     padding: '16px',
     borderRadius: '12px',
     border: 'none',
-    background: 'linear-gradient(90deg, #2EAFC4, #FFC979)',
+    background: 'linear-gradient(90deg, var(--azul-claro, #2EAFC4), var(--ambar, #FFC979))',
     fontWeight: 700,
-    color: '#162032',
+    color: 'var(--button-contrast, #162032)',
     cursor: 'pointer',
   },
   errorMessage: {
-    backgroundColor: '#fdecea',
-    color: '#c0392b',
+    backgroundColor: 'var(--danger-bg, #fdecea)',
+    color: 'var(--danger-text, #c0392b)',
     padding: '12px',
     borderRadius: '10px',
   },
@@ -396,7 +702,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     height: '40px',
     borderRadius: '50%',
     border: '4px solid rgba(0,0,0,0.1)',
-    borderTop: '4px solid #2EAFC4',
+    borderTop: '4px solid var(--azul-claro, #2EAFC4)',
     animation: 'spin 1s linear infinite',
   },
   outputSection: {
@@ -410,24 +716,26 @@ const commonStyles: Record<string, React.CSSProperties> = {
     gap: '16px',
   },
   outputCard: {
-    border: '1px solid #e0e0e0',
+    border: '1px solid var(--panel-border, #e0e0e0)',
     borderRadius: '12px',
     padding: '18px',
     minHeight: '180px',
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
+    backgroundColor: 'var(--panel-bg, #FFFFFF)',
   },
   copyButton: {
     alignSelf: 'flex-end',
-    border: '1px solid #2EAFC4',
+    border: '1px solid var(--azul-claro, #2EAFC4)',
     borderRadius: '8px',
     padding: '8px 12px',
-    backgroundColor: '#fff',
+    backgroundColor: 'var(--panel-bg, #FFFFFF)',
+    color: 'var(--azul-claro, #2EAFC4)',
     cursor: 'pointer',
   },
   chatContainer: {
-    border: '1px solid #e0e0e0',
+    border: '1px solid var(--panel-border, #e0e0e0)',
     borderRadius: '12px',
     padding: '12px',
     height: '360px',
@@ -435,6 +743,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     gap: '10px',
+    backgroundColor: 'var(--panel-bg, #FFFFFF)',
   },
   chatMessage: {
     borderRadius: '12px',
@@ -443,13 +752,13 @@ const commonStyles: Record<string, React.CSSProperties> = {
   },
   userMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: '#2EAFC4',
-    color: '#fff',
+    backgroundColor: 'var(--azul-claro, #2EAFC4)',
+    color: 'var(--blanco, #FFFFFF)',
   },
   aiMessage: {
     alignSelf: 'flex-start',
-    backgroundColor: '#ecf0f1',
-    color: '#162032',
+    backgroundColor: 'var(--chip-bg, #ecf0f1)',
+    color: 'var(--chip-text, #162032)',
   },
   chatInputRow: {
     display: 'flex',
@@ -458,26 +767,27 @@ const commonStyles: Record<string, React.CSSProperties> = {
   chatTextInput: {
     flex: 1,
     borderRadius: '10px',
-    border: '1px solid #e0e0e0',
+    border: '1px solid var(--panel-border, #e0e0e0)',
     padding: '10px',
     minHeight: '60px',
+    backgroundColor: 'var(--input-bg, #FFFFFF)',
   },
   helpButton: {
     width: '40px',
     height: '40px',
     borderRadius: '50%',
-    border: '1px solid #2EAFC4',
-    backgroundColor: '#fff',
-    color: '#2EAFC4',
+    border: '1px solid var(--azul-claro, #2EAFC4)',
+    backgroundColor: 'var(--panel-bg, #FFFFFF)',
+    color: 'var(--azul-claro, #2EAFC4)',
     fontWeight: 700,
     cursor: 'pointer',
   },
   liveTranscript: {
-    border: '1px solid #e0e0e0',
+    border: '1px solid var(--panel-border, #e0e0e0)',
     borderRadius: '12px',
     padding: '12px',
     minHeight: '120px',
-    backgroundColor: '#f7f9fb',
+    backgroundColor: 'var(--muted-surface, #f7f9fb)',
   },
   audioPlayer: {
     width: '100%',
@@ -493,26 +803,35 @@ const ensureGlobalStyles = () => {
   sheet.innerHTML = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
   document.head.appendChild(sheet);
 };
-const OutputDisplay: React.FC<{ generatedOutputs: GeneratedOutput[] | null; error: string | null; isLoading: boolean; onCopy: (text: string) => void; audioUrl?: string | null; imageUrl?: string | null; }> = ({ generatedOutputs, error, isLoading, onCopy, audioUrl, imageUrl }) => {
+const OutputDisplay: React.FC<{
+  generatedOutputs: GeneratedOutput[] | null;
+  error: string | null;
+  isLoading: boolean;
+  onCopy: (text: string) => void;
+  audioUrl?: string | null;
+  imageUrl?: string | null;
+  interfaceLanguage: InterfaceLanguage;
+}> = ({ generatedOutputs, error, isLoading, onCopy, audioUrl, imageUrl, interfaceLanguage }) => {
+  const copy = translations[interfaceLanguage].output;
   return (
     <section style={commonStyles.outputSection}>
       {error && <div style={commonStyles.errorMessage}>{error}</div>}
       {isLoading && (
         <div style={commonStyles.loadingMessage}>
           <div style={commonStyles.spinner}></div>
-          <span>La IA esta trabajando...</span>
+          <span>{copy.loading}</span>
         </div>
       )}
       {audioUrl && (
         <div>
           <audio controls style={commonStyles.audioPlayer} src={audioUrl}></audio>
-          <a href={audioUrl} download="anclora_audio.wav" style={commonStyles.copyButton}>Descargar audio</a>
+          <a href={audioUrl} download="anclora_audio.wav" style={commonStyles.copyButton}>{copy.downloadAudio}</a>
         </div>
       )}
       {imageUrl && (
         <div>
           <img src={imageUrl} alt="Imagen generada" style={{ width: '100%', borderRadius: '12px' }} />
-          <a href={imageUrl} download="anclora_image.png" style={commonStyles.copyButton}>Descargar imagen</a>
+          <a href={imageUrl} download="anclora_image.png" style={commonStyles.copyButton}>{copy.downloadImage}</a>
         </div>
       )}
       {generatedOutputs && generatedOutputs.length > 0 && (
@@ -521,7 +840,9 @@ const OutputDisplay: React.FC<{ generatedOutputs: GeneratedOutput[] | null; erro
             <div key={index} style={commonStyles.outputCard}>
               <strong>{output.platform}</strong>
               <p>{output.content}</p>
-              <button type="button" style={commonStyles.copyButton} onClick={() => onCopy(output.content)}>Copiar</button>
+              <button type="button" style={commonStyles.copyButton} onClick={() => onCopy(output.content)}>
+                {copy.copy}
+              </button>
             </div>
           ))}
         </div>
@@ -530,19 +851,15 @@ const OutputDisplay: React.FC<{ generatedOutputs: GeneratedOutput[] | null; erro
   );
 };
 const BasicMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, onGenerate, onCopy, setError, setIsLoading, generatedImageUrl, setGeneratedImageUrl, interfaceLanguage }) => {
+  const copy = translations[interfaceLanguage].basic;
   const [idea, setIdea] = useState('');
   const [language, setLanguage] = useState('es');
   const [tone, setTone] = useState('detect');
   const [platforms, setPlatforms] = useState<string[]>(['LinkedIn', 'Instagram']);
-  const [speed, setSpeed] = useState<'detallado' | 'flash'>('detallado');
+  const [speed, setSpeed] = useState<'detailed' | 'flash'>('detailed');
 
-  useEffect(() => {
-    setGeneratedImageUrl(null);
-  }, [setGeneratedImageUrl]);
-
-  useEffect(() => {
-    setLanguage(interfaceLanguage);
-  }, [interfaceLanguage]);
+  useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
+  useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
 
   const togglePlatform = (value: string) => {
     setPlatforms(prev => prev.includes(value) ? prev.filter(p => p !== value) : [...prev, value]);
@@ -550,48 +867,49 @@ const BasicMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, 
 
   const handleGenerate = async () => {
     if (!idea.trim()) {
-      setError('Describe tu idea principal.');
+      setError(copy.errors.idea);
       return;
     }
     if (platforms.length === 0) {
-      setError('Selecciona al menos una plataforma.');
+      setError(copy.errors.platforms);
       return;
     }
     const languageDisplay = languages.find(l => l.value === language)?.label || language;
     const toneDisplay = tones.find(t => t.value === tone)?.label || tone;
-    const prompt = `Eres un estratega de contenidos. Genera una lista JSON bajo la clave "outputs" siguiendo ${structuredOutputExample}. Idea: "${idea}". Idioma solicitado: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas: ${platforms.join(', ')}. Nivel de detalle: ${speed}.`;
+    const speedDisplay = speed === 'detailed' ? copy.speedDetailed : copy.speedFlash;
+    const prompt = `Eres un estratega de contenidos. Genera una lista JSON bajo la clave "outputs" siguiendo ${structuredOutputExample}. Idea: "${idea}". Idioma solicitado: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas: ${platforms.join(', ')}. Nivel de detalle: ${speedDisplay}.`;
     await onGenerate(prompt);
   };
 
   return (
     <>
       <section style={commonStyles.section}>
-        <label style={commonStyles.label} htmlFor="basic-idea">Tu idea principal</label>
-        <textarea id="basic-idea" style={commonStyles.textarea} value={idea} onChange={e => setIdea(e.target.value)} placeholder="Quiero anunciar..." />
+        <label style={commonStyles.label} htmlFor="basic-idea">{copy.ideaLabel}</label>
+        <textarea id="basic-idea" style={commonStyles.textarea} value={idea} onChange={e => setIdea(e.target.value)} placeholder={copy.ideaPlaceholder} />
       </section>
       <section style={commonStyles.configSection}>
         <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>Idioma</label>
+          <label style={commonStyles.label}>{copy.languageLabel}</label>
           <select style={commonStyles.select} value={language} onChange={e => setLanguage(e.target.value)}>
             {languages.map(lang => <option key={lang.value} value={lang.value}>{lang.label}</option>)}
           </select>
         </div>
         <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>Tono</label>
+          <label style={commonStyles.label}>{copy.toneLabel}</label>
           <select style={commonStyles.select} value={tone} onChange={e => setTone(e.target.value)}>
             {tones.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
         <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>Velocidad</label>
-          <select style={commonStyles.select} value={speed} onChange={e => setSpeed(e.target.value as 'detallado' | 'flash')}>
-            <option value="detallado">Detallado</option>
-            <option value="flash">Flash</option>
+          <label style={commonStyles.label}>{copy.speedLabel}</label>
+          <select style={commonStyles.select} value={speed} onChange={e => setSpeed(e.target.value as 'detailed' | 'flash')}>
+            <option value="detailed">{copy.speedDetailed}</option>
+            <option value="flash">{copy.speedFlash}</option>
           </select>
         </div>
       </section>
       <section style={commonStyles.section}>
-        <label style={commonStyles.label}>Plataformas</label>
+        <label style={commonStyles.label}>{copy.platformLabel}</label>
         <div style={commonStyles.checkboxRow}>
           {['LinkedIn', 'X', 'Instagram', 'WhatsApp', 'Email'].map(option => (
             <label key={option} style={commonStyles.checkboxChip}>
@@ -601,13 +919,15 @@ const BasicMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, 
         </div>
       </section>
       <button type="button" style={commonStyles.generateButton} onClick={handleGenerate} disabled={isLoading}>
-        {isLoading ? 'Generando...' : 'Generar contenido'}
+        {isLoading ? copy.buttonLoading : copy.buttonIdle}
       </button>
-      <OutputDisplay generatedOutputs={generatedOutputs} error={error} isLoading={isLoading} onCopy={onCopy} audioUrl={null} imageUrl={generatedImageUrl} />
+      <OutputDisplay generatedOutputs={generatedOutputs} error={error} isLoading={isLoading} onCopy={onCopy} audioUrl={null} imageUrl={generatedImageUrl} interfaceLanguage={interfaceLanguage} />
     </>
   );
 };
+
 const IntelligentMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, onGenerate, onCopy, setError, setIsLoading, generatedImageUrl, setGeneratedImageUrl, interfaceLanguage }) => {
+  const copy = translations[interfaceLanguage].intelligent;
   const [idea, setIdea] = useState('');
   const [context, setContext] = useState('');
   const [deepThinking, setDeepThinking] = useState(false);
@@ -619,14 +939,18 @@ const IntelligentMode: React.FC<CommonProps> = ({ isLoading, error, generatedOut
   useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    setImageFile(file || null);
+    const file = event.target.files?.[0] || null;
+    setImageFile(file);
     setImagePreview(file ? URL.createObjectURL(file) : null);
   };
 
   const handleGenerate = async () => {
     if (!idea.trim()) {
-      setError('Describe lo que necesitas.');
+      setError(copy.errors.idea);
+      return;
+    }
+    if (includeImage && !imagePrompt.trim()) {
+      setError(copy.errors.imagePrompt);
       return;
     }
     setIsLoading(true);
@@ -637,9 +961,75 @@ const IntelligentMode: React.FC<CommonProps> = ({ isLoading, error, generatedOut
       await onGenerate(prompt);
       if (includeImage && imagePrompt.trim()) {
         const base64 = imageFile ? await fileToBase64(imageFile) : undefined;
-        const imageUrl = await callImageModel(`${imagePrompt}\nContexto: ${context || idea}`, base64);
+        const imageUrl = await callImageModel(`${imagePrompt}
+Contexto: ${context || idea}`, base64);
         setGeneratedImageUrl(imageUrl);
       }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error desconocido';
+      setError(`Error general: ${message}.`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <section style={commonStyles.section}>
+        <label style={commonStyles.label}>{copy.ideaLabel}</label>
+        <textarea style={commonStyles.textarea} value={idea} onChange={e => setIdea(e.target.value)} placeholder={copy.ideaPlaceholder} />
+      </section>
+      <section style={commonStyles.section}>
+        <label style={commonStyles.label}>{copy.contextLabel}</label>
+        <textarea style={commonStyles.textarea} value={context} onChange={e => setContext(e.target.value)} placeholder={copy.contextPlaceholder} />
+      </section>
+      <section style={commonStyles.section}>
+        <label>
+          <input type="checkbox" checked={deepThinking} onChange={e => setDeepThinking(e.target.checked)} /> {copy.deepThinkingLabel}
+        </label>
+      </section>
+      <section style={commonStyles.section}>
+        <label>
+          <input type="checkbox" checked={includeImage} onChange={e => setIncludeImage(e.target.checked)} /> {copy.includeImageLabel}
+        </label>
+        {includeImage && (
+          <>
+            <input type="file" onChange={handleFileChange} accept="image/*" />
+            <textarea style={commonStyles.textarea} value={imagePrompt} onChange={e => setImagePrompt(e.target.value)} placeholder={copy.imagePromptPlaceholder} />
+            {imagePreview && <img src={imagePreview} alt="Preview" style={{ width: '100%', borderRadius: '12px' }} />}
+          </>
+        )}
+      </section>
+      <button type="button" style={commonStyles.generateButton} onClick={handleGenerate} disabled={isLoading}>
+        {isLoading ? copy.buttonLoading : copy.buttonIdle}
+      </button>
+      <OutputDisplay generatedOutputs={generatedOutputs} error={error} isLoading={isLoading} onCopy={onCopy} audioUrl={null} imageUrl={generatedImageUrl} interfaceLanguage={interfaceLanguage} />
+    </>
+  );
+};
+
+
+const CampaignMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, onGenerate, onCopy, setError, setIsLoading, generatedImageUrl, setGeneratedImageUrl, interfaceLanguage }) => {
+  const copy = translations[interfaceLanguage].campaign;
+  const [idea, setIdea] = useState('');
+  const [context, setContext] = useState('');
+  const campaignPlatforms = ['LinkedIn', 'X', 'Instagram', 'Email'];
+  const [language, setLanguage] = useState('es');
+
+  useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
+  useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
+
+  const handleGenerate = async () => {
+    if (!idea.trim()) {
+      setError(copy.errors.idea);
+      return;
+    }
+    setIsLoading(true);
+    setGeneratedImageUrl(null);
+    try {
+      const languageDisplay = languages.find(l => l.value === language)?.label || language;
+      const prompt = `Eres un planificador de campanas express. Idea: "${idea}". Contexto/destino: "${context || 'No especificado'}". Idioma: ${languageDisplay}. Plataformas: ${campaignPlatforms.join(', ')}. Sigue el esquema ${structuredOutputExample}.`;
+      await onGenerate(prompt);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error desconocido';
       setError(message);
@@ -651,98 +1041,50 @@ const IntelligentMode: React.FC<CommonProps> = ({ isLoading, error, generatedOut
   return (
     <>
       <section style={commonStyles.section}>
-        <label style={commonStyles.label}>Describe tu necesidad</label>
-        <textarea style={commonStyles.textarea} value={idea} onChange={e => setIdea(e.target.value)} placeholder="Necesito adaptar..." />
+        <label style={commonStyles.label}>{copy.ideaLabel}</label>
+        <textarea style={commonStyles.textarea} value={idea} onChange={e => setIdea(e.target.value)} placeholder={copy.ideaPlaceholder} />
       </section>
       <section style={commonStyles.section}>
-        <label style={commonStyles.label}>Contexto / Destino</label>
-        <textarea style={commonStyles.textarea} value={context} onChange={e => setContext(e.target.value)} placeholder="Equipo de ventas, campana de reciclaje, landing page..." />
+        <label style={commonStyles.label}>{copy.contextLabel}</label>
+        <textarea style={commonStyles.textarea} value={context} onChange={e => setContext(e.target.value)} placeholder={copy.contextPlaceholder} />
       </section>
       <section style={commonStyles.section}>
-        <label><input type="checkbox" checked={deepThinking} onChange={e => setDeepThinking(e.target.checked)} /> Activar razonamiento profundo</label>
-      </section>
-      <section style={commonStyles.section}>
-        <label><input type="checkbox" checked={includeImage} onChange={e => setIncludeImage(e.target.checked)} /> Incluir imagen generada</label>
-        {includeImage && (
-          <>
-            <input type="file" onChange={handleFileChange} accept="image/*" />
-            <textarea style={commonStyles.textarea} value={imagePrompt} onChange={e => setImagePrompt(e.target.value)} placeholder="Prompt de imagen" />
-            {imagePreview && <img src={imagePreview} alt="Preview" style={{ width: '100%', borderRadius: '12px' }} />}
-          </>
-        )}
-      </section>
-      <button type="button" style={commonStyles.generateButton} onClick={handleGenerate} disabled={isLoading}>
-        {isLoading ? 'Generando...' : 'Generar adaptaciones'}
-      </button>
-      <OutputDisplay generatedOutputs={generatedOutputs} error={error} isLoading={isLoading} onCopy={onCopy} imageUrl={generatedImageUrl} audioUrl={null} />
-    </>
-  );
-};
-const CampaignMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, onGenerate, onCopy, setError, setIsLoading, generatedImageUrl, setGeneratedImageUrl, interfaceLanguage }) => {
-  const [idea, setIdea] = useState('');
-  const [context, setContext] = useState('');
-  const [language, setLanguage] = useState('es');
-  const campaignPlatforms = ['LinkedIn', 'X', 'Instagram', 'Email'];
-
-  useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
-  useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
-
-  const handleGenerate = async () => {
-    if (!idea.trim()) {
-      setError('Describe la idea base de tu campana.');
-      return;
-    }
-    setIsLoading(true);
-    setGeneratedImageUrl(null);
-    try {
-      const languageDisplay = languages.find(l => l.value === language)?.label || language;
-      const prompt = `Eres un planificador de campanas express. Idea: "${idea}". Contexto/destino: "${context || 'No especificado'}". Idioma: ${languageDisplay}. Plataformas: ${campaignPlatforms.join(', ')}. Sigue el esquema ${structuredOutputExample}.`;
-      await onGenerate(prompt);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <>
-      <section style={commonStyles.section}>
-        <label style={commonStyles.label}>Idea central</label>
-        <textarea style={commonStyles.textarea} value={idea} onChange={e => setIdea(e.target.value)} />
-      </section>
-      <section style={commonStyles.section}>
-        <label style={commonStyles.label}>Contexto / Destino</label>
-        <textarea style={commonStyles.textarea} value={context} onChange={e => setContext(e.target.value)} />
-      </section>
-      <section style={commonStyles.section}>
-        <label style={commonStyles.label}>Idioma de salida</label>
+        <label style={commonStyles.label}>{copy.languageLabel}</label>
         <select style={commonStyles.select} value={language} onChange={e => setLanguage(e.target.value)}>
           {languages.map(lang => <option key={lang.value} value={lang.value}>{lang.label}</option>)}
         </select>
       </section>
       <button type="button" style={commonStyles.generateButton} onClick={handleGenerate} disabled={isLoading}>
-        {isLoading ? 'Generando...' : 'Generar campana'}
+        {isLoading ? copy.buttonLoading : copy.buttonIdle}
       </button>
-      <OutputDisplay generatedOutputs={generatedOutputs} error={error} isLoading={isLoading} onCopy={onCopy} imageUrl={generatedImageUrl} audioUrl={null} />
+      <OutputDisplay generatedOutputs={generatedOutputs} error={error} isLoading={isLoading} onCopy={onCopy} audioUrl={null} imageUrl={generatedImageUrl} interfaceLanguage={interfaceLanguage} />
     </>
   );
 };
-const RecycleMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, onGenerate, onCopy, setError, setIsLoading, generatedImageUrl }) => {
+
+
+const RecycleMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, onGenerate, onCopy, setError, setIsLoading, generatedImageUrl, setGeneratedImageUrl, interfaceLanguage }) => {
+  const copy = translations[interfaceLanguage].recycle;
   const [inputText, setInputText] = useState('');
   const [context, setContext] = useState('');
   const [language, setLanguage] = useState('es');
   const [tone, setTone] = useState('detect');
   const [format, setFormat] = useState('summary');
 
+  useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
+  useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
+
   const handleGenerate = async () => {
     if (!inputText.trim()) {
-      setError('Pega el contenido original.');
+      setError(copy.errors.original);
       return;
     }
     setIsLoading(true);
     try {
-      const prompt = `Actua como editor de contenidos. Formato solicitado: ${format}. Idioma: ${language}. Tono: ${tone}. Contexto/destino: ${context || 'No especificado'}. Transforma el siguiente texto manteniendo la coherencia y responde usando ${structuredOutputExample}. Texto: "${inputText}".`;
+      const languageDisplay = languages.find(l => l.value === language)?.label || language;
+      const toneDisplay = tones.find(t => t.value === tone)?.label || tone;
+      const formatDisplay = recycleOptions.find(opt => opt.value === format)?.label || format;
+      const prompt = `Actua como editor. Formato: ${formatDisplay}. Idioma: ${languageDisplay}. Tono: ${toneDisplay}. Contexto/destino: ${context || 'No especificado'}. Convierte el siguiente texto manteniendo la coherencia y responde usando ${structuredOutputExample}. Texto: "${inputText}".`;
       await onGenerate(prompt);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -754,46 +1096,49 @@ const RecycleMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs
   return (
     <>
       <section style={commonStyles.section}>
-        <label style={commonStyles.label}>Contenido original</label>
-        <textarea style={commonStyles.textarea} value={inputText} onChange={e => setInputText(e.target.value)} />
+        <label style={commonStyles.label}>{copy.originalLabel}</label>
+        <textarea style={commonStyles.textarea} value={inputText} onChange={e => setInputText(e.target.value)} placeholder={copy.originalPlaceholder} />
       </section>
       <section style={commonStyles.section}>
-        <label style={commonStyles.label}>Contexto / Destino</label>
-        <textarea style={commonStyles.textarea} value={context} onChange={e => setContext(e.target.value)} />
+        <label style={commonStyles.label}>{copy.contextLabel}</label>
+        <textarea style={commonStyles.textarea} value={context} onChange={e => setContext(e.target.value)} placeholder={copy.contextPlaceholder} />
       </section>
       <section style={commonStyles.configSection}>
         <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>Formato</label>
+          <label style={commonStyles.label}>{copy.formatLabel}</label>
           <select style={commonStyles.select} value={format} onChange={e => setFormat(e.target.value)}>
             {recycleOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </div>
         <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>Idioma</label>
+          <label style={commonStyles.label}>{copy.languageLabel}</label>
           <select style={commonStyles.select} value={language} onChange={e => setLanguage(e.target.value)}>
             {languages.map(lang => <option key={lang.value} value={lang.value}>{lang.label}</option>)}
           </select>
         </div>
         <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>Tono</label>
+          <label style={commonStyles.label}>{copy.toneLabel}</label>
           <select style={commonStyles.select} value={tone} onChange={e => setTone(e.target.value)}>
             {tones.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
       </section>
       <button type="button" style={commonStyles.generateButton} onClick={handleGenerate} disabled={isLoading}>
-        {isLoading ? 'Reciclando...' : 'Reciclar contenido'}
+        {isLoading ? copy.buttonLoading : copy.buttonIdle}
       </button>
-      <OutputDisplay generatedOutputs={generatedOutputs} error={error} isLoading={isLoading} onCopy={onCopy} imageUrl={generatedImageUrl} audioUrl={null} />
+      <OutputDisplay generatedOutputs={generatedOutputs} error={error} isLoading={isLoading} onCopy={onCopy} audioUrl={null} imageUrl={generatedImageUrl} interfaceLanguage={interfaceLanguage} />
     </>
   );
 };
+
 interface ChatMessage {
   role: 'user' | 'assistant';
   text: string;
 }
 
+
 const ChatMode: React.FC<{ interfaceLanguage: InterfaceLanguage; onCopy: (text: string) => void; }> = ({ interfaceLanguage, onCopy }) => {
+  const copy = translations[interfaceLanguage].chat;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [current, setCurrent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -805,8 +1150,8 @@ const ChatMode: React.FC<{ interfaceLanguage: InterfaceLanguage; onCopy: (text: 
     setCurrent('');
     setIsLoading(true);
     try {
-      const history = updated.map(msg => `${msg.role === 'user' ? 'Usuario' : 'Asistente'}: ${msg.text}`).join('\n');
-      const prompt = `Eres AncloraAI, especialista en adaptacion de contenidos. Idioma preferido: ${interfaceLanguage.toUpperCase()}. Conversacion: ${history}. Responde de forma breve.`;
+      const history = updated.map(msg => `${msg.role === 'user' ? 'Usuario' : 'Asistente'}: ${msg.text}`).join('\\n');
+      const prompt = `Eres AncloraAI, enfocado en adaptacion de contenido. Idioma preferido: ${interfaceLanguage.toUpperCase()}. Conversacion: ${history}. Responde de forma breve.`;
       const raw = await callTextModel(prompt);
       const reply = raw.trim();
       setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
@@ -819,51 +1164,55 @@ const ChatMode: React.FC<{ interfaceLanguage: InterfaceLanguage; onCopy: (text: 
 
   return (
     <section style={commonStyles.section}>
+      <p>{copy.intro}</p>
       <div style={commonStyles.chatContainer}>
         {messages.map((msg, index) => (
           <div key={index} style={{ ...commonStyles.chatMessage, ...(msg.role === 'user' ? commonStyles.userMessage : commonStyles.aiMessage) }}>
             {msg.text}
             {msg.role === 'assistant' && (
-              <button style={commonStyles.copyButton} onClick={() => onCopy(msg.text)}>Copiar</button>
+              <button style={commonStyles.copyButton} onClick={() => onCopy(msg.text)}>{translations[interfaceLanguage].output.copy}</button>
             )}
           </div>
         ))}
-        {isLoading && <div style={commonStyles.aiMessage}>Pensando...</div>}
+        {isLoading && <div style={{ ...commonStyles.chatMessage, ...commonStyles.aiMessage }}>{copy.typing}</div>}
       </div>
       <div style={commonStyles.chatInputRow}>
-        <textarea style={commonStyles.chatTextInput} value={current} onChange={e => setCurrent(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} />
-        <button type="button" style={commonStyles.generateButton} onClick={sendMessage} disabled={isLoading}>Enviar</button>
+        <textarea style={commonStyles.chatTextInput} value={current} onChange={e => setCurrent(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={copy.placeholder} />
+        <button type="button" style={commonStyles.generateButton} onClick={sendMessage} disabled={isLoading}>{copy.button}</button>
       </div>
     </section>
   );
 };
-const TTSMode: React.FC = () => {
-  const [text, setText] = useState('');
-  const [language, setLanguage] = useState('es');
-  const [voice, setVoice] = useState('es_male_0');
+
+
+const TTSMode: React.FC<{ interfaceLanguage: InterfaceLanguage }> = ({ interfaceLanguage }) => {
+  const copy = translations[interfaceLanguage].tts;
+  const [textToSpeak, setTextToSpeak] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState('es');
+  const [selectedVoiceName, setSelectedVoiceName] = useState('es_male_0');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const voices = ttsLanguageVoiceMap[language];
-    if (voices) {
-      setVoice(voices[0].value);
+    const voices = ttsLanguageVoiceMap[selectedLanguage];
+    if (voices && voices.length) {
+      setSelectedVoiceName(voices[0].value);
     }
-  }, [language]);
+  }, [selectedLanguage]);
 
   const handleGenerate = async () => {
-    if (!text.trim()) {
-      setError('Escribe el texto a convertir.');
+    if (!textToSpeak.trim()) {
+      setError(copy.errors.text);
       return;
     }
     setIsLoading(true);
     setError(null);
     setAudioUrl(null);
     try {
-      const translationPrompt = `Traduce el siguiente texto al idioma de la voz (${language}) y responde solo con el texto traducido: "${text}".`;
+      const translationPrompt = `Traduce el siguiente texto al idioma de la voz (${selectedLanguage}) y responde solo con el texto traducido: "${textToSpeak}".`;
       const translated = (await callTextModel(translationPrompt)).trim();
-      const audio = await callTextToSpeech(translated || text, voice);
+      const audio = await callTextToSpeech(translated || textToSpeak, selectedVoiceName);
       setAudioUrl(audio);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -874,36 +1223,39 @@ const TTSMode: React.FC = () => {
 
   return (
     <section style={commonStyles.section}>
-      <label style={commonStyles.label}>Texto a convertir</label>
-      <textarea style={commonStyles.textarea} value={text} onChange={e => setText(e.target.value)} />
+      <label style={commonStyles.label}>{copy.textLabel}</label>
+      <textarea style={commonStyles.textarea} value={textToSpeak} onChange={e => setTextToSpeak(e.target.value)} placeholder={copy.textPlaceholder} />
       <div style={commonStyles.configSection}>
         <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>Idioma</label>
-          <select style={commonStyles.select} value={language} onChange={e => setLanguage(e.target.value)}>
+          <label style={commonStyles.label}>{copy.languageLabel}</label>
+          <select style={commonStyles.select} value={selectedLanguage} onChange={e => setSelectedLanguage(e.target.value)}>
             {ttsLanguageOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </div>
         <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>Voz</label>
-          <select style={commonStyles.select} value={voice} onChange={e => setVoice(e.target.value)}>
-            {(ttsLanguageVoiceMap[language] || []).map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
+          <label style={commonStyles.label}>{copy.voiceLabel}</label>
+          <select style={commonStyles.select} value={selectedVoiceName} onChange={e => setSelectedVoiceName(e.target.value)}>
+            {(ttsLanguageVoiceMap[selectedLanguage] || []).map(voice => <option key={voice.value} value={voice.value}>{voice.label}</option>)}
           </select>
         </div>
       </div>
       <button type="button" style={commonStyles.generateButton} onClick={handleGenerate} disabled={isLoading}>
-        {isLoading ? 'Generando audio...' : 'Generar voz'}
+        {isLoading ? copy.buttonLoading : copy.buttonIdle}
       </button>
       {error && <div style={commonStyles.errorMessage}>{error}</div>}
       {audioUrl && (
         <div>
           <audio controls style={commonStyles.audioPlayer} src={audioUrl}></audio>
-          <a href={audioUrl} download="anclora_tts.wav" style={commonStyles.copyButton}>Descargar</a>
+          <a href={audioUrl} download="anclora_tts.wav" style={commonStyles.copyButton}>{translations[interfaceLanguage].output.downloadAudio}</a>
         </div>
       )}
     </section>
   );
 };
-const LiveChatMode: React.FC<{ onCopy: (text: string) => void; }> = ({ onCopy }) => {
+
+
+const LiveChatMode: React.FC<{ interfaceLanguage: InterfaceLanguage }> = ({ interfaceLanguage }) => {
+  const copy = translations[interfaceLanguage].live;
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -926,7 +1278,7 @@ const LiveChatMode: React.FC<{ onCopy: (text: string) => void; }> = ({ onCopy })
       setIsRecording(true);
       setError(null);
     } catch (err) {
-      setError('No se pudo acceder al microfono.');
+      setError(copy.errors.microphone);
     }
   };
 
@@ -951,26 +1303,30 @@ const LiveChatMode: React.FC<{ onCopy: (text: string) => void; }> = ({ onCopy })
 
   return (
     <section style={commonStyles.section}>
-      <p>Graba un fragmento de 10 segundos para recibir respuesta inmediata.</p>
+      <p>{copy.intro}</p>
       <button type="button" style={commonStyles.generateButton} onClick={isRecording ? stopRecording : startRecording}>
-        {isRecording ? 'Detener' : 'Hablar'}
+        {isRecording ? copy.buttonStop : copy.buttonStart}
       </button>
       {error && <div style={commonStyles.errorMessage}>{error}</div>}
       <div style={commonStyles.liveTranscript}>
         {transcript.map((msg, index) => (
           <p key={index}><strong>{msg.role === 'user' ? 'Tu' : 'AncloraAI'}:</strong> {msg.text}</p>
         ))}
+        {transcript.length === 0 && <p>{copy.transcriptLabel}</p>}
       </div>
       {audioUrl && (
         <div>
           <audio src={audioUrl} controls style={commonStyles.audioPlayer}></audio>
-          <a href={audioUrl} download="anclora_live.wav" style={commonStyles.copyButton}>Descargar respuesta</a>
+          <a href={audioUrl} download="anclora_live.wav" style={commonStyles.copyButton}>{translations[interfaceLanguage].output.downloadAudio}</a>
         </div>
       )}
     </section>
   );
 };
-const ImageEditMode: React.FC = () => {
+
+
+const ImageEditMode: React.FC<{ interfaceLanguage: InterfaceLanguage }> = ({ interfaceLanguage }) => {
+  const copy = translations[interfaceLanguage].image;
   const [file, setFile] = useState<File | null>(null);
   const [prompt, setPrompt] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
@@ -986,7 +1342,7 @@ const ImageEditMode: React.FC = () => {
 
   const handleGenerate = async () => {
     if (!prompt.trim() && !file) {
-      setError('Escribe un prompt o sube una imagen.');
+      setError(copy.errors.prompt);
       return;
     }
     setIsLoading(true);
@@ -1005,57 +1361,95 @@ const ImageEditMode: React.FC = () => {
 
   return (
     <section style={commonStyles.section}>
-      <label style={commonStyles.label}>Prompt de imagen</label>
-      <textarea style={commonStyles.textarea} value={prompt} onChange={e => setPrompt(e.target.value)} />
+      <label style={commonStyles.label}>{copy.promptLabel}</label>
+      <textarea style={commonStyles.textarea} value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={copy.promptPlaceholder} />
       <input type="file" accept="image/*" onChange={handleFileChange} />
       {preview && <img src={preview} alt="preview" style={{ width: '100%', borderRadius: '12px' }} />}
       <button type="button" style={commonStyles.generateButton} onClick={handleGenerate} disabled={isLoading}>
-        {isLoading ? 'Procesando...' : 'Generar/Editar'}
+        {isLoading ? copy.buttonLoading : copy.buttonIdle}
       </button>
       {error && <div style={commonStyles.errorMessage}>{error}</div>}
       {imageUrl && (
         <div>
           <img src={imageUrl} alt="Resultado" style={{ width: '100%', borderRadius: '12px' }} />
-          <a href={imageUrl} download="anclora_image.png" style={commonStyles.copyButton}>Descargar</a>
+          <a href={imageUrl} download="anclora_image.png" style={commonStyles.copyButton}>{translations[interfaceLanguage].output.downloadImage}</a>
         </div>
       )}
     </section>
   );
 };
+
+
 const App: React.FC = () => {
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() => (localStorage.getItem('anclora.theme') as ThemeMode) || 'system');
-  const [interfaceLanguage, setInterfaceLanguage] = useState<InterfaceLanguage>(() => (localStorage.getItem('anclora.lang') as InterfaceLanguage) || 'es');
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => getStoredTheme());
+  const [interfaceLanguage, setInterfaceLanguage] = useState<InterfaceLanguage>(() => getStoredLanguage());
   const [activeTab, setActiveTab] = useState('basic');
   const [generatedOutputs, setGeneratedOutputs] = useState<GeneratedOutput[] | null>(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const copy = translations[interfaceLanguage];
+  const toggleCopy = copy.toggles;
 
   useEffect(() => {
     ensureGlobalStyles();
   }, []);
 
   useEffect(() => {
+    if (typeof document === 'undefined') return;
     const root = document.documentElement;
+    const applyTheme = (mode: ThemeMode) => {
+      root.setAttribute('data-theme', mode);
+    };
+    let media: MediaQueryList | null = null;
+    const mediaListener = (event: MediaQueryListEvent) => {
+      applyTheme(event.matches ? 'dark' : 'light');
+    };
+
     if (themeMode === 'system') {
-      root.removeAttribute('data-theme');
+      media = window.matchMedia('(prefers-color-scheme: dark)');
+      applyTheme(media.matches ? 'dark' : 'light');
+      if (media.addEventListener) {
+        media.addEventListener('change', mediaListener);
+      } else {
+        media.addListener(mediaListener);
+      }
     } else {
-      root.setAttribute('data-theme', themeMode);
+      applyTheme(themeMode);
     }
-    localStorage.setItem('anclora.theme', themeMode);
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('anclora.theme', themeMode);
+    }
+
+    return () => {
+      if (media) {
+        if (media.removeEventListener) {
+          media.removeEventListener('change', mediaListener);
+        } else {
+          media.removeListener(mediaListener);
+        }
+      }
+    };
   }, [themeMode]);
 
   useEffect(() => {
-    document.documentElement.lang = interfaceLanguage;
-    localStorage.setItem('anclora.lang', interfaceLanguage);
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = interfaceLanguage;
+    }
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('anclora.lang', interfaceLanguage);
+    }
   }, [interfaceLanguage]);
 
   const generateContentApiCall = useCallback(async (prompt: string) => {
     setIsLoading(true);
     setError(null);
     setGeneratedOutputs(null);
+    setGeneratedImageUrl(null);
     try {
-      const enforcedPrompt = `${prompt}\nRecuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutputExample}`;
+      const enforcedPrompt = `${prompt}
+Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutputExample}`;
       const raw = await callTextModel(enforcedPrompt);
       const jsonString = extractJsonPayload(raw);
       const parsed = JSON.parse(jsonString);
@@ -1076,7 +1470,7 @@ const App: React.FC = () => {
   };
 
   const handleHelp = () => {
-    alert('Explora cada modo para adaptar, planear o reciclar contenido. Usa los toggles para definir tema y lenguaje.');
+    alert(copy.help);
   };
 
   const commonProps: CommonProps = {
@@ -1092,49 +1486,83 @@ const App: React.FC = () => {
     interfaceLanguage,
   };
 
+  const tabsOrder: { id: string; label: string }[] = [
+    { id: 'basic', label: copy.tabs.basic },
+    { id: 'intelligent', label: copy.tabs.intelligent },
+    { id: 'campaign', label: copy.tabs.campaign },
+    { id: 'recycle', label: copy.tabs.recycle },
+    { id: 'chat', label: copy.tabs.chat },
+    { id: 'tts', label: copy.tabs.tts },
+    { id: 'live', label: copy.tabs.live },
+    { id: 'image', label: copy.tabs.image },
+  ];
+  const themeLabels: Record<ThemeMode, string> = {
+    light: toggleCopy.themeLight,
+    dark: toggleCopy.themeDark,
+    system: toggleCopy.themeSystem,
+  };
+  const languageLabels: Record<InterfaceLanguage, string> = {
+    es: toggleCopy.langEs,
+    en: toggleCopy.langEn,
+  };
+  const helpLabel = interfaceLanguage === 'es' ? 'Abrir ayuda rapida' : 'Open quick tips';
+
   return (
     <div style={commonStyles.container}>
       <header style={commonStyles.header}>
         <div style={commonStyles.headerTop}>
-          <h1 style={commonStyles.title}>AncloraAdapt</h1>
-          <p style={commonStyles.subtitle}>Adapta, planifica y recicla contenido con modelos open source.</p>
+          <h1 style={commonStyles.title}>{copy.title}</h1>
+          <p style={commonStyles.subtitle}>{copy.subtitle}</p>
         </div>
         <div style={commonStyles.headerControls}>
           <div style={commonStyles.toggleGroup}>
-            {[
-              { value: 'light' as ThemeMode, icon: '☀️' },
-              { value: 'dark' as ThemeMode, icon: '🌙' },
-              { value: 'system' as ThemeMode, icon: '💻' },
-            ].map(option => (
-              <button key={option.value} style={{ ...commonStyles.toggleButton, ...(themeMode === option.value ? commonStyles.toggleButtonActive : {}) }} onClick={() => setThemeMode(option.value)}>
-                {option.icon}
+            {(['light', 'dark', 'system'] as ThemeMode[]).map(mode => (
+              <button
+                type="button"
+                key={mode}
+                style={{ ...commonStyles.toggleButton, ...(themeMode === mode ? commonStyles.toggleButtonActive : {}) }}
+                onClick={() => setThemeMode(mode)}
+                aria-pressed={themeMode === mode}
+                aria-label={themeLabels[mode]}
+                title={themeLabels[mode]}
+              >
+                {renderThemeIcon(mode)}
               </button>
             ))}
           </div>
           <div style={commonStyles.toggleGroup}>
             {(['es', 'en'] as InterfaceLanguage[]).map(lang => (
-              <button key={lang} style={{ ...commonStyles.toggleButton, ...(interfaceLanguage === lang ? commonStyles.toggleButtonActive : {}) }} onClick={() => setInterfaceLanguage(lang)}>
+              <button
+                type="button"
+                key={lang}
+                style={{ ...commonStyles.toggleButton, ...(interfaceLanguage === lang ? commonStyles.toggleButtonActive : {}) }}
+                onClick={() => setInterfaceLanguage(lang)}
+                aria-pressed={interfaceLanguage === lang}
+                aria-label={languageLabels[lang]}
+                title={languageLabels[lang]}
+              >
                 {lang.toUpperCase()}
               </button>
             ))}
           </div>
-          <button style={commonStyles.helpButton} onClick={handleHelp}>?</button>
+          <button type="button" style={commonStyles.helpButton} onClick={handleHelp} aria-label={helpLabel} title={helpLabel}>?</button>
+        </div>
         </div>
       </header>
 
       <main style={commonStyles.mainContent}>
         <nav style={commonStyles.tabNavigation}>
-          {[
-            { id: 'basic', label: 'Basico' },
-            { id: 'intelligent', label: 'Inteligente' },
-            { id: 'campaign', label: 'Campana' },
-            { id: 'recycle', label: 'Reciclar' },
-            { id: 'chat', label: 'Chat' },
-            { id: 'tts', label: 'Voz' },
-            { id: 'live', label: 'Live chat' },
-            { id: 'image', label: 'Imagen' },
-          ].map(tab => (
-            <button key={tab.id} style={{ ...commonStyles.tabButton, ...(activeTab === tab.id ? commonStyles.tabButtonActive : {}) }} onClick={() => { setActiveTab(tab.id); setGeneratedOutputs(null); setGeneratedImageUrl(null); setError(null); }}>
+          {tabsOrder.map(tab => (
+            <button
+              key={tab.id}
+              style={{ ...commonStyles.tabButton, ...(activeTab === tab.id && commonStyles.tabButtonActive) }}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setGeneratedOutputs(null);
+                setGeneratedImageUrl(null);
+                setError(null);
+              }}
+            >
               {tab.label}
             </button>
           ))}
@@ -1145,9 +1573,9 @@ const App: React.FC = () => {
         {activeTab === 'campaign' && <CampaignMode {...commonProps} />}
         {activeTab === 'recycle' && <RecycleMode {...commonProps} />}
         {activeTab === 'chat' && <ChatMode interfaceLanguage={interfaceLanguage} onCopy={copyToClipboard} />}
-        {activeTab === 'tts' && <TTSMode />}
-        {activeTab === 'live' && <LiveChatMode onCopy={copyToClipboard} />}
-        {activeTab === 'image' && <ImageEditMode />}
+        {activeTab === 'tts' && <TTSMode interfaceLanguage={interfaceLanguage} />}
+        {activeTab === 'live' && <LiveChatMode interfaceLanguage={interfaceLanguage} />}
+        {activeTab === 'image' && <ImageEditMode interfaceLanguage={interfaceLanguage} />}
       </main>
     </div>
   );
