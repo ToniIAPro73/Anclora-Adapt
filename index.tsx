@@ -3,10 +3,17 @@ import ReactDOM from 'react-dom/client';
 
 const API_KEY = process.env.HF_API_KEY || process.env.API_KEY;
 const HF_BASE_URL = 'https://api-inference.huggingface.co/models';
-const TEXT_MODEL_ID = 'meta-llama/Meta-Llama-3-8B-Instruct';
-const IMAGE_MODEL_ID = 'black-forest-labs/FLUX.1-schnell';
-const TTS_MODEL_ID = 'suno/bark-small';
-const STT_MODEL_ID = 'openai/whisper-large-v3-turbo';
+const TEXT_MODEL_ID = import.meta.env.VITE_TEXT_MODEL_ID || 'meta-llama/Meta-Llama-3-8B-Instruct';
+const IMAGE_MODEL_ID = import.meta.env.VITE_IMAGE_MODEL_ID || 'black-forest-labs/FLUX.1-schnell';
+const TTS_MODEL_ID = import.meta.env.VITE_TTS_MODEL_ID || 'suno/bark-small';
+const STT_MODEL_ID = import.meta.env.VITE_STT_MODEL_ID || 'openai/whisper-large-v3-turbo';
+const proxyEnabled = import.meta.env.VITE_USE_PROXY === 'true' || import.meta.env.DEV;
+const forceDirect = import.meta.env.VITE_USE_DIRECT_HF === 'true';
+const useProxy = !forceDirect && proxyEnabled;
+const TEXT_ENDPOINT = useProxy ? '/api/hf-text' : `${HF_BASE_URL}/${TEXT_MODEL_ID}`;
+const IMAGE_ENDPOINT = useProxy ? '/api/hf-image' : `${HF_BASE_URL}/${IMAGE_MODEL_ID}`;
+const TTS_ENDPOINT = useProxy ? '/api/hf-tts' : `${HF_BASE_URL}/${TTS_MODEL_ID}`;
+const STT_ENDPOINT = useProxy ? '/api/hf-stt' : `${HF_BASE_URL}/${STT_MODEL_ID}`;
 
 type ThemeMode = 'light' | 'dark' | 'system';
 type InterfaceLanguage = 'es' | 'en';
@@ -24,7 +31,7 @@ const ensureApiKey = () => {
 
 const callTextModel = async (prompt: string): Promise<string> => {
   ensureApiKey();
-  const response = await fetch(`${HF_BASE_URL}/${TEXT_MODEL_ID}`, {
+  const response = await fetch(TEXT_ENDPOINT, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${API_KEY}`,
@@ -56,7 +63,7 @@ const callTextModel = async (prompt: string): Promise<string> => {
 
 const callImageModel = async (prompt: string, base64Image?: string): Promise<string> => {
   ensureApiKey();
-  const response = await fetch(`${HF_BASE_URL}/${IMAGE_MODEL_ID}`, {
+  const response = await fetch(IMAGE_ENDPOINT, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${API_KEY}`,
@@ -80,7 +87,7 @@ const callImageModel = async (prompt: string, base64Image?: string): Promise<str
 
 const callTextToSpeech = async (text: string, voicePreset: string): Promise<string> => {
   ensureApiKey();
-  const response = await fetch(`${HF_BASE_URL}/${TTS_MODEL_ID}`, {
+  const response = await fetch(TTS_ENDPOINT, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${API_KEY}`,
@@ -97,7 +104,7 @@ const callTextToSpeech = async (text: string, voicePreset: string): Promise<stri
 
 const callSpeechToText = async (audioBlob: Blob): Promise<string> => {
   ensureApiKey();
-  const response = await fetch(`${HF_BASE_URL}/${STT_MODEL_ID}`, {
+  const response = await fetch(STT_ENDPOINT, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${API_KEY}`,
@@ -301,7 +308,7 @@ const translations: Record<InterfaceLanguage, {
     title: 'AncloraAdapt',
     subtitle: 'Adapta, planifica y recicla contenido con modelos open source.',
     help: 'Explora cada modo, agrega contexto y prueba prompts cortos antes de compartirlos.',
-    tabs: { basic: 'Basico', intelligent: 'Inteligente', campaign: 'Campana', recycle: 'Reciclar', chat: 'Chat', tts: 'Voz', live: 'Live chat', image: 'Imagen' },
+    tabs: { basic: 'Basico', intelligent: 'Inteligente', campaign: 'Campaña', recycle: 'Reciclar', chat: 'Chat', tts: 'Voz', live: 'Live chat', image: 'Imagen' },
     toggles: {
       themeLight: 'Modo claro',
       themeDark: 'Modo oscuro',
@@ -351,15 +358,15 @@ const translations: Record<InterfaceLanguage, {
       },
     },
     campaign: {
-      ideaLabel: 'Idea central de la campana',
+      ideaLabel: 'Idea central de la campaña',
       ideaPlaceholder: 'Ej: Lanzamiento express de...',
       contextLabel: 'Contexto / Destino',
       contextPlaceholder: 'Canales disponibles, presupuesto, etc.',
       languageLabel: 'Idioma de salida',
-      buttonIdle: 'Generar campana',
-      buttonLoading: 'Construyendo campana...',
+      buttonIdle: 'Generar campaña',
+      buttonLoading: 'Construyendo campaña...',
       errors: {
-        idea: 'Describe la idea base de tu campana.',
+        idea: 'Describe la idea base de tu campaña.',
       },
     },
     recycle: {
@@ -587,13 +594,16 @@ const commonStyles: Record<string, React.CSSProperties> = {
     padding: '8px 14px',
     borderRadius: '999px',
     fontWeight: 600,
-    color: 'var(--texto, #162032)',
+    color: 'var(--toggle-inactive-text, var(--texto, #162032))',
+    opacity: 0.75,
     cursor: 'pointer',
+    transition: 'color 0.2s ease, opacity 0.2s ease, background-color 0.2s ease',
   },
   toggleButtonActive: {
     backgroundColor: 'var(--toggle-active-bg, var(--blanco, #FFFFFF))',
     boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-    color: 'var(--azul-claro, #2EAFC4)',
+    color: 'var(--toggle-active-text, var(--azul-claro, #2EAFC4))',
+    opacity: 1,
   },
   title: {
     fontFamily: 'Libre Baskerville, serif',
@@ -954,7 +964,15 @@ const BasicMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutputs, 
       <section style={commonStyles.configSection}>
         <div style={commonStyles.configGroup}>
           <label style={commonStyles.label}>{copy.maxCharsLabel}</label>
-          <input type="number" min="0" style={commonStyles.select} value={maxChars} onChange={e => setMaxChars(e.target.value)} placeholder="280" />
+          <input
+            type="number"
+            min="0"
+            style={{ ...commonStyles.select, opacity: literalTranslation ? 0.6 : 1 }}
+            value={maxChars}
+            onChange={e => setMaxChars(e.target.value)}
+            placeholder="280"
+            disabled={literalTranslation}
+          />
         </div>
       </section>
       <button type="button" style={commonStyles.generateButton} onClick={handleGenerate} disabled={isLoading}>
@@ -1076,7 +1094,7 @@ const CampaignMode: React.FC<CommonProps> = ({ isLoading, error, generatedOutput
     setGeneratedImageUrl(null);
     try {
       const languageDisplay = languages.find(l => l.value === language)?.label || language;
-      const prompt = `Eres un planificador de campanas express. Idea: "${idea}". Contexto/destino: "${context || 'No especificado'}". Idioma: ${languageDisplay}. Plataformas: ${campaignPlatforms.join(', ')}. Sigue el esquema ${structuredOutputExample}.`;
+      const prompt = `Eres un planificador de campañas express. Idea: "${idea}". Contexto/destino: "${context || 'No especificado'}". Idioma: ${languageDisplay}. Plataformas: ${campaignPlatforms.join(', ')}. Sigue el esquema ${structuredOutputExample}.`;
       await onGenerate(prompt);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error desconocido';
