@@ -5,13 +5,16 @@ import react from "@vitejs/plugin-react";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "");
   const apiKey = env.HF_API_KEY || env.API_KEY || env.GEMINI_API_KEY || "";
-  const hfBaseUrl = env.VITE_HF_BASE_URL || "https://api-inference.huggingface.co";
-  const textModelId = env.VITE_TEXT_MODEL_ID || "meta-llama/Meta-Llama-3-8B-Instruct";
+  const hfBaseUrl =
+    env.VITE_HF_BASE_URL || "https://router.huggingface.co/hf-inference";
+  const normalizedHfBaseUrl = hfBaseUrl.replace(/\/+$/, "");
+  const textModelId =
+    env.VITE_TEXT_MODEL_ID || "meta-llama/Meta-Llama-3-8B-Instruct";
   const imageModelId = env.VITE_IMAGE_MODEL_ID || "black-forest-labs/FLUX.1-schnell";
   const ttsModelId = env.VITE_TTS_MODEL_ID || "suno/bark-small";
   const sttModelId = env.VITE_STT_MODEL_ID || "openai/whisper-large-v3-turbo";
   const createModelProxy = (modelId: string) => ({
-    target: `${hfBaseUrl}/models/${modelId}`,
+    target: `${normalizedHfBaseUrl}/${modelId}`,
     changeOrigin: true,
     secure: true,
     rewrite: () => "",

@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 
 const API_KEY = process.env.HF_API_KEY || process.env.API_KEY;
-const HF_BASE_URL = 'https://api-inference.huggingface.co/models';
-const TEXT_MODEL_ID = import.meta.env.VITE_TEXT_MODEL_ID || 'mistralai/Mistral-7B-Instruct-v0.2';
+const HF_BASE_URL = import.meta.env.VITE_HF_BASE_URL || 'https://router.huggingface.co/hf-inference';
+const TEXT_MODEL_ID = import.meta.env.VITE_TEXT_MODEL_ID || 'meta-llama/Meta-Llama-3-8B-Instruct';
 const IMAGE_MODEL_ID = import.meta.env.VITE_IMAGE_MODEL_ID || 'black-forest-labs/FLUX.1-schnell';
 const TTS_MODEL_ID = import.meta.env.VITE_TTS_MODEL_ID || 'suno/bark-small';
 const STT_MODEL_ID = import.meta.env.VITE_STT_MODEL_ID || 'openai/whisper-large-v3-turbo';
