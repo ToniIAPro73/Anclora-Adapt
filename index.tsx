@@ -2,15 +2,14 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import ReactDOM from "react-dom/client";
 
 const API_KEY = process.env.HF_API_KEY || process.env.API_KEY;
-const HF_BASE_URL_RAW = (
+const HF_BASE_URL_RAW =
   import.meta.env.VITE_HF_BASE_URL ||
-  "https://router.huggingface.co/hf-inference"
-).trim();
-const HF_BASE_URL = HF_BASE_URL_RAW.replace(/\/+$/, "");
+  "https://router.huggingface.co/hf-inference";
+const HF_BASE_URL = HF_BASE_URL_RAW.replace(/\/+$/, "").trim();
 const TEXT_MODEL_ID =
-  import.meta.env.VITE_TEXT_MODEL_ID || "meta-llama/Meta-Llama-3-8B-Instruct";
+  import.meta.env.VITE_TEXT_MODEL_ID || "meta-llama/Llama-3.2-1B-Instruct";
 const IMAGE_MODEL_ID =
-  import.meta.env.VITE_IMAGE_MODEL_ID || "black-forest-labs/FLUX.1-schnell";
+  import.meta.env.VITE_IMAGE_MODEL_ID || "black-forest-labs/FLUX.1-dev";
 const TTS_MODEL_ID = import.meta.env.VITE_TTS_MODEL_ID || "suno/bark-small";
 const STT_MODEL_ID =
   import.meta.env.VITE_STT_MODEL_ID || "openai/whisper-large-v3-turbo";
