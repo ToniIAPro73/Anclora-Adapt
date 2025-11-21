@@ -5,7 +5,6 @@ const API_KEY = process.env.HF_API_KEY || process.env.API_KEY;
 const HF_BASE_URL_RAW = (import.meta.env.VITE_HF_BASE_URL || 'https://router.huggingface.co/hf-inference')
   .trim();
 const HF_BASE_URL = HF_BASE_URL_RAW.replace(/\/+$/, '');
-const isRouterBase = HF_BASE_URL.includes('router.huggingface.co');
 const TEXT_MODEL_ID = import.meta.env.VITE_TEXT_MODEL_ID || 'meta-llama/Meta-Llama-3-8B-Instruct';
 const IMAGE_MODEL_ID = import.meta.env.VITE_IMAGE_MODEL_ID || 'black-forest-labs/FLUX.1-schnell';
 const TTS_MODEL_ID = import.meta.env.VITE_TTS_MODEL_ID || 'suno/bark-small';
@@ -13,8 +12,7 @@ const STT_MODEL_ID = import.meta.env.VITE_STT_MODEL_ID || 'openai/whisper-large-
 const proxyEnabled = import.meta.env.VITE_USE_PROXY === 'true' || import.meta.env.DEV;
 const forceDirect = import.meta.env.VITE_USE_DIRECT_HF === 'true';
 const useProxy = !forceDirect && proxyEnabled;
-const resolveDirectEndpoint = (modelId: string) =>
-  isRouterBase ? `${HF_BASE_URL}/models/${modelId}` : `${HF_BASE_URL}/models/${modelId}`;
+const resolveDirectEndpoint = (modelId: string) => `${HF_BASE_URL}/models/${modelId}`;
 
 const TEXT_ENDPOINT = useProxy ? '/api/hf-text' : resolveDirectEndpoint(TEXT_MODEL_ID);
 const IMAGE_ENDPOINT = useProxy ? '/api/hf-image' : resolveDirectEndpoint(IMAGE_MODEL_ID);
@@ -25,9 +23,8 @@ const buildCandidateUrls = (modelId: string, proxyPath: string) => {
   const urls = new Set<string>();
   if (proxyPath) {
     urls.add(proxyPath);
-  } else {
-    urls.add(resolveDirectEndpoint(modelId));
   }
+  urls.add(resolveDirectEndpoint(modelId));
   return Array.from(urls);
 };
 

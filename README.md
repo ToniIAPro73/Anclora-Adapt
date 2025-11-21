@@ -12,7 +12,7 @@ View your app in AI Studio: <https://ai.studio/apps/drive/13r2q4tNoqShcdzph3H6cI
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Create a `.env.local` file and set at least `HF_API_KEY` with your Hugging Face API token (do not commit this file)
 3. Run the app:
    `npm run dev`
    (The app will be available at <http://localhost:4173>)
