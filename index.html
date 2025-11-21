@@ -54,6 +54,10 @@
             --button-contrast:#0B1220;
         }
 
+        html, body {
+            height: 100%;
+        }
+
         body {
             margin: 0;
             font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -61,11 +65,13 @@
             -moz-osx-font-smoothing: grayscale;
             background-color: var(--gris-fondo); /* Use Anclora background color */
             color: var(--texto); /* Use Anclora text color */
+            overflow: hidden;
         }
         #root {
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
+            height: 100vh;
+            min-height: 0;
         }
 
         /* Base typography from Anclora design system */

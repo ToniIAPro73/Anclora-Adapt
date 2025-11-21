@@ -636,17 +636,21 @@ const commonStyles: Record<string, React.CSSProperties> = {
   container: {
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    padding: '30px 20px',
+    alignItems: 'stretch',
+    height: '100vh',
     maxWidth: '1200px',
+    width: '100%',
     margin: '0 auto',
-    gap: '30px',
+    padding: '12px 12px',
+    boxSizing: 'border-box',
+    gap: '16px',
+    overflow: 'hidden',
   },
   header: {
     width: '100%',
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
+    gap: '8px',
   },
   headerTop: {
     textAlign: 'center',
@@ -686,13 +690,13 @@ const commonStyles: Record<string, React.CSSProperties> = {
   },
   title: {
     fontFamily: 'Libre Baskerville, serif',
-    fontSize: '3em',
+    fontSize: '2.2em',
     margin: 0,
     color: 'var(--azul-profundo, #23436B)',
   },
   subtitle: {
     fontFamily: 'Inter, sans-serif',
-    fontSize: '1.1em',
+    fontSize: '1em',
     margin: 0,
     color: 'var(--texto, #162032)',
     opacity: 0.8,
@@ -701,11 +705,20 @@ const commonStyles: Record<string, React.CSSProperties> = {
     width: '100%',
     backgroundColor: 'var(--panel-bg, #FFFFFF)',
     borderRadius: '18px',
-    padding: '30px',
+    padding: '16px',
     boxShadow: 'var(--panel-shadow, 0 10px 40px rgba(0,0,0,0.06))',
     display: 'flex',
     flexDirection: 'column',
-    gap: '30px',
+    gap: '16px',
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+  modeScrollArea: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+    paddingRight: '4px',
   },
   tabNavigation: {
     display: 'flex',
@@ -1818,14 +1831,16 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
           ))}
         </nav>
 
-        {activeTab === 'basic' && <BasicMode {...commonProps} />}
-        {activeTab === 'intelligent' && <IntelligentMode {...commonProps} />}
-        {activeTab === 'campaign' && <CampaignMode {...commonProps} />}
-        {activeTab === 'recycle' && <RecycleMode {...commonProps} />}
-        {activeTab === 'chat' && <ChatMode interfaceLanguage={interfaceLanguage} onCopy={copyToClipboard} />}
-        {activeTab === 'tts' && <TTSMode interfaceLanguage={interfaceLanguage} />}
-        {activeTab === 'live' && <LiveChatMode interfaceLanguage={interfaceLanguage} />}
-        {activeTab === 'image' && <ImageEditMode interfaceLanguage={interfaceLanguage} />}
+        <div style={commonStyles.modeScrollArea}>
+          {activeTab === 'basic' && <BasicMode {...commonProps} />}
+          {activeTab === 'intelligent' && <IntelligentMode {...commonProps} />}
+          {activeTab === 'campaign' && <CampaignMode {...commonProps} />}
+          {activeTab === 'recycle' && <RecycleMode {...commonProps} />}
+          {activeTab === 'chat' && <ChatMode interfaceLanguage={interfaceLanguage} onCopy={copyToClipboard} />}
+          {activeTab === 'tts' && <TTSMode interfaceLanguage={interfaceLanguage} />}
+          {activeTab === 'live' && <LiveChatMode interfaceLanguage={interfaceLanguage} />}
+          {activeTab === 'image' && <ImageEditMode interfaceLanguage={interfaceLanguage} />}
+        </div>
       </main>
       {isHelpOpen && (
         <div style={commonStyles.helpOverlay} role="presentation" onClick={closeHelp}>
