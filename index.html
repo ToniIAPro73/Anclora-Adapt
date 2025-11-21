@@ -88,6 +88,27 @@
             background: linear-gradient(120deg, var(--azul-profundo), var(--azul-claro));
             color:var(--blanco); border-radius:18px; padding:28px 30px; margin-bottom:16px;
         }
+
+        /* Two-column responsive layout for modes */
+        .mode-two-column{
+            display:flex;
+            flex-direction:column;
+            gap:16px;
+            height:100%;
+        }
+        .mode-two-column-left,
+        .mode-two-column-right{
+            min-width:0;
+        }
+        @media (min-width: 900px){
+            .mode-two-column{
+                flex-direction:row;
+            }
+            .mode-two-column-left,
+            .mode-two-column-right{
+                flex:1 1 0;
+            }
+        }
     </style>
 </head>
 <body>
