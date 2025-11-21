@@ -1,16 +1,17 @@
 <#
 .SYNOPSIS
-  Sincroniza todas las ramas principales (development → main → preview → production)
-  y reinyecta commits adelantados desde ramas superiores si existen.
+  Sincroniza todas las ramas principales (development → main → preview → production),
+  integrando automáticamente cambios externos (Cosine) y verificando la identidad del autor.
 
 .DESCRIPTION
   Este script:
-  - Actualiza referencias remotas.
-  - Detecta commits adelantados en ramas superiores.
-  - Ofrece integrarlos en development con rebase.
-  - Fusiona jerárquicamente en orden.
-  - Hace rebase final para evitar desfases (“X commits behind”).
-  - Limpia logs antiguos automáticamente.
+  - Verifica identidad del autor (bloquea agentes no autorizados)
+  - Limpia logs antiguos
+  - Detecta commits adelantados en ramas superiores
+  - Integra la rama Cosine si existe
+  - Promueve jerárquicamente todas las ramas
+  - Realiza rebase final en development
+  - Muestra un dashboard con el estado de cada rama
 #>
 
 # ==========================
@@ -34,7 +35,24 @@ $logFile = Join-Path $logDir "promote_$timestamp.txt"
 Start-Transcript -Path $logFile | Out-Null
 
 Write-Host ""
-Write-Host "⚓ ANCLORA DEV SHELL — PROMOTE FULL v2.5" -ForegroundColor Cyan
+Write-Host "⚓ ANCLORA DEV SHELL — PROMOTE FULL v2.6" -ForegroundColor Cyan
+Write-Host ""
+
+# ==========================
+# 🔒 VERIFICACIÓN DE IDENTIDAD
+# ==========================
+$allowedName = "Antonio Ballesteros Alonso"
+$allowedEmail = "toni@uniestate.co.uk"
+
+$currentName = git config user.name
+$currentEmail = git config user.email
+
+if ($currentName -ne $allowedName -or $currentEmail -ne $allowedEmail) {
+    Write-Host "🚫 Bloqueado: autor no autorizado ($currentName <$currentEmail>)" -ForegroundColor Red
+    Stop-Transcript | Out-Null
+    exit 1
+}
+Write-Host "✅ Identidad verificada: $currentName <$currentEmail>" -ForegroundColor Green
 Write-Host ""
 
 # ==========================
@@ -70,26 +88,38 @@ function Check-Divergence($source, $target) {
     return @{ Ahead = $ahead; Behind = $behind }
 }
 
-Write-Host "🧭 Verificando si hay commits adelantados en ramas superiores..." -ForegroundColor Yellow
 $upstreamBranches = @($mainBranch, $previewBranch, $productionBranch) | Where-Object { $_ -ne '' }
-$rebased = $false
-
 foreach ($up in $upstreamBranches) {
     $div = Check-Divergence "origin/$devBranch" "origin/$up"
     if ($div.Behind -gt 0) {
         Write-Host "⚠️  '$up' tiene $($div.Behind) commits no presentes en '$devBranch'." -ForegroundColor Yellow
-        $choice = Read-Host "¿Deseas integrarlos en '$devBranch' antes de promover? (S/N)"
+        $choice = Read-Host "¿Integrar en '$devBranch'? (S/N)"
         if ($choice -match '^[sS]$') {
-            Write-Host "🔁 Rebasando '$devBranch' con cambios de '$up'..." -ForegroundColor Green
             git checkout $devBranch
             git pull origin $up --rebase
-            $rebased = $true
         }
     }
 }
 
-if (-not $rebased) {
-    Write-Host "✅ No hay commits adelantados que integrar." -ForegroundColor Green
+# ==========================
+# 🤝 INTEGRAR RAMA COSINE
+# ==========================
+$cosineBranch = "cosine/fix-readme-context"
+
+if ((git branch -r | Select-String $cosineBranch)) {
+    Write-Host "`n🤝 Detectada rama externa de Cosine: $cosineBranch" -ForegroundColor Yellow
+    $choice = Read-Host "¿Integrar sus cambios en '$devBranch'? (S/N)"
+    if ($choice -match '^[sS]$') {
+        git checkout $devBranch
+        git fetch origin $cosineBranch
+        git merge origin/$cosineBranch -m "🤝 Merge Cosine branch $cosineBranch into $devBranch"
+        git push origin $devBranch
+        Write-Host "✅ Cambios de Cosine integrados correctamente." -ForegroundColor Green
+    } else {
+        Write-Host "⏩ Integración de Cosine omitida." -ForegroundColor DarkYellow
+    }
+} else {
+    Write-Host "ℹ️ No se ha detectado la rama de Cosine ($cosineBranch)." -ForegroundColor Gray
 }
 Write-Host ""
 
@@ -112,17 +142,24 @@ if ($previewBranch) { Promote $mainBranch $previewBranch }
 if ($productionBranch) { Promote $previewBranch $productionBranch }
 
 # ==========================
-# 🧩 REBASE FINAL DE DEVELOPMENT
+# 🧩 REBASE FINAL + DASHBOARD
 # ==========================
-Write-Host "`n🔄 Realizando rebase final de '$devBranch'..." -ForegroundColor Yellow
+Write-Host "`n🔄 Rebase final en '$devBranch'..." -ForegroundColor Yellow
 git checkout $devBranch
 git fetch origin $devBranch
 git pull --rebase origin $devBranch
 git push origin $devBranch
 
+Write-Host ""
+Write-Host "📊 Estado de ramas tras sincronización:" -ForegroundColor Cyan
+foreach ($b in @($devBranch, $mainBranch, $previewBranch, $productionBranch) | Where-Object { $_ -ne '' }) {
+    $div = Check-Divergence $b "origin/$b"
+    Write-Host ("  • " + $b.PadRight(12) + " ⬆️ " + $div.Ahead + " / ⬇️ " + $div.Behind)
+}
+
 # ==========================
 # ✅ FINALIZACIÓN
 # ==========================
 Write-Host ""
-Write-Host "🏁 Sincronización completa sin divergencias." -ForegroundColor Cyan
+Write-Host "🏁 Sincronización completada sin divergencias." -ForegroundColor Cyan
 Stop-Transcript | Out-Null
