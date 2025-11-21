@@ -740,6 +740,24 @@ const commonStyles: Record<string, React.CSSProperties> = {
     color: 'var(--azul-claro, #2EAFC4)',
     opacity: 1,
   },
+  modeRoot: {
+    width: '100%',
+    height: '100%',
+    boxSizing: 'border-box',
+  },
+  modeInputsColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    paddingRight: '8px',
+    minHeight: 0,
+  },
+  modeOutputsColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    minHeight: 0,
+  },
   section: {
     display: 'flex',
     flexDirection: 'column',
@@ -837,6 +855,9 @@ const commonStyles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     gap: '16px',
+    height: '100%',
+    minHeight: 0,
+    overflowY: 'auto',
   },
   outputGrid: {
     display: 'grid',
@@ -866,7 +887,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     border: '1px solid var(--panel-border, #e0e0e0)',
     borderRadius: '12px',
     padding: '20px 18px',
-    minHeight: '360px',
+    minHeight: '0',
     overflowY: 'auto',
     display: 'flex',
     flexDirection: 'column',
@@ -874,6 +895,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     backgroundColor: 'var(--panel-bg, #FFFFFF)',
     width: '100%',
     boxSizing: 'border-box',
+    flex: 1,
   },
   chatMessage: {
     borderRadius: '14px',
@@ -996,6 +1018,8 @@ const commonStyles: Record<string, React.CSSProperties> = {
     padding: '12px',
     minHeight: '120px',
     backgroundColor: 'var(--muted-surface, #f7f9fb)',
+    flex: 1,
+    overflowY: 'auto',
   },
   audioPlayer: {
     width: '100%',
