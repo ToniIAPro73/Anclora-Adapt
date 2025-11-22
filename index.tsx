@@ -1313,18 +1313,16 @@ const BasicMode: React.FC<CommonProps> = ({
   return (
     <>
       <section style={commonStyles.section}>
-        <label style={commonStyles.label} htmlFor="basic-idea">
-          {copy.ideaLabel}
-        </label>
-        <textarea
-          id="basic-idea"
-          style={commonStyles.textarea}
-          value={idea}
-          onChange={(e) => setIdea(e.target.value)}
-          placeholder={copy.ideaPlaceholder}
-        />
-        <div style={commonStyles.inputCounter}>
-          {formatCounterText(idea, interfaceLanguage)}
+        <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%' }}>
+          <label style={commonStyles.label} htmlFor="basic-idea">{copy.ideaLabel}</label>
+          <textarea
+            id="basic-idea"
+            style={commonStyles.textarea}
+            value={idea}
+            onChange={e => setIdea(e.target.value)}
+            placeholder={copy.ideaPlaceholder}
+          />
+          <div style={commonStyles.inputCounter}>{formatCounterText(idea, interfaceLanguage)}</div>
         </div>
       </section>
       <section style={commonStyles.configSection}>
@@ -1411,9 +1409,10 @@ const BasicMode: React.FC<CommonProps> = ({
             style={{
               ...commonStyles.select,
               opacity: literalTranslation ? 0.6 : 1,
+              width: '180px',
             }}
             value={maxChars}
-            onChange={(e) => setMaxChars(e.target.value)}
+            onChange={e => setMaxChars(e.target.value)}
             placeholder="280"
             disabled={literalTranslation}
           />
