@@ -7,7 +7,7 @@ const HF_BASE_URL_RAW =
   "https://router.huggingface.co/hf-inference";
 const HF_BASE_URL = HF_BASE_URL_RAW.replace(/\/+$/, "").trim();
 const TEXT_MODEL_ID =
-  import.meta.env.VITE_TEXT_MODEL_ID || "meta-llama/Llama-3.2-1B-Instruct";
+  import.meta.env.VITE_TEXT_MODEL_ID || "meta-llama/Meta-Llama-3-8B-Instruct";
 const IMAGE_MODEL_ID =
   import.meta.env.VITE_IMAGE_MODEL_ID || "black-forest-labs/FLUX.1-dev";
 const TTS_MODEL_ID = import.meta.env.VITE_TTS_MODEL_ID || "suno/bark-small";
@@ -770,17 +770,16 @@ const getStoredLanguage = (): InterfaceLanguage => {
 
 const commonStyles: Record<string, React.CSSProperties> = {
   container: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "stretch",
-    height: "100vh",
-    maxWidth: "1200px",
-    width: "100%",
-    margin: "0 auto",
-    padding: "12px 12px",
-    boxSizing: "border-box",
-    gap: "16px",
-    overflow: "hidden",
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    maxWidth: '1200px',
+    width: '100%',
+    margin: '0 auto',
+    padding: '12px 12px',
+    boxSizing: 'border-box',
+    gap: '16px',
+    minHeight: '100vh',
   },
   header: {
     width: "100%",
@@ -838,23 +837,19 @@ const commonStyles: Record<string, React.CSSProperties> = {
     opacity: 0.8,
   },
   mainContent: {
-    width: "100%",
-    backgroundColor: "var(--panel-bg, #FFFFFF)",
-    borderRadius: "18px",
-    padding: "16px",
-    boxShadow: "var(--panel-shadow, 0 10px 40px rgba(0,0,0,0.06))",
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-    flex: 1,
-    minHeight: 0,
-    overflow: "hidden",
+    width: '100%',
+    backgroundColor: 'var(--panel-bg, #FFFFFF)',
+    borderRadius: '18px',
+    padding: '16px',
+    boxShadow: 'var(--panel-shadow, 0 10px 40px rgba(0,0,0,0.06))',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
   },
   modeScrollArea: {
     flex: 1,
     minHeight: 0,
-    overflowY: "auto",
-    paddingRight: "4px",
+    paddingRight: '4px',
   },
   tabNavigation: {
     display: "flex",
