@@ -7,7 +7,7 @@ const HF_BASE_URL_RAW =
   "https://router.huggingface.co/hf-inference";
 const HF_BASE_URL = HF_BASE_URL_RAW.replace(/\/+$/, "").trim();
 const TEXT_MODEL_ID =
-  import.meta.env.VITE_TEXT_MODEL_ID || "meta-llama/Meta-Llama-3-8B-Instruct";
+  import.meta.env.VITE_TEXT_MODEL_ID || "HuggingFaceTB/SmolLM3-3B";
 const IMAGE_MODEL_ID =
   import.meta.env.VITE_IMAGE_MODEL_ID || "black-forest-labs/FLUX.1-dev";
 const TTS_MODEL_ID = import.meta.env.VITE_TTS_MODEL_ID || "suno/bark-small";

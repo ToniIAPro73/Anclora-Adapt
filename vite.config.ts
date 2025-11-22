@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   ).trim();
   const normalizedHfBaseUrl = hfBaseUrl.replace(/\/+$/, "");
   const textModelId =
-    env.VITE_TEXT_MODEL_ID || "meta-llama/Meta-Llama-3-8B-Instruct";
+    env.VITE_TEXT_MODEL_ID || "HuggingFaceTB/SmolLM3-3B";
   const imageModelId =
     env.VITE_IMAGE_MODEL_ID || "black-forest-labs/FLUX.1-schnell";
   const ttsModelId = env.VITE_TTS_MODEL_ID || "suno/bark-small";
