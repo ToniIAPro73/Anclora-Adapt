@@ -1,165 +1,118 @@
 <#
 .SYNOPSIS
-  Sincroniza todas las ramas principales (development → main → preview → production),
-  integrando automáticamente cambios externos (Cosine) y verificando la identidad del autor.
+  🔁 Sincroniza todas las ramas principales del proyecto (development, main, preview, production)
+  usando la más reciente como fuente. Incluye control de autoría, backups automáticos y logs detallados.
 
 .DESCRIPTION
-  Este script:
-  - Verifica identidad del autor (bloquea agentes no autorizados)
-  - Limpia logs antiguos
-  - Detecta commits adelantados en ramas superiores
-  - Integra la rama Cosine si existe
-  - Promueve jerárquicamente todas las ramas
-  - Realiza rebase final en development
-  - Muestra un dashboard con el estado de cada rama
+  Este script detecta la rama más actualizada (por commits), sincroniza el resto con ella
+  y genera un log en /logs con los resultados del proceso.
+
+.VERSION
+  v2.7 – Protección de autoría (solo ToniIAPro73 o cuentas autorizadas)
+  Última revisión: 22/11/2025
 #>
 
 # ==========================
-# ⚙️ CONFIGURACIÓN INICIAL
+# 🧭 CONFIGURACIÓN BÁSICA
 # ==========================
 $ErrorActionPreference = "Stop"
-$repoRoot = (git rev-parse --show-toplevel)
-Set-Location $repoRoot
-
-$logDir = Join-Path $repoRoot "logs"
-if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
-
-# 🧹 Limpieza automática de logs antiguos (>24h)
-Get-ChildItem $logDir -Filter "promote_*.txt" -ErrorAction SilentlyContinue |
-  Where-Object { $_.LastWriteTime -lt (Get-Date).AddHours(-24) } |
-  Remove-Item -Force -ErrorAction SilentlyContinue
-
-# Crear nuevo log
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-$logFile = Join-Path $logDir "promote_$timestamp.txt"
-Start-Transcript -Path $logFile | Out-Null
+$logDir = "logs"
+if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
+$logFile = "$logDir/promote_$timestamp.txt"
+Start-Transcript -Path $logFile -Force | Out-Null
 
-Write-Host ""
-Write-Host "⚓ ANCLORA DEV SHELL — PROMOTE FULL v2.6" -ForegroundColor Cyan
-Write-Host ""
+Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v2.7`n" -ForegroundColor Cyan
 
 # ==========================
-# 🔒 VERIFICACIÓN DE IDENTIDAD
+# 🧩 AUTORIZACIÓN DE AUTOR
 # ==========================
-$allowedName = "Antonio Ballesteros Alonso"
-$allowedEmail = "toni@uniestate.co.uk"
+$allowedAuthors = @(
+    "Antonio Ballesteros Alonso <toni@uniestate.co.uk>",
+    "ToniIAPro73 <supertoniia@gmail.com>"
+)
 
-$currentName = git config user.name
-$currentEmail = git config user.email
-
-if ($currentName -ne $allowedName -or $currentEmail -ne $allowedEmail) {
-    Write-Host "🚫 Bloqueado: autor no autorizado ($currentName <$currentEmail>)" -ForegroundColor Red
+$lastCommitAuthor = git log -1 --pretty=format:"%an <%ae>"
+if ($allowedAuthors -notcontains $lastCommitAuthor) {
+    Write-Host "🚫 Bloqueado: autor no autorizado ($lastCommitAuthor)" -ForegroundColor Red
     Stop-Transcript | Out-Null
     exit 1
 }
-Write-Host "✅ Identidad verificada: $currentName <$currentEmail>" -ForegroundColor Green
-Write-Host ""
+
+Write-Host "✅ Autorización verificada: $lastCommitAuthor`n" -ForegroundColor Green
 
 # ==========================
-# 🧭 DETECTAR RAMAS
+# 🔄 ACTUALIZACIÓN REMOTA
 # ==========================
-$branches = git branch --format="%(refname:short)"
-$mainBranch = if ($branches -match 'main') { 'main' } elseif ($branches -match 'master') { 'master' } else { 'main' }
-$devBranch = if ($branches -match 'development') { 'development' } else { Read-Host "❓ Nombre de tu rama de desarrollo" }
-$previewBranch = if ($branches -match 'preview') { 'preview' } else { '' }
-$productionBranch = if ($branches -match 'production') { 'production' } else { '' }
-
-Write-Host "🔹 Ramas detectadas:"
-Write-Host "   Dev: $devBranch"
-Write-Host "   Main: $mainBranch"
-if ($previewBranch) { Write-Host "   Preview: $previewBranch" }
-if ($productionBranch) { Write-Host "   Production: $productionBranch" }
-Write-Host ""
+Write-Host "🔄 Actualizando referencias remotas..." -ForegroundColor Cyan
+git fetch --all --prune | Out-Null
 
 # ==========================
-# 🔄 ACTUALIZAR REMOTOS
+# 📋 DEFINICIÓN DE RAMAS
 # ==========================
-Write-Host "🔄 Actualizando referencias remotas..." -ForegroundColor Yellow
-git fetch --all | Out-Null
+$branches = @("development", "main", "preview", "production")
+
+# Detecta cuál es la más reciente por fecha de commit
+$latest = $branches |
+    ForEach-Object {
+        [PSCustomObject]@{
+            Name = $_
+            Date = (git log origin/$_ -1 --format="%ci")
+        }
+    } | Sort-Object Date -Descending | Select-Object -First 1
+
+Write-Host "🧭 Último commit detectado:`n   → Rama: $($latest.Name)`n   → Fecha: $($latest.Date)`n" -ForegroundColor Yellow
 
 # ==========================
-# 🧠 DETECTAR COMMITS ADELANTADOS
+# 💾 BACKUP AUTOMÁTICO
 # ==========================
-function Check-Divergence($source, $target) {
-    $counts = git rev-list --left-right --count $source...$target | Out-String
-    $split = $counts -split "\s+"
-    $ahead = [int]($split[0].Trim())
-    $behind = [int]($split[1].Trim())
-    return @{ Ahead = $ahead; Behind = $behind }
+$uncommitted = git status --porcelain
+if ($uncommitted) {
+    Write-Host "⚠️ Hay cambios sin commit en tu entorno local."
+    $resp = Read-Host "¿Deseas crear un backup automático antes de continuar? (S/N)"
+    if ($resp -eq "S") {
+        $backupBranch = "backup/$($timestamp)"
+        git checkout -b $backupBranch
+        git add .
+        git commit -m "🧩 Backup automático previo al promote ($timestamp)"
+        git push origin $backupBranch
+        Write-Host "✅ Backup creado en rama: $backupBranch`n" -ForegroundColor Green
+    } else {
+        Write-Host "⏭️ Continuando sin backup..." -ForegroundColor Yellow
+    }
 }
 
-$upstreamBranches = @($mainBranch, $previewBranch, $productionBranch) | Where-Object { $_ -ne '' }
-foreach ($up in $upstreamBranches) {
-    $div = Check-Divergence "origin/$devBranch" "origin/$up"
-    if ($div.Behind -gt 0) {
-        Write-Host "⚠️  '$up' tiene $($div.Behind) commits no presentes en '$devBranch'." -ForegroundColor Yellow
-        $choice = Read-Host "¿Integrar en '$devBranch'? (S/N)"
-        if ($choice -match '^[sS]$') {
-            git checkout $devBranch
-            git pull origin $up --rebase
+# ==========================
+# 🔁 SINCRONIZACIÓN DE RAMAS
+# ==========================
+foreach ($b in $branches) {
+    if ($b -ne $latest.Name) {
+        Write-Host "➡️ Sincronizando '$b' con '$($latest.Name)'..." -ForegroundColor Cyan
+        git checkout $b | Out-Null
+        git pull origin $b | Out-Null
+        git merge origin/$($latest.Name) --no-edit | Out-Null
+
+        # Verifica si hay commits locales pendientes
+        $aheadOutput = git rev-list --left-right --count "$b...origin/$b"
+        $split = $aheadOutput -split "\s+"
+        $ahead = [int]$split[0]
+        $behind = [int]$split[1]
+
+        if ($ahead -gt 0) {
+            Write-Host "⬆️ Subiendo cambios locales de '$b'..." -ForegroundColor Yellow
+            git push origin $b
+        } elseif ($behind -gt 0) {
+            Write-Host "⬇️ Actualizando '$b' desde remoto..." -ForegroundColor Yellow
+            git pull origin $b
+        } else {
+            Write-Host "✅ '$b' ya está sincronizada." -ForegroundColor Green
         }
     }
 }
 
 # ==========================
-# 🤝 INTEGRAR RAMA COSINE
+# 🏁 FINALIZACIÓN
 # ==========================
-$cosineBranch = "cosine/fix-readme-context"
-
-if ((git branch -r | Select-String $cosineBranch)) {
-    Write-Host "`n🤝 Detectada rama externa de Cosine: $cosineBranch" -ForegroundColor Yellow
-    $choice = Read-Host "¿Integrar sus cambios en '$devBranch'? (S/N)"
-    if ($choice -match '^[sS]$') {
-        git checkout $devBranch
-        git fetch origin $cosineBranch
-        git merge origin/$cosineBranch -m "🤝 Merge Cosine branch $cosineBranch into $devBranch"
-        git push origin $devBranch
-        Write-Host "✅ Cambios de Cosine integrados correctamente." -ForegroundColor Green
-    } else {
-        Write-Host "⏩ Integración de Cosine omitida." -ForegroundColor DarkYellow
-    }
-} else {
-    Write-Host "ℹ️ No se ha detectado la rama de Cosine ($cosineBranch)." -ForegroundColor Gray
-}
-Write-Host ""
-
-# ==========================
-# 🚀 FUNCIÓN DE PROMOCIÓN
-# ==========================
-function Promote($source, $target) {
-    Write-Host "🔁 Fusionando $source → $target..." -ForegroundColor Green
-    git checkout $target
-    git pull origin $target --rebase
-    git merge $source -m "🔀 Promote $source → $target"
-    git push origin $target
-}
-
-# ==========================
-# 🔗 EJECUCIÓN PRINCIPAL
-# ==========================
-Promote $devBranch $mainBranch
-if ($previewBranch) { Promote $mainBranch $previewBranch }
-if ($productionBranch) { Promote $previewBranch $productionBranch }
-
-# ==========================
-# 🧩 REBASE FINAL + DASHBOARD
-# ==========================
-Write-Host "`n🔄 Rebase final en '$devBranch'..." -ForegroundColor Yellow
-git checkout $devBranch
-git fetch origin $devBranch
-git pull --rebase origin $devBranch
-git push origin $devBranch
-
-Write-Host ""
-Write-Host "📊 Estado de ramas tras sincronización:" -ForegroundColor Cyan
-foreach ($b in @($devBranch, $mainBranch, $previewBranch, $productionBranch) | Where-Object { $_ -ne '' }) {
-    $div = Check-Divergence $b "origin/$b"
-    Write-Host ("  • " + $b.PadRight(12) + " ⬆️ " + $div.Ahead + " / ⬇️ " + $div.Behind)
-}
-
-# ==========================
-# ✅ FINALIZACIÓN
-# ==========================
-Write-Host ""
-Write-Host "🏁 Sincronización completada sin divergencias." -ForegroundColor Cyan
+git checkout $latest.Name | Out-Null
+Write-Host "`n🎯 Promoción completada. Todas las ramas sincronizadas con '$($latest.Name)'.`n" -ForegroundColor Green
 Stop-Transcript | Out-Null
