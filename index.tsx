@@ -770,16 +770,16 @@ const getStoredLanguage = (): InterfaceLanguage => {
 
 const commonStyles: Record<string, React.CSSProperties> = {
   container: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'stretch',
-    maxWidth: '1200px',
-    width: '100%',
-    margin: '0 auto',
-    padding: '12px 12px',
-    boxSizing: 'border-box',
-    gap: '16px',
-    minHeight: '100vh',
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "stretch",
+    maxWidth: "1200px",
+    width: "100%",
+    margin: "0 auto",
+    padding: "12px 12px",
+    boxSizing: "border-box",
+    gap: "16px",
+    minHeight: "100vh",
   },
   header: {
     width: "100%",
@@ -837,19 +837,19 @@ const commonStyles: Record<string, React.CSSProperties> = {
     opacity: 0.8,
   },
   mainContent: {
-    width: '100%',
-    backgroundColor: 'var(--panel-bg, #FFFFFF)',
-    borderRadius: '18px',
-    padding: '16px',
-    boxShadow: 'var(--panel-shadow, 0 10px 40px rgba(0,0,0,0.06))',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
+    width: "100%",
+    backgroundColor: "var(--panel-bg, #FFFFFF)",
+    borderRadius: "18px",
+    padding: "16px",
+    boxShadow: "var(--panel-shadow, 0 10px 40px rgba(0,0,0,0.06))",
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
   },
   modeScrollArea: {
     flex: 1,
     minHeight: 0,
-    paddingRight: '4px',
+    paddingRight: "4px",
   },
   tabNavigation: {
     display: "flex",
@@ -1313,18 +1313,20 @@ const BasicMode: React.FC<CommonProps> = ({
   return (
     <>
       <section style={commonStyles.section}>
-        <label style={commonStyles.label} htmlFor="basic-idea">
-          {copy.ideaLabel}
-        </label>
-        <textarea
-          id="basic-idea"
-          style={commonStyles.textarea}
-          value={idea}
-          onChange={(e) => setIdea(e.target.value)}
-          placeholder={copy.ideaPlaceholder}
-        />
-        <div style={commonStyles.inputCounter}>
-          {formatCounterText(idea, interfaceLanguage)}
+        <div style={{ maxWidth: "900px", margin: "0 auto", width: "100%" }}>
+          <label style={commonStyles.label} htmlFor="basic-idea">
+            {copy.ideaLabel}
+          </label>
+          <textarea
+            id="basic-idea"
+            style={commonStyles.textarea}
+            value={idea}
+            onChange={(e) => setIdea(e.target.value)}
+            placeholder={copy.ideaPlaceholder}
+          />
+          <div style={commonStyles.inputCounter}>
+            {formatCounterText(idea, interfaceLanguage)}
+          </div>
         </div>
       </section>
       <section style={commonStyles.configSection}>
@@ -1404,13 +1406,23 @@ const BasicMode: React.FC<CommonProps> = ({
       </section>
       <section style={commonStyles.configSection}>
         <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>{copy.maxCharsLabel}</label>
+          <label
+            style={{
+              ...commonStyles.label,
+              display: "inline-block",
+              marginRight: "16px",
+            }}
+          >
+            {copy.maxCharsLabel}
+          </label>
           <input
             type="number"
             min="0"
             style={{
               ...commonStyles.select,
               opacity: literalTranslation ? 0.6 : 1,
+              width: "8ch",
+              marginTop: "0",
             }}
             value={maxChars}
             onChange={(e) => setMaxChars(e.target.value)}
@@ -1419,14 +1431,18 @@ const BasicMode: React.FC<CommonProps> = ({
           />
         </div>
       </section>
-      <button
-        type="button"
-        style={commonStyles.generateButton}
-        onClick={handleGenerate}
-        disabled={isLoading}
-      >
-        {isLoading ? copy.buttonLoading : copy.buttonIdle}
-      </button>
+      <section style={commonStyles.section}>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <button
+            type="button"
+            style={commonStyles.generateButton}
+            onClick={handleGenerate}
+            disabled={isLoading}
+          >
+            {isLoading ? copy.buttonLoading : copy.buttonIdle}
+          </button>
+        </div>
+      </section>
       <OutputDisplay
         generatedOutputs={generatedOutputs}
         error={error}
@@ -2395,55 +2411,59 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
           <p style={commonStyles.subtitle}>{copy.subtitle}</p>
         </div>
         <div style={commonStyles.headerControls}>
-          <div style={commonStyles.toggleGroup}>
-            {(["light", "dark", "system"] as ThemeMode[]).map((mode) => (
-              <button
-                type="button"
-                key={mode}
-                style={{
-                  ...commonStyles.toggleButton,
-                  ...(themeMode === mode
-                    ? commonStyles.toggleButtonActive
-                    : {}),
-                }}
-                onClick={() => setThemeMode(mode)}
-                aria-pressed={themeMode === mode}
-                aria-label={themeLabels[mode]}
-                title={themeLabels[mode]}
-              >
-                {renderThemeIcon(mode)}
-              </button>
-            ))}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={commonStyles.toggleGroup}>
+              {(["light", "dark", "system"] as ThemeMode[]).map((mode) => (
+                <button
+                  type="button"
+                  key={mode}
+                  style={{
+                    ...commonStyles.toggleButton,
+                    ...(themeMode === mode
+                      ? commonStyles.toggleButtonActive
+                      : {}),
+                  }}
+                  onClick={() => setThemeMode(mode)}
+                  aria-pressed={themeMode === mode}
+                  aria-label={themeLabels[mode]}
+                  title={themeLabels[mode]}
+                >
+                  {renderThemeIcon(mode)}
+                </button>
+              ))}
+            </div>
           </div>
-          <div style={commonStyles.toggleGroup}>
-            {(["es", "en"] as InterfaceLanguage[]).map((lang) => (
-              <button
-                type="button"
-                key={lang}
-                style={{
-                  ...commonStyles.toggleButton,
-                  ...(interfaceLanguage === lang
-                    ? commonStyles.toggleButtonActive
-                    : {}),
-                }}
-                onClick={() => setInterfaceLanguage(lang)}
-                aria-pressed={interfaceLanguage === lang}
-                aria-label={languageLabels[lang]}
-                title={languageLabels[lang]}
-              >
-                {lang.toUpperCase()}
-              </button>
-            ))}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={commonStyles.toggleGroup}>
+              {(["es", "en"] as InterfaceLanguage[]).map((lang) => (
+                <button
+                  type="button"
+                  key={lang}
+                  style={{
+                    ...commonStyles.toggleButton,
+                    ...(interfaceLanguage === lang
+                      ? commonStyles.toggleButtonActive
+                      : {}),
+                  }}
+                  onClick={() => setInterfaceLanguage(lang)}
+                  aria-pressed={interfaceLanguage === lang}
+                  aria-label={languageLabels[lang]}
+                  title={languageLabels[lang]}
+                >
+                  {lang.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              style={commonStyles.helpButton}
+              onClick={handleHelp}
+              aria-label={helpLabel}
+              title={helpLabel}
+            >
+              ?
+            </button>
           </div>
-          <button
-            type="button"
-            style={commonStyles.helpButton}
-            onClick={handleHelp}
-            aria-label={helpLabel}
-            title={helpLabel}
-          >
-            ?
-          </button>
         </div>
       </header>
 
