@@ -1410,6 +1410,7 @@ const BasicMode: React.FC<CommonProps> = ({
               ...commonStyles.select,
               opacity: literalTranslation ? 0.6 : 1,
               width: '180px',
+              marginTop: '8px',
             }}
             value={maxChars}
             onChange={e => setMaxChars(e.target.value)}
@@ -1418,14 +1419,18 @@ const BasicMode: React.FC<CommonProps> = ({
           />
         </div>
       </section>
-      <button
-        type="button"
-        style={commonStyles.generateButton}
-        onClick={handleGenerate}
-        disabled={isLoading}
-      >
-        {isLoading ? copy.buttonLoading : copy.buttonIdle}
-      </button>
+      <section style={commonStyles.section}>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <button
+            type="button"
+            style={commonStyles.generateButton}
+            onClick={handleGenerate}
+            disabled={isLoading}
+          >
+            {isLoading ? copy.buttonLoading : copy.buttonIdle}
+          </button>
+        </div>
+      </section>
       <OutputDisplay
         generatedOutputs={generatedOutputs}
         error={error}
@@ -2394,55 +2399,59 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
           <p style={commonStyles.subtitle}>{copy.subtitle}</p>
         </div>
         <div style={commonStyles.headerControls}>
-          <div style={commonStyles.toggleGroup}>
-            {(["light", "dark", "system"] as ThemeMode[]).map((mode) => (
-              <button
-                type="button"
-                key={mode}
-                style={{
-                  ...commonStyles.toggleButton,
-                  ...(themeMode === mode
-                    ? commonStyles.toggleButtonActive
-                    : {}),
-                }}
-                onClick={() => setThemeMode(mode)}
-                aria-pressed={themeMode === mode}
-                aria-label={themeLabels[mode]}
-                title={themeLabels[mode]}
-              >
-                {renderThemeIcon(mode)}
-              </button>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={commonStyles.toggleGroup}>
+              {(["light", "dark", "system"] as ThemeMode[]).map((mode) => (
+                <button
+                  type="button"
+                  key={mode}
+                  style={{
+                    ...commonStyles.toggleButton,
+                    ...(themeMode === mode
+                      ? commonStyles.toggleButtonActive
+                      : {}),
+                  }}
+                  onClick={() => setThemeMode(mode)}
+                  aria-pressed={themeMode === mode}
+                  aria-label={themeLabels[mode]}
+                  title={themeLabels[mode]}
+                >
+                  {renderThemeIcon(mode)}
+                </button>
+              ))}
+            </div>
           </div>
-          <div style={commonStyles.toggleGroup}>
-            {(["es", "en"] as InterfaceLanguage[]).map((lang) => (
-              <button
-                type="button"
-                key={lang}
-                style={{
-                  ...commonStyles.toggleButton,
-                  ...(interfaceLanguage === lang
-                    ? commonStyles.toggleButtonActive
-                    : {}),
-                }}
-                onClick={() => setInterfaceLanguage(lang)}
-                aria-pressed={interfaceLanguage === lang}
-                aria-label={languageLabels[lang]}
-                title={languageLabels[lang]}
-              >
-                {lang.toUpperCase()}
-              </button>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={commonStyles.toggleGroup}>
+              {(["es", "en"] as InterfaceLanguage[]).map((lang) => (
+                <button
+                  type="button"
+                  key={lang}
+                  style={{
+                    ...commonStyles.toggleButton,
+                    ...(interfaceLanguage === lang
+                      ? commonStyles.toggleButtonActive
+                      : {}),
+                  }}
+                  onClick={() => setInterfaceLanguage(lang)}
+                  aria-pressed={interfaceLanguage === lang}
+                  aria-label={languageLabels[lang]}
+                  title={languageLabels[lang]}
+                >
+                  {lang.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              style={commonStyles.helpButton}
+              onClick={handleHelp}
+              aria-label={helpLabel}
+              title={helpLabel}
+            >
+              ?
+            </button>
           </div>
-          <button
-            type="button"
-            style={commonStyles.helpButton}
-            onClick={handleHelp}
-            aria-label={helpLabel}
-            title={helpLabel}
-          >
-            ?
-          </button>
         </div>
       </header>
 
