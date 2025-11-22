@@ -39,6 +39,7 @@ const buildCandidateUrls = (modelId: string, proxyPath: string) => {
     urls.add(proxyPath);
   }
   urls.add(resolveDirectEndpoint(modelId));
+  urls.add(resolveDirectEndpoint(modelId));
   return Array.from(urls);
 };
 
