@@ -1402,15 +1402,23 @@ const BasicMode: React.FC<CommonProps> = ({
       </section>
       <section style={commonStyles.configSection}>
         <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>{copy.maxCharsLabel}</label>
+          <label
+            style={{
+              ...commonStyles.label,
+              display: 'inline-block',
+              marginRight: '16px',
+            }}
+          >
+            {copy.maxCharsLabel}
+          </label>
           <input
             type="number"
             min="0"
             style={{
               ...commonStyles.select,
               opacity: literalTranslation ? 0.6 : 1,
-              width: '180px',
-              marginTop: '8px',
+              width: '8ch',
+              marginTop: '0',
             }}
             value={maxChars}
             onChange={e => setMaxChars(e.target.value)}
