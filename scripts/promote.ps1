@@ -1,14 +1,14 @@
 <#
 .SYNOPSIS
   Sincroniza todas las ramas principales (development → main → preview → production),
-  integrando automáticamente cambios externos (Cosine) y verificando la identidad del autor.
+  permitiendo integrar primero la rama de trabajo actual en development.
 
 .DESCRIPTION
   Este script:
   - Verifica identidad del autor (bloquea agentes no autorizados)
   - Limpia logs antiguos
   - Detecta commits adelantados en ramas superiores
-  - Integra la rama Cosine si existe
+  - Permite integrar la rama de trabajo actual en development
   - Promueve jerárquicamente todas las ramas
   - Realiza rebase final en development
   - Muestra un dashboard con el estado de cada rama
@@ -35,16 +35,16 @@ $logFile = Join-Path $logDir "promote_$timestamp.txt"
 Start-Transcript -Path $logFile | Out-Null
 
 Write-Host ""
-Write-Host "⚓ ANCLORA DEV SHELL — PROMOTE FULL v2.6" -ForegroundColor Cyan
+Write-Host "⚓ ANCLORA DEV SHELL — PROMOTE FULL v2.7" -ForegroundColor Cyan
 Write-Host ""
 
 # ==========================
 # 🔒 VERIFICACIÓN DE IDENTIDAD
 # ==========================
-$allowedName = "Antonio Ballesteros Alonso"
+$allowedName  = "Antonio Ballesteros Alonso"
 $allowedEmail = "toni@uniestate.co.uk"
 
-$currentName = git config user.name
+$currentName  = git config user.name
 $currentEmail = git config user.email
 
 if ($currentName -ne $allowedName -or $currentEmail -ne $allowedEmail) {
@@ -58,16 +58,16 @@ Write-Host ""
 # ==========================
 # 🧭 DETECTAR RAMAS
 # ==========================
-$branches = git branch --format="%(refname:short)"
-$mainBranch = if ($branches -match 'main') { 'main' } elseif ($branches -match 'master') { 'master' } else { 'main' }
-$devBranch = if ($branches -match 'development') { 'development' } else { Read-Host "❓ Nombre de tu rama de desarrollo" }
-$previewBranch = if ($branches -match 'preview') { 'preview' } else { '' }
-$productionBranch = if ($branches -match 'production') { 'production' } else { '' }
+$branches          = git branch --format="%(refname:short)"
+$mainBranch        = if ($branches -match 'main') { 'main' } elseif ($branches -match 'master') { 'master' } else { 'main' }
+$devBranch         = if ($branches -match 'development') { 'development' } else { Read-Host "❓ Nombre de tu rama de desarrollo" }
+$previewBranch     = if ($branches -match 'preview')   { 'preview' }   else { '' }
+$productionBranch  = if ($branches -match 'production'){ 'production'} else { '' }
 
 Write-Host "🔹 Ramas detectadas:"
-Write-Host "   Dev: $devBranch"
-Write-Host "   Main: $mainBranch"
-if ($previewBranch) { Write-Host "   Preview: $previewBranch" }
+Write-Host "   Dev:        $devBranch"
+Write-Host "   Main:       $mainBranch"
+if ($previewBranch)    { Write-Host "   Preview:    $previewBranch" }
 if ($productionBranch) { Write-Host "   Production: $productionBranch" }
 Write-Host ""
 
@@ -78,12 +78,33 @@ Write-Host "🔄 Actualizando referencias remotas..." -ForegroundColor Yellow
 git fetch --all | Out-Null
 
 # ==========================
+# 🌿 INTEGRAR RAMA ACTUAL EN DEVELOPMENT (OPCIONAL)
+# ==========================
+$currentBranch = git rev-parse --abbrev-ref HEAD
+
+if ($currentBranch -ne $devBranch) {
+    Write-Host ""
+    Write-Host "🧭 Rama actual: $currentBranch (distinta de '$devBranch')" -ForegroundColor Yellow
+    $choice = Read-Host "¿Fusionar '$currentBranch' → '$devBranch' antes de promocionar? (S/N)"
+    if ($choice -match '^[sS]$') {
+        Write-Host "🔁 Fusionando $currentBranch → $devBranch..." -ForegroundColor Green
+        git checkout $devBranch
+        git pull origin $devBranch --rebase
+        git merge $currentBranch -m "🔀 Merge feature $currentBranch into $devBranch"
+        git push origin $devBranch
+        Write-Host "✅ Cambios de '$currentBranch' disponibles en '$devBranch'." -ForegroundColor Green
+    } else {
+        Write-Host "⏩ Se utilizará el estado actual de '$devBranch' sin integrar '$currentBranch'." -ForegroundColor DarkYellow
+    }
+}
+
+# ==========================
 # 🧠 DETECTAR COMMITS ADELANTADOS
 # ==========================
 function Check-Divergence($source, $target) {
     $counts = git rev-list --left-right --count $source...$target | Out-String
-    $split = $counts -split "\s+"
-    $ahead = [int]($split[0].Trim())
+    $split  = $counts -split "\s+"
+    $ahead  = [int]($split[0].Trim())
     $behind = [int]($split[1].Trim())
     return @{ Ahead = $ahead; Behind = $behind }
 }
@@ -93,35 +114,13 @@ foreach ($up in $upstreamBranches) {
     $div = Check-Divergence "origin/$devBranch" "origin/$up"
     if ($div.Behind -gt 0) {
         Write-Host "⚠️  '$up' tiene $($div.Behind) commits no presentes en '$devBranch'." -ForegroundColor Yellow
-        $choice = Read-Host "¿Integrar en '$devBranch'? (S/N)"
+        $choice = Read-Host "¿Integrar '$up' → '$devBranch' antes de promover? (S/N)"
         if ($choice -match '^[sS]$') {
             git checkout $devBranch
             git pull origin $up --rebase
         }
     }
 }
-
-# ==========================
-# 🤝 INTEGRAR RAMA COSINE
-# ==========================
-$cosineBranch = "cosine/fix-readme-context"
-
-if ((git branch -r | Select-String $cosineBranch)) {
-    Write-Host "`n🤝 Detectada rama externa de Cosine: $cosineBranch" -ForegroundColor Yellow
-    $choice = Read-Host "¿Integrar sus cambios en '$devBranch'? (S/N)"
-    if ($choice -match '^[sS]$') {
-        git checkout $devBranch
-        git fetch origin $cosineBranch
-        git merge origin/$cosineBranch -m "🤝 Merge Cosine branch $cosineBranch into $devBranch"
-        git push origin $devBranch
-        Write-Host "✅ Cambios de Cosine integrados correctamente." -ForegroundColor Green
-    } else {
-        Write-Host "⏩ Integración de Cosine omitida." -ForegroundColor DarkYellow
-    }
-} else {
-    Write-Host "ℹ️ No se ha detectado la rama de Cosine ($cosineBranch)." -ForegroundColor Gray
-}
-Write-Host ""
 
 # ==========================
 # 🚀 FUNCIÓN DE PROMOCIÓN
@@ -138,7 +137,7 @@ function Promote($source, $target) {
 # 🔗 EJECUCIÓN PRINCIPAL
 # ==========================
 Promote $devBranch $mainBranch
-if ($previewBranch) { Promote $mainBranch $previewBranch }
+if ($previewBranch)    { Promote $mainBranch $previewBranch }
 if ($productionBranch) { Promote $previewBranch $productionBranch }
 
 # ==========================
@@ -161,5 +160,5 @@ foreach ($b in @($devBranch, $mainBranch, $previewBranch, $productionBranch) | W
 # ✅ FINALIZACIÓN
 # ==========================
 Write-Host ""
-Write-Host "🏁 Sincronización completada sin divergencias." -ForegroundColor Cyan
+Write-Host "🏁 Sincronización completada." -ForegroundColor Cyan
 Stop-Transcript | Out-Null

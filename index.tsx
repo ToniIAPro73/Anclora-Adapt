@@ -39,7 +39,6 @@ const buildCandidateUrls = (modelId: string, proxyPath: string) => {
     urls.add(proxyPath);
   }
   urls.add(resolveDirectEndpoint(modelId));
-  urls.add(resolveDirectEndpoint(modelId));
   return Array.from(urls);
 };
 
@@ -94,20 +93,6 @@ const ensureApiKey = () => {
   if (!API_KEY) {
     throw new Error("Define HF_API_KEY en tu .env.local");
   }
-};
-
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      const result = reader.result as string;
-      // Remove the data URL prefix to get just the base64 data
-      const base64 = result.split(",")[1];
-      resolve(base64);
-    };
-    reader.onerror = (error) => reject(error);
-  });
 };
 
 const callTextModel = async (prompt: string): Promise<string> => {
