@@ -40,19 +40,12 @@ Write-Host ""
 
 # ==========================
 # 🔒 VERIFICACIÓN DE IDENTIDAD
+# (simplificada: solo muestra quién está ejecutando)
 # ==========================
-$allowedName  = "Antonio Ballesteros Alonso"
-$allowedEmail = "toni@uniestate.co.uk"
-
 $currentName  = git config user.name
 $currentEmail = git config user.email
 
-if ($currentName -ne $allowedName -or $currentEmail -ne $allowedEmail) {
-    Write-Host "🚫 Bloqueado: autor no autorizado ($currentName <$currentEmail>)" -ForegroundColor Red
-    Stop-Transcript | Out-Null
-    exit 1
-}
-Write-Host "✅ Identidad verificada: $currentName <$currentEmail>" -ForegroundColor Green
+Write-Host "ℹ️ Usando identidad Git: $currentName <$currentEmail>" -ForegroundColor Yellow
 Write-Host ""
 
 # ==========================
