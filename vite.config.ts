@@ -10,11 +10,11 @@ export default defineConfig(({ mode }) => {
   ).trim();
   const normalizedHfBaseUrl = hfBaseUrl.replace(/\/+$/, "");
   const textModelId =
-    env.VITE_TEXT_MODEL_ID || "meta-llama/Meta-Llama-3-8B-Instruct";
+    env.VITE_TEXT_MODEL_ID || "mistralai/Mistral-7B-Instruct-v0.1";
   const imageModelId =
-    env.VITE_IMAGE_MODEL_ID || "black-forest-labs/FLUX.1-schnell";
-  const ttsModelId = env.VITE_TTS_MODEL_ID || "suno/bark-small";
-  const sttModelId = env.VITE_STT_MODEL_ID || "openai/whisper-large-v3-turbo";
+    env.VITE_IMAGE_MODEL_ID || "stabilityai/stable-diffusion-3-medium";
+  const ttsModelId = env.VITE_TTS_MODEL_ID || "espnet/kan-bayashi_libritts_xvector_vits";
+  const sttModelId = env.VITE_STT_MODEL_ID || "openai/whisper-small";
   const createModelProxy = (modelId: string) => ({
     target: `${normalizedHfBaseUrl}/models/${modelId}`,
     changeOrigin: true,

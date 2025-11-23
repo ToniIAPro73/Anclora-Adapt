@@ -7,12 +7,12 @@ const HF_BASE_URL_RAW =
   "https://router.huggingface.co/hf-inference";
 const HF_BASE_URL = HF_BASE_URL_RAW.replace(/\/+$/, "").trim();
 const TEXT_MODEL_ID =
-  import.meta.env.VITE_TEXT_MODEL_ID || "meta-llama/Meta-Llama-3-8B-Instruct";
+  import.meta.env.VITE_TEXT_MODEL_ID || "mistralai/Mistral-7B-Instruct-v0.1";
 const IMAGE_MODEL_ID =
-  import.meta.env.VITE_IMAGE_MODEL_ID || "black-forest-labs/FLUX.1-dev";
-const TTS_MODEL_ID = import.meta.env.VITE_TTS_MODEL_ID || "suno/bark-small";
+  import.meta.env.VITE_IMAGE_MODEL_ID || "stabilityai/stable-diffusion-3-medium";
+const TTS_MODEL_ID = import.meta.env.VITE_TTS_MODEL_ID || "espnet/kan-bayashi_libritts_xvector_vits";
 const STT_MODEL_ID =
-  import.meta.env.VITE_STT_MODEL_ID || "openai/whisper-large-v3-turbo";
+  import.meta.env.VITE_STT_MODEL_ID || "openai/whisper-small";
 const proxyEnabled =
   import.meta.env.VITE_USE_PROXY === "true" || import.meta.env.DEV;
 const forceDirect = import.meta.env.VITE_USE_DIRECT_HF === "true";
@@ -106,7 +106,6 @@ const callTextModel = async (prompt: string): Promise<string> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: TEXT_MODEL_ID,
         inputs: prompt,
         parameters: {
           max_new_tokens: 800,

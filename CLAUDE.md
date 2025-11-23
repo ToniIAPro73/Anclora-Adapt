@@ -28,7 +28,7 @@ No test suite exists—all changes require manual QA across all eight modes in C
 
 Create `.env.local` (never commit) with:
 
-```
+```text
 HF_API_KEY=<your_hugging_face_api_key>
 VITE_HF_BASE_URL=https://router.huggingface.co/hf-inference  # Optional
 VITE_USE_PROXY=true                                           # Use dev proxy in local dev
@@ -47,6 +47,7 @@ All logic resides in `index.tsx` (currently ~80KB). The application:
 1. **Initializes at module load**: Model IDs, API endpoints, proxy configuration, and translations are defined as top-level constants.
 
 2. **Manages single global state** via `App` component with `useState`:
+
    - `mode`: Current UI mode (Basic, Smart, Campaign, Recycle, Chat, Voice, Live Chat, Image)
    - `theme`: Light/dark/system, persisted to `localStorage`
    - `language`: Spanish/English, persisted to `localStorage`
@@ -54,6 +55,7 @@ All logic resides in `index.tsx` (currently ~80KB). The application:
    - UI state for inputs, loading, errors, microphone permissions, etc.
 
 3. **Makes API calls** through dedicated helper functions:
+
    - `callTextModel()`: POST to TEXT_ENDPOINT with prompt
    - `callImageModel()`: POST to IMAGE_ENDPOINT with text prompt (optional base64 image)
    - `callTextToSpeech()`: POST to TTS_ENDPOINT with text input
@@ -61,6 +63,7 @@ All logic resides in `index.tsx` (currently ~80KB). The application:
    - All use `fetchWithFallback()` to try proxy first, then direct Hugging Face endpoint
 
 4. **Manages Hugging Face integration**:
+
    - In dev: proxies through `/api/hf-*` routes (configured in `vite.config.ts`)
    - In prod: calls Hugging Face Router directly at `https://router.huggingface.co/hf-inference/models/<model_id>`
    - Fallback logic handles 404/410 errors gracefully
@@ -69,7 +72,7 @@ All logic resides in `index.tsx` (currently ~80KB). The application:
 
 ### Key Flow
 
-```
+```text
 User Input (text/image/voice)
     → Validate mode-specific logic (build prompt, gather context)
     → Call API helper (callTextModel/callImageModel/etc)
@@ -95,8 +98,12 @@ The `translations` object contains all UI text. Add new strings in both ES and E
 
 ```typescript
 const translations = {
-  es: { /* Spanish keys */ },
-  en: { /* English keys */ }
+  es: {
+    /* Spanish keys */
+  },
+  en: {
+    /* English keys */
+  },
 };
 ```
 
@@ -106,18 +113,18 @@ Colors are CSS variables in `index.html`. Dark mode is applied via `data-theme="
 
 ### Model Configuration
 
-Eight modes use specific model combinations. Current defaults (all from Hugging Face):
+Eight modes use specific model combinations. Current defaults (all from Hugging Face, free tier):
 
-| Mode       | Text Model                              | Image Model            | TTS Model    | STT Model                      |
-|------------|-----------------------------------------|------------------------|--------------|--------------------------------|
-| Basic      | meta-llama/Meta-Llama-3-8B-Instruct    | —                      | —            | —                              |
-| Smart      | meta-llama/Meta-Llama-3-8B-Instruct    | black-forest-labs/FLUX.1-dev | —       | —                              |
-| Campaign   | meta-llama/Meta-Llama-3-8B-Instruct    | black-forest-labs/FLUX.1-dev | —       | —                              |
-| Recycle    | meta-llama/Meta-Llama-3-8B-Instruct    | black-forest-labs/FLUX.1-dev | —       | —                              |
-| Chat       | meta-llama/Meta-Llama-3-8B-Instruct    | —                      | —            | —                              |
-| Voice      | meta-llama/Meta-Llama-3-8B-Instruct    | —                      | suno/bark-small | openai/whisper-large-v3-turbo |
-| Live Chat  | meta-llama/Meta-Llama-3-8B-Instruct    | —                      | —            | —                              |
-| Image      | —                                      | black-forest-labs/FLUX.1-dev | —       | —                              |
+| Mode      | Text Model                         | Image Model                           | TTS Model                                | STT Model            |
+| --------- | ---------------------------------- | ------------------------------------- | ---------------------------------------- | -------------------- |
+| Basic     | mistralai/Mistral-7B-Instruct-v0.1 | —                                     | —                                        | —                    |
+| Smart     | mistralai/Mistral-7B-Instruct-v0.1 | stabilityai/stable-diffusion-3-medium | —                                        | —                    |
+| Campaign  | mistralai/Mistral-7B-Instruct-v0.1 | stabilityai/stable-diffusion-3-medium | —                                        | —                    |
+| Recycle   | mistralai/Mistral-7B-Instruct-v0.1 | stabilityai/stable-diffusion-3-medium | —                                        | —                    |
+| Chat      | mistralai/Mistral-7B-Instruct-v0.1 | —                                     | —                                        | —                    |
+| Voice     | mistralai/Mistral-7B-Instruct-v0.1 | —                                     | espnet/kan-bayashi_libritts_xvector_vits | openai/whisper-small |
+| Live Chat | mistralai/Mistral-7B-Instruct-v0.1 | —                                     | —                                        | —                    |
+| Image     | —                                  | stabilityai/stable-diffusion-3-medium | —                                        | —                    |
 
 Override via `.env.local` or `vite.config.ts` if needed.
 
@@ -180,6 +187,18 @@ style={{
   borderColor: 'var(--panel-border)'
 }}
 ```
+
+## API Helper Changes (Latest)
+
+### Text Model (`callTextModel`)
+
+The text model helper was refactored to use the standard Hugging Face Inference API format:
+
+- **Old format**: Used `/chat/completions` endpoint with chat-specific model naming (`model:hf-inference`)
+- **New format**: Uses standard `/models/<model_id>` endpoint with `inputs` and `parameters` (consistent with image, TTS, STT)
+- **Benefit**: Works with any text generation model (Mistral, Llama, etc.) without special chat formatting
+
+The helper now uses `fetchWithFallback()` like other models, providing better fallback handling and proxy support.
 
 ## Known Limitations & Future Improvements
 
