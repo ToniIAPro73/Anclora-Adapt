@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Anclora-Adapt** is a React SPA (Single Page Application) for AI-powered product strategy and analysis. It integrates with **Ollama** (local, open-source AI models) to provide eight distinct operational modes (Básico, Inteligente, Campaña, Reciclar, Chat, Voz, Live Chat, Imagen) that generate multimodal content for different platforms.
 
 **Current Stack:**
+
 - **Frontend**: React 19 + Vite 6 + TypeScript
 - **AI Backend**: Ollama (local, open-source, completely free)
 - **Styling**: CSS variables (light/dark theme)
@@ -72,11 +73,13 @@ npm run preview
 All logic resides in `index.tsx` (~80KB). The application:
 
 1. **Initializes at module load**:
+
    - Ollama connection parameters (OLLAMA_BASE_URL)
    - Model IDs (TEXT_MODEL_ID, IMAGE_MODEL_ID, TTS_MODEL_ID, STT_MODEL_ID)
    - Translations object (ES and EN in parallel)
 
 2. **Manages single global state** via `App` component with `useState`:
+
    - `mode`: Current UI mode (Basic, Smart, Campaign, Recycle, Chat, Voice, Live Chat, Image)
    - `theme`: Light/dark/system, persisted to `localStorage`
    - `language`: Spanish/English, persisted to `localStorage`
@@ -84,12 +87,14 @@ All logic resides in `index.tsx` (~80KB). The application:
    - Input states, loading flags, error messages
 
 3. **Makes API calls** through dedicated helper functions:
+
    - `callTextModel(prompt)` → POST to Ollama `/api/generate` endpoint
    - `callImageModel(prompt, base64Image?)` → Placeholder (Ollama doesn't do images yet)
    - `callTextToSpeech(text, voicePreset)` → Placeholder (Ollama doesn't do TTS yet)
    - `callSpeechToText(audioBlob)` → Placeholder (Ollama doesn't do STT yet)
 
 4. **Manages Ollama integration**:
+
    - Direct fetch to `http://localhost:11434/api/generate`
    - No authentication required (local)
    - No proxy needed (local)
@@ -133,7 +138,9 @@ const callTextModel = async (prompt: string): Promise<string> => {
   });
 
   if (!response.ok) {
-    throw new Error(`Ollama error: ${response.statusText}. Is Ollama running at ${OLLAMA_BASE_URL}?`);
+    throw new Error(
+      `Ollama error: ${response.statusText}. Is Ollama running at ${OLLAMA_BASE_URL}?`
+    );
   }
 
   const payload = await response.json();
@@ -142,6 +149,7 @@ const callTextModel = async (prompt: string): Promise<string> => {
 ```
 
 **Key points:**
+
 - Uses Ollama's standard `/api/generate` endpoint
 - No authentication required (local server)
 - `stream: false` → complete response, not streaming
@@ -150,15 +158,15 @@ const callTextModel = async (prompt: string): Promise<string> => {
 
 ### Why Ollama vs. Hugging Face
 
-| Aspect | Hugging Face Router | Ollama |
-|--------|-------------------|--------|
-| Cost | Free | Free |
-| 404 Errors | Frequent | Never (local) |
-| Rate Limits | Yes (free tier) | No (local) |
-| CORS Issues | Yes (internet) | No (local) |
-| Setup | API key only | Install + download model |
-| Speed | Network latency | Local latency |
-| Control | No | Full control |
+| Aspect      | Hugging Face Router | Ollama                   |
+| ----------- | ------------------- | ------------------------ |
+| Cost        | Free                | Free                     |
+| 404 Errors  | Frequent            | Never (local)            |
+| Rate Limits | Yes (free tier)     | No (local)               |
+| CORS Issues | Yes (internet)      | No (local)               |
+| Setup       | API key only        | Install + download model |
+| Speed       | Network latency     | Local latency            |
+| Control     | No                  | Full control             |
 
 **Resolution**: Ollama chosen for 100% reliability and zero error rates.
 
@@ -191,15 +199,15 @@ Colors are CSS variables in `index.html`:
 
 ```css
 :root {
-  --azul-profundo: #23436B;
-  --azul-claro: #2EAFC4;
-  --ambar: #FFC979;
-  --gris-fondo: #F6F7F9;
+  --azul-profundo: #23436b;
+  --azul-claro: #2eafc4;
+  --ambar: #ffc979;
+  --gris-fondo: #f6f7f9;
   /* ... */
 }
 
-:root[data-theme='dark'] {
-  --azul-profundo: #E5EDF7;
+:root[data-theme="dark"] {
+  --azul-profundo: #e5edf7;
   /* dark mode variants */
 }
 ```
@@ -210,16 +218,16 @@ Dark mode is applied by setting `data-theme="dark"` on root element. Theme prefe
 
 Currently only **text generation** is implemented. Other modalities are placeholders:
 
-| Mode | Text | Image | TTS | STT | Status |
-|------|------|-------|-----|-----|--------|
-| Basic | ✅ Ollama | — | — | — | ✅ Working |
-| Smart | ✅ Ollama | ❌ Placeholder | — | — | ⚠️ Partial |
-| Campaign | ✅ Ollama | ❌ Placeholder | — | — | ⚠️ Partial |
-| Recycle | ✅ Ollama | ❌ Placeholder | — | — | ⚠️ Partial |
-| Chat | ✅ Ollama | — | — | — | ✅ Working |
-| Voice | ✅ Ollama | — | ❌ Placeholder | ❌ Placeholder | ⚠️ Partial |
-| Live Chat | ✅ Ollama | — | — | — | ✅ Working |
-| Image | — | ❌ Placeholder | — | — | ❌ Not working |
+| Mode      | Text      | Image          | TTS            | STT            | Status         |
+| --------- | --------- | -------------- | -------------- | -------------- | -------------- |
+| Basic     | ✅ Ollama | —              | —              | —              | ✅ Working     |
+| Smart     | ✅ Ollama | ❌ Placeholder | —              | —              | ⚠️ Partial     |
+| Campaign  | ✅ Ollama | ❌ Placeholder | —              | —              | ⚠️ Partial     |
+| Recycle   | ✅ Ollama | ❌ Placeholder | —              | —              | ⚠️ Partial     |
+| Chat      | ✅ Ollama | —              | —              | —              | ✅ Working     |
+| Voice     | ✅ Ollama | —              | ❌ Placeholder | ❌ Placeholder | ⚠️ Partial     |
+| Live Chat | ✅ Ollama | —              | —              | —              | ✅ Working     |
+| Image     | —         | ❌ Placeholder | —              | —              | ❌ Not working |
 
 **Future work**: Integrate image generation (Stable Diffusion), TTS (Bark), STT (Whisper) via Ollama or external APIs.
 
@@ -254,6 +262,7 @@ Response:
 ```
 
 **Common parameters:**
+
 - `temperature` (0-1): Randomness of output (0=deterministic, 1=creative)
 - `stream` (bool): Return complete response or stream chunks
 - `num_predict` (int): Max tokens to generate
@@ -263,25 +272,30 @@ Response:
 ### Current Limitations
 
 1. **Monolithic codebase** - Everything in `index.tsx` (~80KB)
+
    - Hard to maintain, test, and extend
    - Strong coupling between modes
    - **Solution**: Refactor to `src/` structure with per-mode components
 
 2. **Text-only implementation** - Placeholders for image, TTS, STT
+
    - 5 of 8 modes are incomplete
    - **Solution**: Integrate Stable Diffusion, Bark (TTS), Whisper (STT) into Ollama
 
 3. **No automated tests** - Only manual QA of 8 modes
+
    - High regression risk
    - **Solution**: Add Vitest + React Testing Library
 
 4. **No backend** - `localStorage` only
+
    - Data lost when cache is cleared
    - No session history across devices
    - No multi-user support
    - **Solution**: Add Node.js/Python backend with database
 
 5. **No CI/CD pipeline** - Build and deploy are manual
+
    - No automated pre-push validation
    - **Solution**: GitHub Actions with linting, build, test steps
 
@@ -292,20 +306,15 @@ Response:
 ### Priority Areas for Improvement
 
 **High Priority:**
+
 1. Implement image generation (Stable Diffusion + Ollama)
 2. Implement TTS/STT (Bark/Whisper + Ollama)
 3. Refactor monolithic structure to modular `src/` layout
 4. Add automated testing (unit + E2E)
 
-**Medium Priority:**
-5. Backend with persistent storage
-6. CI/CD pipeline (GitHub Actions)
-7. Basic authentication & usage limits
+**Medium Priority:** 5. Backend with persistent storage 6. CI/CD pipeline (GitHub Actions) 7. Basic authentication & usage limits
 
-**Low Priority:**
-8. Analytics and usage tracking
-9. Multi-provider LLM support
-10. Mobile app (React Native)
+**Low Priority:** 8. Analytics and usage tracking 9. Multi-provider LLM support 10. Mobile app (React Native)
 
 ## QA Checklist Before PR
 
@@ -332,6 +341,7 @@ Response:
 
 **Cause**: Ollama server not running or wrong URL
 **Solution**:
+
 ```bash
 # Terminal 1: Start Ollama
 ollama serve
@@ -347,6 +357,7 @@ npm run dev
 
 **Cause**: Model in `.env.local` doesn't exist locally
 **Solution**:
+
 ```bash
 ollama list                    # See what you have
 ollama pull llama2             # Download a model
@@ -357,6 +368,7 @@ ollama pull llama2             # Download a model
 
 **Cause**: Model is large or running on CPU
 **Solution**:
+
 - Use a smaller model: `orca-mini` (~2GB)
 - Upgrade GPU support in Ollama settings
 - Increase max_tokens or reduce temperature in `callTextModel()`
