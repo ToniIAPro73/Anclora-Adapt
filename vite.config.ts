@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   ).trim();
   const normalizedHfBaseUrl = hfBaseUrl.replace(/\/+$/, "");
   const textModelId =
-    env.VITE_TEXT_MODEL_ID || "mistralai/Mistral-7B-Instruct-v0.1";
+    env.VITE_TEXT_MODEL_ID || "openai-community/gpt2";
   const imageModelId =
     env.VITE_IMAGE_MODEL_ID || "stabilityai/stable-diffusion-3-medium";
   const ttsModelId = env.VITE_TTS_MODEL_ID || "espnet/kan-bayashi_libritts_xvector_vits";
@@ -20,6 +20,9 @@ export default defineConfig(({ mode }) => {
     changeOrigin: true,
     secure: true,
     rewrite: () => "",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
   });
   const proxyConfig = {
     "/api/hf-text": createModelProxy(textModelId),

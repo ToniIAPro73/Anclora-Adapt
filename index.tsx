@@ -1,37 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import ReactDOM from "react-dom/client";
 
-const API_KEY = process.env.HF_API_KEY || process.env.API_KEY;
-const HF_BASE_URL_RAW =
-  import.meta.env.VITE_HF_BASE_URL ||
-  "https://router.huggingface.co/hf-inference";
-const HF_BASE_URL = HF_BASE_URL_RAW.replace(/\/+$/, "").trim();
-const TEXT_MODEL_ID =
-  import.meta.env.VITE_TEXT_MODEL_ID || "mistralai/Mistral-7B-Instruct-v0.1";
-const IMAGE_MODEL_ID =
-  import.meta.env.VITE_IMAGE_MODEL_ID || "stabilityai/stable-diffusion-3-medium";
-const TTS_MODEL_ID = import.meta.env.VITE_TTS_MODEL_ID || "espnet/kan-bayashi_libritts_xvector_vits";
-const STT_MODEL_ID =
-  import.meta.env.VITE_STT_MODEL_ID || "openai/whisper-small";
-const proxyEnabled =
-  import.meta.env.VITE_USE_PROXY === "true" || import.meta.env.DEV;
-const forceDirect = import.meta.env.VITE_USE_DIRECT_HF === "true";
-const useProxy = !forceDirect && proxyEnabled;
-const resolveDirectEndpoint = (modelId: string) =>
-  `${HF_BASE_URL}/models/${modelId}`;
-
-const TEXT_ENDPOINT = useProxy
-  ? "/api/hf-text"
-  : resolveDirectEndpoint(TEXT_MODEL_ID);
-const IMAGE_ENDPOINT = useProxy
-  ? "/api/hf-image"
-  : resolveDirectEndpoint(IMAGE_MODEL_ID);
-const TTS_ENDPOINT = useProxy
-  ? "/api/hf-tts"
-  : resolveDirectEndpoint(TTS_MODEL_ID);
-const STT_ENDPOINT = useProxy
-  ? "/api/hf-stt"
-  : resolveDirectEndpoint(STT_MODEL_ID);
+// Ollama Configuration (Open Source, Local)
+const OLLAMA_BASE_URL = import.meta.env.VITE_OLLAMA_BASE_URL || "http://localhost:11434";
+const TEXT_MODEL_ID = import.meta.env.VITE_TEXT_MODEL_ID || "llama2";
+const IMAGE_MODEL_ID = import.meta.env.VITE_IMAGE_MODEL_ID || ""; // Ollama doesn't do images natively
+const TTS_MODEL_ID = import.meta.env.VITE_TTS_MODEL_ID || ""; // Ollama doesn't do TTS natively
+const STT_MODEL_ID = import.meta.env.VITE_STT_MODEL_ID || ""; // Ollama doesn't do STT natively
 
 const buildCandidateUrls = (modelId: string, proxyPath: string) => {
   const urls = new Set<string>();
@@ -96,34 +71,30 @@ const ensureApiKey = () => {
 };
 
 const callTextModel = async (prompt: string): Promise<string> => {
-  ensureApiKey();
-  const response = await fetchWithFallback(
-    buildCandidateUrls(TEXT_MODEL_ID, useProxy ? TEXT_ENDPOINT : ""),
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 800,
-          temperature: 0.4,
-          return_full_text: false,
-        },
-      }),
-    }
-  );
+  if (!TEXT_MODEL_ID) {
+    throw new Error("Define VITE_TEXT_MODEL_ID en tu .env.local (ej: llama2, mistral, neural-chat)");
+  }
+
+  const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: TEXT_MODEL_ID,
+      prompt: prompt,
+      stream: false,
+      temperature: 0.4,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Error de Ollama: ${errorText || response.statusText}. ¿Está Ollama ejecutándose en ${OLLAMA_BASE_URL}?`);
+  }
 
   const payload = await response.json();
-  if (Array.isArray(payload)) {
-    return payload[0]?.generated_text ?? "";
-  }
-  if (typeof payload?.generated_text === "string") {
-    return payload.generated_text;
-  }
-  return typeof payload === "string" ? payload : JSON.stringify(payload);
+  return payload?.response ?? JSON.stringify(payload);
 };
 
 const callImageModel = async (
