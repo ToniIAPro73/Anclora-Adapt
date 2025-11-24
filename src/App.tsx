@@ -1,170 +1,13 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import ReactDOM from "react-dom/client";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 
-// Ollama Configuration (Open Source, Local)
-const OLLAMA_BASE_URL = import.meta.env.VITE_OLLAMA_BASE_URL || "http://localhost:11434";
-const TEXT_MODEL_ID = import.meta.env.VITE_TEXT_MODEL_ID || "llama2";
-const IMAGE_MODEL_ID = import.meta.env.VITE_IMAGE_MODEL_ID || ""; // Ollama doesn't do images natively
-const TTS_MODEL_ID = import.meta.env.VITE_TTS_MODEL_ID || ""; // Ollama doesn't do TTS natively
-const STT_MODEL_ID = import.meta.env.VITE_STT_MODEL_ID || ""; // Ollama doesn't do STT natively
-
-const buildCandidateUrls = (modelId: string, proxyPath: string) => {
-  const urls = new Set<string>();
-  if (proxyPath) {
-    urls.add(proxyPath);
-  }
-  urls.add(resolveDirectEndpoint(modelId));
-  return Array.from(urls);
-};
-
-const fetchWithFallback = async (urls: string[], options: RequestInit) => {
-  let lastError: Error | null = null;
-  for (const url of urls) {
-    try {
-      const response = await fetch(url, options);
-      if (response.ok) {
-        return response;
-      }
-      if (response.status === 404 || response.status === 410) {
-        lastError = new Error(`${response.status} at ${url}`);
-        continue;
-      }
-      const detail = await response.text();
-      throw new Error(detail || `${response.status} at ${url}`);
-    } catch (err: any) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-    }
-  }
-  throw lastError || new Error("All endpoints failed");
-};
-
-type ThemeMode = "light" | "dark" | "system";
-type InterfaceLanguage = "es" | "en";
-
-interface BlobLike {
-  data: string;
-  mimeType: string;
-}
-
-const fileToBase64 = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      if (typeof result === "string") {
-        const commaIndex = result.indexOf(",");
-        resolve(commaIndex !== -1 ? result.slice(commaIndex + 1) : result);
-      } else {
-        reject(new Error("No se pudo leer el archivo."));
-      }
-    };
-    reader.onerror = () => {
-      reject(reader.error || new Error("Error al leer el archivo."));
-    };
-    reader.readAsDataURL(file);
-  });
-
-const ensureApiKey = () => {
-  if (!API_KEY) {
-    throw new Error("Define HF_API_KEY en tu .env.local");
-  }
-};
-
-const callTextModel = async (prompt: string): Promise<string> => {
-  if (!TEXT_MODEL_ID) {
-    throw new Error("Define VITE_TEXT_MODEL_ID en tu .env.local (ej: llama2, mistral, neural-chat)");
-  }
-
-  const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: TEXT_MODEL_ID,
-      prompt: prompt,
-      stream: false,
-      temperature: 0.4,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Error de Ollama: ${errorText || response.statusText}. ¿Está Ollama ejecutándose en ${OLLAMA_BASE_URL}?`);
-  }
-
-  const payload = await response.json();
-  return payload?.response ?? JSON.stringify(payload);
-};
-
-const callImageModel = async (
-  prompt: string,
-  base64Image?: string
-): Promise<string> => {
-  ensureApiKey();
-  const response = await fetchWithFallback(
-    buildCandidateUrls(IMAGE_MODEL_ID, useProxy ? IMAGE_ENDPOINT : ""),
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: IMAGE_MODEL_ID,
-        inputs: prompt,
-        image: base64Image,
-        parameters: {
-          guidance_scale: 3.5,
-          num_inference_steps: 28,
-        },
-      }),
-    }
-  );
-  const buffer = await response.arrayBuffer();
-  return URL.createObjectURL(new Blob([buffer], { type: "image/png" }));
-};
-
-const callTextToSpeech = async (
-  text: string,
-  voicePreset: string
-): Promise<string> => {
-  ensureApiKey();
-  const response = await fetchWithFallback(
-    buildCandidateUrls(TTS_MODEL_ID, useProxy ? TTS_ENDPOINT : ""),
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: TTS_MODEL_ID,
-        inputs: text,
-        parameters: { voice_preset: voicePreset },
-      }),
-    }
-  );
-  const buffer = await response.arrayBuffer();
-  return URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }));
-};
-
-const callSpeechToText = async (audioBlob: Blob): Promise<string> => {
-  ensureApiKey();
-  const response = await fetchWithFallback(
-    buildCandidateUrls(STT_MODEL_ID, useProxy ? STT_ENDPOINT : ""),
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${API_KEY}`,
-        "Content-Type": audioBlob.type || "audio/wav",
-      },
-      body: audioBlob,
-    }
-  );
-  const payload = await response.json();
-  return payload?.text?.trim?.() ?? "";
-};
+import {
+  callImageModel,
+  callSpeechToText,
+  callTextModel,
+  callTextToSpeech,
+} from "@/api/models";
+import { GeneratedOutput, InterfaceLanguage, ThemeMode } from "@/types/app";
+import { fileToBase64 } from "@/utils/files";
 
 const extractJsonPayload = (raw: string) => {
   const first = raw.indexOf("{");
@@ -190,11 +33,6 @@ const formatCounterText = (value: string, language: InterfaceLanguage) => {
     language === "es" ? "tokens estimados" : "estimated tokens";
   return `${chars} ${charLabel} · ~${tokens} ${tokenLabel}`;
 };
-
-interface GeneratedOutput {
-  platform: string;
-  content: string;
-}
 
 interface CommonProps {
   isLoading: boolean;
@@ -2518,11 +2356,4 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
   );
 };
 
-const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement
-);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+export default App;
