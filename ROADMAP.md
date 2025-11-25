@@ -38,3 +38,31 @@ Este documento desglosa las tareas necesarias para que la app funcione con model
 - [x] Actualizar README con flujo local completo (instalación de Ollama, modelos y bridge de imagen/audio configurables).
 - [ ] Incluir tabla detallada de modelos recomendados con requisitos de RAM/VRAM y comandos de descarga.
 - [ ] Registrar limitaciones conocidas (VRAM 4GB → limitar resolución/pasos en SD; latencia CPU en Whisper/Bark) y posibles optimizaciones.
+
+## Tareas pendientes tras las últimas PR
+Estas tareas consolidan lo que falta por implementar tras los dos últimos PR y priorizan el trabajo para alcanzar el objetivo de funcionamiento 100% local.
+
+1. **Selector de modelo y mejoras de prompts (Texto)**
+   - [ ] Añadir endpoint `/api/tags` de Ollama al health check para listar modelos disponibles y almacenarlos en estado global.
+   - [ ] Incorporar selector de modelo en la UI (modo Básico/Inteligente/Campaña) con persistencia en `localStorage`.
+   - [ ] Revisar y endurecer los prompts de los 8 modos: validar entrada (longitud, formato), mostrar estados de carga/errores y normalizar el formato `outputs`.
+
+2. **Experiencia de imagen (SD local)**
+   - [ ] Conectar el modo Imagen y los modos que usan imágenes (Inteligente/Campaña) al bridge `VITE_IMAGE_MODEL_ENDPOINT`, mostrando progreso y tiempos estimados.
+   - [ ] Añadir manejo de errores detallado (timeout, VRAM insuficiente, endpoint caído) con mensajes localizados ES/EN.
+   - [ ] Permitir configuración de parámetros básicos (steps, resolución, sampler) con valores seguros para 4GB VRAM.
+
+3. **Audio local (TTS/STT) y permisos**
+   - [ ] Implementar clientes para TTS/STT apuntando a endpoints configurables (`VITE_TTS_ENDPOINT`, `VITE_STT_ENDPOINT`) con timeouts y reintentos.
+   - [ ] Gestionar captura de micrófono y reproducción de audio con feedback de permisos denegados y fallos de conversión.
+   - [ ] Integrar STT + TTS en modos Voz y Live Chat: subir audio, transcribir, generar respuesta en audio y mostrar fallback de texto.
+
+4. **QA y DX**
+   - [ ] Completar checklist de QA manual para los 8 modos (tema/idioma persistencia, errores por credenciales faltantes, timeouts, permisos) y añadirlo al repositorio.
+   - [ ] Documentar en los scripts de salud (`npm run check:health`) la verificación de endpoints de imagen y audio.
+   - [ ] (Opcional) Crear baterías mínimas de Vitest para los helpers de red con `fetch` mockeado.
+
+5. **Documentación ampliada**
+   - [ ] Añadir tabla de modelos recomendados con requisitos de RAM/VRAM, consumo estimado y comandos `ollama pull`/descarga SD.
+   - [ ] Documentar limitaciones conocidas (resolución/steps para 4GB VRAM, latencia en CPU para Whisper/Bark) y trucos de optimización.
+   - [ ] Incluir ejemplos de configuración completa (`.env.local`) para perfiles CPU-only y GPU RTX 3050.
