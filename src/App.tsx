@@ -1083,19 +1083,45 @@ const OutputDisplay: React.FC<{
       )}
       {generatedOutputs && generatedOutputs.length > 0 && (
         <div style={commonStyles.outputGrid}>
-          {generatedOutputs.map((output, index) => (
-            <div key={index} style={commonStyles.outputCard}>
-              <strong>{output.platform}</strong>
-              <p>{output.content}</p>
-              <button
-                type="button"
-                style={commonStyles.copyButton}
-                onClick={() => onCopy(output.content)}
-              >
-                {copy.copy}
-              </button>
-            </div>
-          ))}
+          {generatedOutputs.map((output, index) => {
+            const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+            React.useEffect(() => {
+              if (textareaRef.current) {
+                textareaRef.current.style.height = "auto";
+                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+              }
+            }, [output.content]);
+            return (
+              <div key={index} style={commonStyles.outputCard}>
+                <strong>{output.platform}</strong>
+                <textarea
+                  ref={textareaRef}
+                  readOnly
+                  value={output.content}
+                  style={{
+                    flex: 1,
+                    borderRadius: "8px",
+                    border: "1px solid var(--panel-border, #e0e0e0)",
+                    padding: "10px",
+                    backgroundColor: "var(--input-bg, #FFFFFF)",
+                    color: "var(--texto, #162032)",
+                    fontFamily: "inherit",
+                    fontSize: "inherit",
+                    lineHeight: "1.5",
+                    resize: "none",
+                    overflow: "hidden",
+                  }}
+                />
+                <button
+                  type="button"
+                  style={commonStyles.copyButton}
+                  onClick={() => onCopy(output.content)}
+                >
+                  {copy.copy}
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </section>
