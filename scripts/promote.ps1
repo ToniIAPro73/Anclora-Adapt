@@ -32,7 +32,6 @@ $allowedAuthors = @(
     "ToniIAPro73 <supertoniia@gmail.com>",
     "Toni Ballesteros <antonio@anclora.com>"
 )
-)
 
 $lastCommitAuthor = git log -1 --pretty=format:"%an <%ae>"
 if ($allowedAuthors -notcontains $lastCommitAuthor) {
