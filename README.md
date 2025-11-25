@@ -15,7 +15,7 @@ Este repositorio ahora está preparado para ejecutarse 100% con modelos locales/
 
 Crea un fichero `.env.local` en la raíz con, como mínimo:
 
-```
+```dotenv
 VITE_OLLAMA_BASE_URL=http://localhost:11434
 VITE_TEXT_MODEL_ID=llama2
 
@@ -102,7 +102,7 @@ VITE_MODEL_API_KEY=
 
 ### RTX 3050 (GPU)
 
-```
+```dotenv
 VITE_OLLAMA_BASE_URL=http://localhost:11434
 VITE_TEXT_MODEL_ID=mistral
 VITE_IMAGE_MODEL_ENDPOINT=http://localhost:9090/image
@@ -115,7 +115,7 @@ VITE_STT_MODEL_ID=whisper-small
 
 ### Solo CPU
 
-```
+```dotenv
 VITE_OLLAMA_BASE_URL=http://localhost:11434
 VITE_TEXT_MODEL_ID=orca-mini
 VITE_IMAGE_MODEL_ENDPOINT=   # deja vacío si no hay backend de imagen
