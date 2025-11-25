@@ -5,6 +5,8 @@ import {
   callSpeechToText,
   callTextModel,
   callTextToSpeech,
+  DEFAULT_TEXT_MODEL_ID,
+  listAvailableTextModels,
 } from "@/api/models";
 import { GeneratedOutput, InterfaceLanguage, ThemeMode } from "@/types/app";
 import { fileToBase64 } from "@/utils/files";
@@ -208,6 +210,13 @@ const translations: Record<
       langEs: string;
       langEn: string;
     };
+    modelSelector: {
+      label: string;
+      current: string;
+      refresh: string;
+      loading: string;
+      error: string;
+    };
     output: {
       loading: string;
       downloadAudio: string;
@@ -322,6 +331,13 @@ const translations: Record<
       themeSystem: "Seguir el modo del sistema",
       langEs: "Interfaz en espanol",
       langEn: "Interfaz en ingles",
+    },
+    modelSelector: {
+      label: "Modelo de texto",
+      current: "Modelo en uso",
+      refresh: "Actualizar modelos",
+      loading: "Actualizando...",
+      error: "No se pudo listar los modelos",
     },
     output: {
       loading: "La IA esta trabajando...",
@@ -453,6 +469,13 @@ const translations: Record<
       langEs: "Interface in Spanish",
       langEn: "Interface in English",
     },
+    modelSelector: {
+      label: "Text model",
+      current: "Current model",
+      refresh: "Refresh models",
+      loading: "Refreshing...",
+      error: "Could not list the models",
+    },
     output: {
       loading: "The AI is crafting your content...",
       downloadAudio: "Download audio",
@@ -576,6 +599,15 @@ const getStoredLanguage = (): InterfaceLanguage => {
   return stored === "en" ? "en" : "es";
 };
 
+const getStoredTextModel = (): string => {
+  if (typeof window === "undefined") {
+    return DEFAULT_TEXT_MODEL_ID;
+  }
+  return (
+    window.localStorage.getItem("anclora.textModel") || DEFAULT_TEXT_MODEL_ID
+  );
+};
+
 const commonStyles: Record<string, React.CSSProperties> = {
   container: {
     display: "flex",
@@ -604,6 +636,21 @@ const commonStyles: Record<string, React.CSSProperties> = {
     gap: "12px",
     alignItems: "center",
     flexWrap: "wrap",
+  },
+  modelSelector: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+    minWidth: "240px",
+  },
+  modelSelectorRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  helperText: {
+    fontSize: "12px",
+    color: "var(--texto-secundario, #4b5563)",
   },
   toggleGroup: {
     display: "flex",
@@ -1685,7 +1732,8 @@ interface ChatMessage {
 const ChatMode: React.FC<{
   interfaceLanguage: InterfaceLanguage;
   onCopy: (text: string) => void;
-}> = ({ interfaceLanguage, onCopy }) => {
+  textModelId: string;
+}> = ({ interfaceLanguage, onCopy, textModelId }) => {
   const copy = translations[interfaceLanguage].chat;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [current, setCurrent] = useState("");
@@ -1706,7 +1754,7 @@ const ChatMode: React.FC<{
         )
         .join("\\n");
       const prompt = `Eres AncloraAI, enfocado en adaptacion de contenido. Idioma preferido: ${interfaceLanguage.toUpperCase()}. Conversacion: ${history}. Responde de forma breve.`;
-      const raw = await callTextModel(prompt);
+      const raw = await callTextModel(prompt, textModelId);
       const reply = raw.trim();
       const assistantMessage: ChatMessage = { role: "assistant", text: reply };
       setMessages((prev) => [...prev, assistantMessage]);
@@ -1783,9 +1831,10 @@ const ChatMode: React.FC<{
   );
 };
 
-const TTSMode: React.FC<{ interfaceLanguage: InterfaceLanguage }> = ({
-  interfaceLanguage,
-}) => {
+const TTSMode: React.FC<{
+  interfaceLanguage: InterfaceLanguage;
+  textModelId: string;
+}> = ({ interfaceLanguage, textModelId }) => {
   const copy = translations[interfaceLanguage].tts;
   const [textToSpeak, setTextToSpeak] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("es");
@@ -1811,7 +1860,9 @@ const TTSMode: React.FC<{ interfaceLanguage: InterfaceLanguage }> = ({
     setAudioUrl(null);
     try {
       const translationPrompt = `Traduce el siguiente texto al idioma de la voz (${selectedLanguage}) y responde solo con el texto traducido: "${textToSpeak}".`;
-      const translated = (await callTextModel(translationPrompt)).trim();
+      const translated = (
+        await callTextModel(translationPrompt, textModelId)
+      ).trim();
       const audio = await callTextToSpeech(
         translated || textToSpeak,
         selectedVoiceName
@@ -1895,9 +1946,10 @@ const TTSMode: React.FC<{ interfaceLanguage: InterfaceLanguage }> = ({
   );
 };
 
-const LiveChatMode: React.FC<{ interfaceLanguage: InterfaceLanguage }> = ({
-  interfaceLanguage,
-}) => {
+const LiveChatMode: React.FC<{
+  interfaceLanguage: InterfaceLanguage;
+  textModelId: string;
+}> = ({ interfaceLanguage, textModelId }) => {
   const copy = translations[interfaceLanguage].live;
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState<ChatMessage[]>([]);
@@ -1936,7 +1988,7 @@ const LiveChatMode: React.FC<{ interfaceLanguage: InterfaceLanguage }> = ({
       const userMessage: ChatMessage = { role: "user", text: userText };
       setTranscript((prev) => [...prev, userMessage]);
       const prompt = `Convierte el siguiente texto del usuario en una respuesta breve y accionable enfocada en marketing: "${userText}".`;
-      const reply = (await callTextModel(prompt)).trim();
+      const reply = (await callTextModel(prompt, textModelId)).trim();
       const assistantMessage: ChatMessage = { role: "assistant", text: reply };
       setTranscript((prev) => [...prev, assistantMessage]);
       const audioResponse = await callTextToSpeech(reply, "es_male_0");
@@ -2076,6 +2128,12 @@ const App: React.FC = () => {
   const [interfaceLanguage, setInterfaceLanguage] = useState<InterfaceLanguage>(
     () => getStoredLanguage()
   );
+  const [textModelId, setTextModelId] = useState<string>(() =>
+    getStoredTextModel()
+  );
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
+  const [modelError, setModelError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("basic");
   const [generatedOutputs, setGeneratedOutputs] = useState<
     GeneratedOutput[] | null
@@ -2088,6 +2146,10 @@ const App: React.FC = () => {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const copy = translations[interfaceLanguage];
   const toggleCopy = copy.toggles;
+  const modelCopy = copy.modelSelector;
+  const modelOptions = Array.from(
+    new Set([textModelId, ...availableModels].filter(Boolean))
+  );
 
   useEffect(() => {
     ensureGlobalStyles();
@@ -2140,6 +2202,32 @@ const App: React.FC = () => {
     }
   }, [interfaceLanguage]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("anclora.textModel", textModelId);
+    }
+  }, [textModelId]);
+
+  const refreshAvailableModels = useCallback(async () => {
+    setIsFetchingModels(true);
+    setModelError(null);
+    try {
+      const models = await listAvailableTextModels();
+      setAvailableModels(models);
+      if (models.length > 0 && !models.includes(textModelId)) {
+        setTextModelId(models[0]);
+      }
+    } catch (err) {
+      setModelError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setIsFetchingModels(false);
+    }
+  }, [textModelId]);
+
+  useEffect(() => {
+    void refreshAvailableModels();
+  }, [refreshAvailableModels]);
+
   const generateContentApiCall = useCallback(async (prompt: string) => {
     setIsLoading(true);
     setError(null);
@@ -2148,7 +2236,7 @@ const App: React.FC = () => {
     try {
       const enforcedPrompt = `${prompt}
 Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutputExample}`;
-      const raw = await callTextModel(enforcedPrompt);
+      const raw = await callTextModel(enforcedPrompt, textModelId);
       const jsonString = extractJsonPayload(raw);
       const parsed = JSON.parse(jsonString);
       if (Array.isArray(parsed.outputs)) {
@@ -2161,7 +2249,7 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [textModelId]);
 
   const copyToClipboard = (text: string) => {
     void navigator.clipboard.writeText(text);
@@ -2241,6 +2329,38 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
               ))}
             </div>
           </div>
+          <div style={commonStyles.modelSelector}>
+            <label style={commonStyles.label} htmlFor="text-model-select">
+              {modelCopy.label}
+            </label>
+            <div style={commonStyles.modelSelectorRow}>
+              <select
+                id="text-model-select"
+                style={{ ...commonStyles.select, flex: 1 }}
+                value={textModelId}
+                onChange={(event) => setTextModelId(event.target.value)}
+              >
+                {modelOptions.map((model) => (
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                style={commonStyles.copyButton}
+                onClick={() => void refreshAvailableModels()}
+                disabled={isFetchingModels}
+              >
+                {isFetchingModels ? modelCopy.loading : modelCopy.refresh}
+              </button>
+            </div>
+            <span style={commonStyles.helperText}>
+              {modelError
+                ? `${modelCopy.error}: ${modelError}`
+                : `${modelCopy.current}: ${textModelId}`}
+            </span>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div style={commonStyles.toggleGroup}>
               {(["es", "en"] as InterfaceLanguage[]).map((lang) => (
@@ -2305,13 +2425,20 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
             <ChatMode
               interfaceLanguage={interfaceLanguage}
               onCopy={copyToClipboard}
+              textModelId={textModelId}
             />
           )}
           {activeTab === "tts" && (
-            <TTSMode interfaceLanguage={interfaceLanguage} />
+            <TTSMode
+              interfaceLanguage={interfaceLanguage}
+              textModelId={textModelId}
+            />
           )}
           {activeTab === "live" && (
-            <LiveChatMode interfaceLanguage={interfaceLanguage} />
+            <LiveChatMode
+              interfaceLanguage={interfaceLanguage}
+              textModelId={textModelId}
+            />
           )}
           {activeTab === "image" && (
             <ImageEditMode interfaceLanguage={interfaceLanguage} />
