@@ -13,6 +13,8 @@ const STT_MODEL_ID = (env.VITE_STT_MODEL_ID || "").trim();
 const STT_ENDPOINT = (env.VITE_STT_ENDPOINT || "").trim();
 const API_KEY = (env.VITE_MODEL_API_KEY || env.HF_API_KEY || env.API_KEY || "").trim();
 
+export const DEFAULT_TEXT_MODEL_ID = TEXT_MODEL_ID;
+
 const defaultTimeoutMs = 60_000;
 
 const withTimeout = async <T>(promise: Promise<T>, timeoutMs = defaultTimeoutMs) => {
@@ -42,14 +44,22 @@ const audioHeaders = (mimeType?: string) => ({
   ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}),
 });
 
-export const callTextModel = async (prompt: string): Promise<string> => {
-  ensureEndpoint(TEXT_MODEL_ID, "Define VITE_TEXT_MODEL_ID en tu .env.local (ej: llama2, mistral, neural-chat)");
+export const callTextModel = async (
+  prompt: string,
+  modelId?: string
+): Promise<string> => {
+  const targetModelId = (modelId || TEXT_MODEL_ID).trim();
+
+  ensureEndpoint(
+    targetModelId,
+    "Define VITE_TEXT_MODEL_ID en tu .env.local (ej: llama2, mistral, neural-chat)"
+  );
   const response = await withTimeout(
     fetch(`${OLLAMA_BASE_URL}/api/generate`, {
       method: "POST",
       headers: jsonHeaders(),
       body: JSON.stringify({
-        model: TEXT_MODEL_ID,
+        model: targetModelId,
         prompt,
         stream: false,
         temperature: 0.4,
@@ -66,6 +76,29 @@ export const callTextModel = async (prompt: string): Promise<string> => {
 
   const payload = await response.json();
   return payload?.response ?? JSON.stringify(payload);
+};
+
+export const listAvailableTextModels = async (): Promise<string[]> => {
+  const response = await withTimeout(
+    fetch(`${OLLAMA_BASE_URL}/api/tags`, {
+      method: "GET",
+      headers: jsonHeaders(),
+    }),
+    15_000
+  );
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(
+      detail || `No se pudo recuperar la lista de modelos (${response.status})`
+    );
+  }
+
+  const payload = await response.json();
+  const models = Array.isArray(payload?.models) ? payload.models : [];
+  return models
+    .map((item) => item?.name)
+    .filter((name): name is string => Boolean(name));
 };
 
 export const callImageModel = async (
