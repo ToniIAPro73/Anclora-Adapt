@@ -29,7 +29,9 @@ Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v2.7`n" -ForegroundColor Cy
 # ==========================
 $allowedAuthors = @(
     "Antonio Ballesteros Alonso <toni@uniestate.co.uk>",
-    "ToniIAPro73 <supertoniia@gmail.com>"
+    "ToniIAPro73 <supertoniia@gmail.com>",
+    "Toni Ballesteros <antonio@anclora.com>"
+)
 )
 
 $lastCommitAuthor = git log -1 --pretty=format:"%an <%ae>"
