@@ -1156,7 +1156,7 @@ const BasicMode: React.FC<CommonProps> = ({
         : "";
     let prompt: string;
     if (literalTranslation) {
-      prompt = `Actua como traductor literal especializado en marketing. Devuelve la traduccion en formato JSON bajo la clave "outputs" siguiendo ${structuredOutputExample}. Texto original: "${idea}". Idioma de destino: ${languageDisplay}.${limitSuffix}`;
+      prompt = `Actua como traductor literal especializado en marketing. Devuelve UNICAMENTE la traduccion en formato JSON bajo la clave "outputs" con UN UNICO elemento SIN plataforma: { "outputs": [{ "content": "traduccion aqui" }] }. Texto original: "${idea}". Idioma de destino: ${languageDisplay}.${limitSuffix}`;
     } else {
       prompt = `Eres un estratega de contenidos. Genera una lista JSON bajo la clave "outputs" siguiendo ${structuredOutputExample}. Idea: "${idea}". Idioma solicitado: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas: ${platforms.join(
         ", "
