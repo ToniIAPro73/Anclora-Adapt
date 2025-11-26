@@ -53,9 +53,9 @@ const server = http.createServer(async (req, res) => {
         body: JSON.stringify({
           prompt,
           negative_prompt,
-          steps: body.steps || 20,
-          width: body.width || 768,
-          height: body.height || 768,
+          steps: body.steps || 15,
+          width: body.width || 512,
+          height: body.height || 512,
         }),
       });
 

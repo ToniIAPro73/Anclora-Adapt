@@ -12,10 +12,28 @@ import { GeneratedOutput, InterfaceLanguage, ThemeMode } from "@/types/app";
 import { fileToBase64 } from "@/utils/files";
 
 const extractJsonPayload = (raw: string) => {
+  // 1. Encontrar el primer '{' y el último '}'
   const first = raw.indexOf("{");
   const last = raw.lastIndexOf("}");
+
   if (first !== -1 && last !== -1 && last > first) {
-    return raw.slice(first, last + 1);
+    let jsonString = raw.slice(first, last + 1);
+
+    // 2. Limpieza de caracteres de control que rompen JSON.parse
+    // Reemplazar saltos de línea literales dentro de strings por su versión escapada
+    jsonString = jsonString.replace(/[\u0000-\u001F]+/g, (match) => {
+      // Mapeo básico para caracteres comunes
+      const map: Record<string, string> = {
+        "\n": "\\n",
+        "\r": "\\r",
+        "\t": "\\t",
+        "\b": "\\b",
+        "\f": "\\f",
+      };
+      return map[match] || "";
+    });
+
+    return jsonString;
   }
   return raw;
 };
