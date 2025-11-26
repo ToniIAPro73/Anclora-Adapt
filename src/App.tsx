@@ -236,6 +236,8 @@ const translations: Record<
       maxCharsLabel: string;
       buttonIdle: string;
       buttonLoading: string;
+      outputs: string;
+      emptyState: string;
       errors: { idea: string; platforms: string };
     };
     intelligent: {
@@ -358,6 +360,8 @@ const translations: Record<
       maxCharsLabel: "Maximo de caracteres",
       buttonIdle: "Generar contenido",
       buttonLoading: "Generando...",
+      outputs: "Resultados",
+      emptyState: "Aquí aparecerán los resultados generados",
       errors: {
         idea: "Describe tu idea principal.",
         platforms: "Selecciona al menos una plataforma.",
@@ -495,6 +499,8 @@ const translations: Record<
       maxCharsLabel: "Maximum characters",
       buttonIdle: "Generate content",
       buttonLoading: "Generating...",
+      outputs: "Results",
+      emptyState: "Generated results will appear here",
       errors: {
         idea: "Describe your main idea.",
         platforms: "Select at least one platform.",
@@ -613,19 +619,22 @@ const commonStyles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     alignItems: "stretch",
+    width: "100vw", // Ancho total del viewport
+    height: "100vh", // Alto fijo al 100% del viewport
     maxWidth: "100%",
-    width: "100%",
-    margin: "0 auto",
+    margin: "0",
     padding: "12px",
     boxSizing: "border-box",
-    gap: "16px",
-    minHeight: "100vh",
+    gap: "12px",
+    overflow: "hidden", // ELIMINA el scroll de la página principal
+    backgroundColor: "var(--gris-fondo, #f6f7f9)",
   },
   header: {
     width: "100%",
     display: "flex",
     flexDirection: "column",
     gap: "8px",
+    flexShrink: 0, // Asegura que el header no se encoja
   },
   headerTop: {
     textAlign: "center",
@@ -698,22 +707,28 @@ const commonStyles: Record<string, React.CSSProperties> = {
     opacity: 0.8,
   },
   mainContent: {
+    flex: 1, // Ocupa todo el espacio vertical restante
     width: "100%",
     backgroundColor: "var(--panel-bg, #FFFFFF)",
     borderRadius: "18px",
-    padding: "12px",
+    padding: "16px",
     boxShadow: "var(--panel-shadow, 0 10px 40px rgba(0,0,0,0.06))",
     display: "flex",
     flexDirection: "column",
     gap: "12px",
     boxSizing: "border-box",
+    overflow: "hidden", // Importante: contiene el scroll dentro del panel
+    minHeight: 0, // Necesario para que flexbox maneje el scroll interno
   },
   modeScrollArea: {
-    flex: 1,
+    flex: 1, // Se expande para llenar el panel
     minHeight: 0,
     width: "100%",
+    height: "100%", // Fuerza altura completa
     boxSizing: "border-box",
-    overflowX: "hidden",
+    overflow: "hidden", // Evita scroll en este wrapper intermedio
+    display: "flex",
+    flexDirection: "column",
   },
   tabNavigation: {
     display: "flex",
@@ -724,6 +739,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     width: "100%",
     boxSizing: "border-box",
     overflow: "hidden",
+    flexShrink: 0,
   },
   tabButton: {
     background: "transparent",
@@ -774,14 +790,15 @@ const commonStyles: Record<string, React.CSSProperties> = {
   },
   textarea: {
     width: "100%",
-    minHeight: "120px",
+    minHeight: "80px", // Altura mínima reducida para pantallas pequeñas
     borderRadius: "10px",
     border: "1px solid var(--panel-border, #e0e0e0)",
     padding: "14px",
     fontSize: "1em",
-    resize: "vertical",
+    resize: "none", // Evita que el usuario rompa el layout
     backgroundColor: "var(--input-bg, #FFFFFF)",
     color: "var(--texto, #162032)",
+    boxSizing: "border-box",
   },
   select: {
     width: "100%",
@@ -1020,15 +1037,16 @@ const commonStyles: Record<string, React.CSSProperties> = {
     marginTop: "4px",
     paddingRight: "0",
   },
-  // === Two-Frame Layout Styles (BasicMode) ===
+  // === ESTILOS REORGANIZADOS PARA MODO BÁSICO (GRID DE 2 COLUMNAS) ===
   twoFrameContainer: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
-    gap: "16px",
+    gap: "24px", // Aumentado el gap para separación visual clara
     width: "100%",
-    height: "100%",
+    height: "100%", // Ocupa el 100% de la altura disponible
     minHeight: 0,
     boxSizing: "border-box",
+    overflow: "hidden", // Evita scroll en el contenedor padre
   },
   twoFrameContainerMobile: {
     display: "flex",
@@ -1041,10 +1059,11 @@ const commonStyles: Record<string, React.CSSProperties> = {
   inputFrame: {
     display: "flex",
     flexDirection: "column",
-    gap: "14px",
-    paddingRight: "0px",
+    gap: "12px",
+    paddingRight: "8px", // Espacio para evitar que el scroll tape contenido
+    height: "100%", // Fuerza altura completa
     minHeight: 0,
-    overflowY: "auto",
+    overflowY: "auto", // Scroll independiente para inputs si es necesario
     scrollBehavior: "smooth" as const,
     boxSizing: "border-box",
     width: "100%",
@@ -1062,13 +1081,16 @@ const commonStyles: Record<string, React.CSSProperties> = {
   outputFrame: {
     display: "flex",
     flexDirection: "column",
-    gap: "14px",
-    paddingLeft: "0px",
+    gap: "12px",
+    paddingLeft: "8px",
+    height: "100%", // Fuerza altura completa
     minHeight: 0,
-    overflowY: "auto",
+    overflowY: "auto", // Scroll independiente para resultados
     scrollBehavior: "smooth" as const,
     boxSizing: "border-box",
     width: "100%",
+    borderLeft: "1px solid var(--panel-border, #e0e0e0)", // Separador visual
+    padding: "0 0 0 24px", // Padding interno para separar del borde
   },
   outputFrameMobile: {
     display: "flex",
@@ -1087,9 +1109,10 @@ const commonStyles: Record<string, React.CSSProperties> = {
     textTransform: "uppercase",
     letterSpacing: "0.6px",
     margin: "0 0 4px 0",
-    paddingBottom: "10px",
+    paddingBottom: "8px",
     borderBottom: "2px solid var(--azul-claro, #2EAFC4)",
     opacity: 0.9,
+    flexShrink: 0, // Asegura que el título no desaparezca
   },
   liveTranscript: {
     border: "1px solid var(--panel-border, #e0e0e0)",
@@ -1293,38 +1316,68 @@ const BasicMode: React.FC<CommonProps> = ({
   };
 
   return (
-    <div style={isMobile ? commonStyles.twoFrameContainerMobile : commonStyles.twoFrameContainer}>
-      {/* LEFT FRAME - INPUTS */}
+    <div
+      style={
+        isMobile
+          ? commonStyles.twoFrameContainerMobile
+          : commonStyles.twoFrameContainer
+      }
+    >
+      {/* PANEL IZQUIERDO: INPUTS */}
       <div
-        style={{
-          ...(isMobile ? commonStyles.inputFrameMobile : commonStyles.inputFrame),
-          display: "flex",
-          flexDirection: "column",
-        }}
+        style={
+          isMobile ? commonStyles.inputFrameMobile : commonStyles.inputFrame
+        }
       >
-        <h3 style={commonStyles.frameTitle}>{copy.ideaLabel || "Tu Idea"}</h3>
+        <h3 style={commonStyles.frameTitle}>{copy.ideaLabel}</h3>
 
-        {/* Scrollable Content */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1, minHeight: 0, overflowY: isMobile ? "visible" : "auto" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <textarea
-              id="basic-idea"
-              style={commonStyles.textarea}
-              value={idea}
-              onChange={(e) => setIdea(e.target.value)}
-              placeholder={copy.ideaPlaceholder}
-            />
-            <div style={commonStyles.inputCounter}>
-              {formatCounterText(idea, interfaceLanguage)}
-            </div>
+        {/* Área de texto flexible: Ocupa el espacio disponible */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            minHeight: "120px",
+            gap: "6px",
+          }}
+        >
+          <textarea
+            id="basic-idea"
+            style={{ ...commonStyles.textarea, height: "100%" }} // Altura 100% del contenedor padre
+            value={idea}
+            onChange={(e) => setIdea(e.target.value)}
+            placeholder={copy.ideaPlaceholder}
+          />
+          <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
+            {formatCounterText(idea, interfaceLanguage)}
           </div>
+        </div>
 
-          {/* Language & Tone - 2 Columns */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={commonStyles.label}>{copy.languageLabel}</label>
+        {/* Controles Compactos (Parte inferior fija) */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            flexShrink: 0,
+          }}
+        >
+          {/* Fila 1: Idioma y Tono */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "10px",
+            }}
+          >
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
+                {copy.languageLabel}
+              </label>
               <select
-                style={commonStyles.select}
+                style={{ ...commonStyles.select, padding: "8px" }}
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as "es" | "en")}
               >
@@ -1335,10 +1388,14 @@ const BasicMode: React.FC<CommonProps> = ({
                 ))}
               </select>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={commonStyles.label}>{copy.toneLabel}</label>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
+                {copy.toneLabel}
+              </label>
               <select
-                style={commonStyles.select}
+                style={{ ...commonStyles.select, padding: "8px" }}
                 value={tone}
                 onChange={(e) => setTone(e.target.value)}
                 disabled={literalTranslation}
@@ -1352,154 +1409,102 @@ const BasicMode: React.FC<CommonProps> = ({
             </div>
           </div>
 
-          {/* Speed */}
+          {/* Fila 2: Plataformas (Chips más compactos) */}
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <label style={commonStyles.label}>{copy.speedLabel}</label>
-            <select
-              style={commonStyles.select}
-              value={speed}
-              onChange={(e) => setSpeed(e.target.value as "detailed" | "flash")}
-            >
-              <option value="detailed">{copy.speedDetailed}</option>
-              <option value="flash">{copy.speedFlash}</option>
-            </select>
-          </div>
-
-          {/* Platforms */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label style={commonStyles.label}>{copy.platformLabel}</label>
-            <div style={commonStyles.checkboxRow}>
-              {["LinkedIn", "X", "Instagram", "WhatsApp", "Email"].map((option) => (
-                <label
-                  key={option}
-                  style={{
-                    ...commonStyles.checkboxChip,
-                    opacity: literalTranslation ? 0.5 : 1,
-                    cursor: literalTranslation ? "not-allowed" : "pointer",
-                    fontSize: "0.9em",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={platforms.includes(option)}
-                    onChange={() => togglePlatform(option)}
-                    disabled={literalTranslation}
-                  />{" "}
-                  {option}
-                </label>
-              ))}
+            <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
+              {copy.platformLabel}
+            </label>
+            <div style={{ ...commonStyles.checkboxRow, gap: "6px" }}>
+              {["LinkedIn", "X", "Instagram", "WhatsApp", "Email"].map(
+                (option) => (
+                  <label
+                    key={option}
+                    style={{
+                      ...commonStyles.checkboxChip,
+                      padding: "4px 10px", // Chip más compacto
+                      fontSize: "0.85em",
+                      opacity: literalTranslation ? 0.5 : 1,
+                      cursor: literalTranslation ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={platforms.includes(option)}
+                      onChange={() => togglePlatform(option)}
+                      disabled={literalTranslation}
+                      style={{ marginRight: "4px" }}
+                    />
+                    {option}
+                  </label>
+                )
+              )}
             </div>
           </div>
 
-          {/* Literal Translation Checkbox */}
-          <label style={{ ...commonStyles.checkboxLabel, gap: "6px", fontSize: "0.9em" }}>
-            <input
-              type="checkbox"
-              checked={literalTranslation}
-              onChange={(e) => setLiteralTranslation(e.target.checked)}
-            />{" "}
-            {copy.literalLabel}
-          </label>
+          {/* Fila 3: Opciones Extra */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <label
+              style={{ ...commonStyles.checkboxLabel, fontSize: "0.85em" }}
+            >
+              <input
+                type="checkbox"
+                checked={literalTranslation}
+                onChange={(e) => setLiteralTranslation(e.target.checked)}
+              />{" "}
+              {copy.literalLabel}
+            </label>
 
-          {/* Max Chars */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <label style={commonStyles.label}>{copy.maxCharsLabel}</label>
-            <input
-              type="number"
-              min="0"
-              style={{
-                ...commonStyles.select,
-                opacity: literalTranslation ? 0.6 : 1,
-                marginTop: "0",
-              }}
-              value={maxChars}
-              onChange={(e) => setMaxChars(e.target.value)}
-              placeholder="280"
-              disabled={literalTranslation}
-            />
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "0.85em", fontWeight: 600 }}>Max:</span>
+              <input
+                type="number"
+                min="0"
+                style={{
+                  ...commonStyles.select,
+                  width: "70px",
+                  padding: "4px 8px",
+                  fontSize: "0.9em",
+                }}
+                value={maxChars}
+                onChange={(e) => setMaxChars(e.target.value)}
+                placeholder="∞"
+                disabled={literalTranslation}
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Generate Button - Sticky at bottom */}
-        <button
-          type="button"
-          style={{
-            ...commonStyles.generateButton,
-            width: "100%",
-            margin: "8px 0 0 0",
-            paddingTop: "14px",
-            paddingBottom: "14px",
-          }}
-          onClick={handleGenerate}
-          disabled={isLoading}
-        >
-          {isLoading ? copy.buttonLoading : copy.buttonIdle}
-        </button>
+          <button
+            type="button"
+            style={commonStyles.generateButton}
+            onClick={handleGenerate}
+            disabled={isLoading}
+          >
+            {isLoading ? copy.buttonLoading : copy.buttonIdle}
+          </button>
+        </div>
       </div>
 
-      {/* RIGHT FRAME - OUTPUTS */}
+      {/* PANEL DERECHO: RESULTADOS */}
       <div
-        style={{
-          ...(isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame),
-          display: "flex",
-          flexDirection: "column",
-        }}
+        style={
+          isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
+        }
       >
         <h3 style={commonStyles.frameTitle}>{copy.outputs || "Resultados"}</h3>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1, minHeight: 0, overflowY: isMobile ? "visible" : "auto" }}>
+        <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
           {error && <div style={commonStyles.errorMessage}>{error}</div>}
 
           {isLoading && (
-            <div style={commonStyles.loadingMessage}>
+            <div style={{ ...commonStyles.loadingMessage, marginTop: "20%" }}>
               <div style={commonStyles.spinner}></div>
               <span>{translations[interfaceLanguage].output.loading}</span>
-            </div>
-          )}
-
-          {generatedOutputs && generatedOutputs.length > 0 && (
-            <div style={{ ...commonStyles.outputGrid, gridTemplateColumns: "1fr" }}>
-              {generatedOutputs.map((output, index) => {
-                const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-                React.useEffect(() => {
-                  if (textareaRef.current) {
-                    textareaRef.current.style.height = "auto";
-                    textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-                  }
-                }, [output.content]);
-                return (
-                  <div key={index} style={commonStyles.outputCard}>
-                    <strong style={{ fontSize: "0.95em", color: "var(--azul-profundo, #23436B)" }}>
-                      {output.platform}
-                    </strong>
-                    <textarea
-                      ref={textareaRef}
-                      readOnly
-                      value={output.content}
-                      style={{
-                        flex: 1,
-                        borderRadius: "8px",
-                        border: "1px solid var(--panel-border, #e0e0e0)",
-                        padding: "10px",
-                        backgroundColor: "var(--input-bg, #FFFFFF)",
-                        color: "var(--texto, #162032)",
-                        fontFamily: "inherit",
-                        fontSize: "0.9em",
-                        lineHeight: "1.5",
-                        resize: "none",
-                        overflow: "hidden",
-                      }}
-                    />
-                    <button
-                      type="button"
-                      style={{ ...commonStyles.copyButton, fontSize: "0.85em" }}
-                      onClick={() => onCopy(output.content)}
-                    >
-                      {translations[interfaceLanguage].output.copy}
-                    </button>
-                  </div>
-                );
-              })}
             </div>
           )}
 
@@ -1507,19 +1512,54 @@ const BasicMode: React.FC<CommonProps> = ({
             <div
               style={{
                 display: "flex",
+                height: "100%",
                 alignItems: "center",
                 justifyContent: "center",
-                minHeight: "200px",
-                color: "var(--texto, #162032)",
                 opacity: 0.5,
-                textAlign: "center",
-                padding: "20px",
-                fontSize: "0.9em",
               }}
             >
-              <p style={{ margin: 0 }}>
-                {copy.emptyState || "Aquí aparecerán los resultados"}
+              <p>
+                {copy.emptyState || "Aquí aparecerán los resultados generados"}
               </p>
+            </div>
+          )}
+
+          {generatedOutputs && generatedOutputs.length > 0 && (
+            <div
+              style={{
+                ...commonStyles.outputGrid,
+                gridTemplateColumns: "1fr",
+                paddingBottom: "10px",
+              }}
+            >
+              {generatedOutputs.map((output, index) => (
+                <div key={index} style={commonStyles.outputCard}>
+                  <strong
+                    style={{
+                      fontSize: "0.95em",
+                      color: "var(--azul-profundo)",
+                    }}
+                  >
+                    {output.platform}
+                  </strong>
+                  <textarea
+                    readOnly
+                    value={output.content}
+                    style={{
+                      ...commonStyles.textarea,
+                      minHeight: "100px",
+                      resize: "none",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    style={{ ...commonStyles.copyButton, fontSize: "0.8em" }}
+                    onClick={() => onCopy(output.content)}
+                  >
+                    {translations[interfaceLanguage].output.copy}
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -2445,28 +2485,31 @@ const App: React.FC = () => {
     void refreshAvailableModels();
   }, [refreshAvailableModels]);
 
-  const generateContentApiCall = useCallback(async (prompt: string) => {
-    setIsLoading(true);
-    setError(null);
-    setGeneratedOutputs(null);
-    setGeneratedImageUrl(null);
-    try {
-      const enforcedPrompt = `${prompt}
+  const generateContentApiCall = useCallback(
+    async (prompt: string) => {
+      setIsLoading(true);
+      setError(null);
+      setGeneratedOutputs(null);
+      setGeneratedImageUrl(null);
+      try {
+        const enforcedPrompt = `${prompt}
 Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutputExample}`;
-      const raw = await callTextModel(enforcedPrompt, textModelId);
-      const jsonString = extractJsonPayload(raw);
-      const parsed = JSON.parse(jsonString);
-      if (Array.isArray(parsed.outputs)) {
-        setGeneratedOutputs(parsed.outputs);
-      } else {
-        setError("El modelo no devolvio el formato esperado.");
+        const raw = await callTextModel(enforcedPrompt, textModelId);
+        const jsonString = extractJsonPayload(raw);
+        const parsed = JSON.parse(jsonString);
+        if (Array.isArray(parsed.outputs)) {
+          setGeneratedOutputs(parsed.outputs);
+        } else {
+          setError("El modelo no devolvio el formato esperado.");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error desconocido");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [textModelId]);
+    },
+    [textModelId]
+  );
 
   const copyToClipboard = (text: string) => {
     void navigator.clipboard.writeText(text);
