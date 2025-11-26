@@ -1619,25 +1619,26 @@ const IntelligentMode: React.FC<CommonProps> = ({
     setGeneratedImageUrl(null);
     try {
       const thinking = deepThinking
-        ? "Analiza paso a paso antes de responder."
-        : "Responde de forma directa.";
+        ? "Analiza paso a paso."
+        : "Responde directo.";
       const languageDisplay =
         languages.find((l) => l.value === language)?.label || language;
-      const prompt = `Eres un estratega creativo. Necesidad: "${idea}". Contexto/destino: "${
-        context || "No especificado"
-      }". Idioma del usuario: ${interfaceLanguage.toUpperCase()}. Idioma de salida solicitado: ${languageDisplay}. ${thinking} Sigue el formato ${structuredOutputExample}.`;
+      const prompt = `Rol: Estratega. Tarea: "${idea}". Contexto: "${
+        context || "General"
+      }". Idioma: ${languageDisplay}. ${thinking} Salida JSON: ${structuredOutputExample}`;
+
       await onGenerate(prompt);
+
       if (includeImage && imagePrompt.trim()) {
         const base64 = imageFile ? await fileToBase64(imageFile) : undefined;
         const imageUrl = await callImageModel(
-          `${imagePrompt}\nContexto: ${context || idea}`,
+          `${imagePrompt}\nContexto: ${context}`,
           base64
         );
         setGeneratedImageUrl(imageUrl);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Error desconocido";
-      setError(`Error general: ${message}.`);
+      setError(`Error: ${err instanceof Error ? err.message : "Desconocido"}`);
     } finally {
       setIsLoading(false);
     }
@@ -1651,31 +1652,46 @@ const IntelligentMode: React.FC<CommonProps> = ({
           : commonStyles.twoFrameContainer
       }
     >
-      {/* LEFT FRAME: INPUTS */}
+      {/* PANEL IZQUIERDO: SCROLL CONDICIONAL */}
       <div
         style={
-          isMobile ? commonStyles.inputFrameMobile : commonStyles.inputFrame
+          isMobile
+            ? commonStyles.inputFrameMobile
+            : {
+                ...commonStyles.inputFrame,
+                // AQUÍ ESTÁ EL CAMBIO: Scroll solo si includeImage es true
+                overflowY: includeImage ? "auto" : "hidden",
+                paddingRight: includeImage ? "8px" : "0",
+              }
         }
       >
         <h3 style={commonStyles.frameTitle}>{copy.ideaLabel}</h3>
 
-        {/* Área flexible para Textareas */}
+        {/* Contenedor flexible principal */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             flex: 1,
-            minHeight: "200px",
-            gap: "10px",
-            overflowY: "auto",
+            gap: "8px",
+            minHeight: 0,
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+          {/* Área 1: Idea */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: includeImage ? "0 0 auto" : 1.2,
+              minHeight: "80px",
+            }}
+          >
             <textarea
               style={{
                 ...commonStyles.textarea,
                 height: "100%",
-                minHeight: "100px",
+                minHeight: "80px",
+                resize: "none",
               }}
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
@@ -1686,12 +1702,20 @@ const IntelligentMode: React.FC<CommonProps> = ({
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", flex: 0.8 }}>
+          {/* Área 2: Contexto */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: includeImage ? "0 0 auto" : 1,
+              minHeight: "80px",
+            }}
+          >
             <label
               style={{
                 ...commonStyles.label,
-                fontSize: "0.85em",
-                marginBottom: "4px",
+                fontSize: "0.8em",
+                marginBottom: "2px",
               }}
             >
               {copy.contextLabel}
@@ -1701,14 +1725,12 @@ const IntelligentMode: React.FC<CommonProps> = ({
                 ...commonStyles.textarea,
                 height: "100%",
                 minHeight: "80px",
+                resize: "none",
               }}
               value={context}
               onChange={(e) => setContext(e.target.value)}
               placeholder={copy.contextPlaceholder}
             />
-            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
-              {formatCounterText(context, interfaceLanguage)}
-            </div>
           </div>
         </div>
 
@@ -1717,25 +1739,21 @@ const IntelligentMode: React.FC<CommonProps> = ({
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "10px",
+            gap: "8px",
             flexShrink: 0,
-            paddingTop: "10px",
+            paddingTop: "8px",
+            paddingBottom: "2px",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ flex: 1, minWidth: "140px" }}>
-              <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
-                {copy.languageLabel}
-              </label>
+          {/* Fila: Idioma y Pensamiento */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ flex: 1 }}>
               <select
-                style={{ ...commonStyles.select, padding: "6px" }}
+                style={{
+                  ...commonStyles.select,
+                  padding: "6px 10px",
+                  fontSize: "0.9em",
+                }}
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as "es" | "en")}
               >
@@ -1748,32 +1766,35 @@ const IntelligentMode: React.FC<CommonProps> = ({
             </div>
             <label
               style={{
-                ...commonStyles.checkboxLabel,
-                fontSize: "0.85em",
-                cursor: "pointer",
-                marginTop: "18px",
+                ...commonStyles.checkboxChip,
+                fontSize: "0.8em",
+                padding: "6px 12px",
+                margin: 0,
               }}
             >
               <input
                 type="checkbox"
                 checked={deepThinking}
                 onChange={(e) => setDeepThinking(e.target.checked)}
-              />{" "}
+                style={{ marginRight: "6px" }}
+              />
               {copy.deepThinkingLabel}
             </label>
           </div>
 
+          {/* Sección Imagen (Causa del scroll) */}
           <div
             style={{
               borderTop: "1px solid var(--panel-border)",
-              paddingTop: "10px",
+              paddingTop: "8px",
             }}
           >
             <label
               style={{
                 ...commonStyles.checkboxLabel,
-                fontSize: "0.9em",
-                marginBottom: includeImage ? "8px" : "0",
+                fontSize: "0.85em",
+                marginBottom: includeImage ? "6px" : "0",
+                cursor: "pointer",
               }}
             >
               <input
@@ -1788,31 +1809,39 @@ const IntelligentMode: React.FC<CommonProps> = ({
               <div
                 style={{
                   display: "flex",
-                  gap: "8px",
                   flexDirection: "column",
-                  animation: "fadeIn 0.3s",
+                  gap: "6px",
+                  paddingBottom: "4px",
                 }}
               >
-                <div style={{ display: "flex", gap: "8px" }}>
+                <div
+                  style={{ display: "flex", gap: "6px", alignItems: "center" }}
+                >
                   <input
                     type="file"
                     onChange={handleFileChange}
                     accept="image/*"
-                    style={{ fontSize: "0.8em", width: "100%" }}
+                    style={{ fontSize: "0.75em", width: "100%" }}
                   />
                   {imagePreview && (
                     <img
                       src={imagePreview}
-                      alt="preview"
-                      style={{ height: "30px", borderRadius: "4px" }}
+                      alt="mini"
+                      style={{
+                        width: "30px",
+                        height: "30px",
+                        objectFit: "cover",
+                        borderRadius: "4px",
+                      }}
                     />
                   )}
                 </div>
-                <textarea
+                <input
+                  type="text"
                   style={{
-                    ...commonStyles.textarea,
-                    minHeight: "50px",
-                    padding: "8px",
+                    ...commonStyles.select,
+                    padding: "6px",
+                    fontSize: "0.9em",
                   }}
                   value={imagePrompt}
                   onChange={(e) => setImagePrompt(e.target.value)}
@@ -1824,7 +1853,7 @@ const IntelligentMode: React.FC<CommonProps> = ({
 
           <button
             type="button"
-            style={commonStyles.generateButton}
+            style={{ ...commonStyles.generateButton, padding: "12px" }}
             onClick={handleGenerate}
             disabled={isLoading}
           >
@@ -1833,7 +1862,7 @@ const IntelligentMode: React.FC<CommonProps> = ({
         </div>
       </div>
 
-      {/* RIGHT FRAME: OUTPUTS */}
+      {/* PANEL DERECHO */}
       <div
         style={
           isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
@@ -1894,15 +1923,12 @@ const CampaignMode: React.FC<CommonProps> = ({
     try {
       const languageDisplay =
         languages.find((l) => l.value === language)?.label || language;
-      const prompt = `Eres un planificador de campañas express. Idea: "${idea}". Contexto/destino: "${
-        context || "No especificado"
-      }". Idioma: ${languageDisplay}. Plataformas: ${campaignPlatforms.join(
+      const prompt = `Rol: Planificador de campañas. Idea: "${idea}". Contexto: "${context}". Idioma: ${languageDisplay}. Canales: ${campaignPlatforms.join(
         ", "
-      )}. Sigue el esquema ${structuredOutputExample}.`;
+      )}. Salida JSON: ${structuredOutputExample}.`;
       await onGenerate(prompt);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Error desconocido";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Error");
     } finally {
       setIsLoading(false);
     }
@@ -1918,22 +1944,39 @@ const CampaignMode: React.FC<CommonProps> = ({
     >
       <div
         style={
-          isMobile ? commonStyles.inputFrameMobile : commonStyles.inputFrame
+          isMobile
+            ? commonStyles.inputFrameMobile
+            : { ...commonStyles.inputFrame, overflowY: "hidden" }
         }
       >
         <h3 style={commonStyles.frameTitle}>{copy.ideaLabel}</h3>
 
+        {/* Contenedor flexible vertical */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             flex: 1,
-            gap: "12px",
+            gap: "10px",
+            minHeight: 0,
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+          {/* Idea */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: 1,
+              minHeight: 0,
+            }}
+          >
             <textarea
-              style={{ ...commonStyles.textarea, height: "100%" }}
+              style={{
+                ...commonStyles.textarea,
+                height: "100%",
+                minHeight: "60px",
+                resize: "none",
+              }}
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
               placeholder={copy.ideaPlaceholder}
@@ -1943,18 +1986,31 @@ const CampaignMode: React.FC<CommonProps> = ({
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+          {/* Contexto */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: 1,
+              minHeight: 0,
+            }}
+          >
             <label
               style={{
                 ...commonStyles.label,
                 fontSize: "0.85em",
-                marginBottom: "4px",
+                marginBottom: "2px",
               }}
             >
               {copy.contextLabel}
             </label>
             <textarea
-              style={{ ...commonStyles.textarea, height: "100%" }}
+              style={{
+                ...commonStyles.textarea,
+                height: "100%",
+                minHeight: "60px",
+                resize: "none",
+              }}
               value={context}
               onChange={(e) => setContext(e.target.value)}
               placeholder={copy.contextPlaceholder}
@@ -1965,16 +2021,17 @@ const CampaignMode: React.FC<CommonProps> = ({
           </div>
         </div>
 
+        {/* Footer Fijo */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "10px",
+            gap: "8px",
             flexShrink: 0,
-            paddingTop: "10px",
+            paddingTop: "8px",
           }}
         >
-          <div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
             <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
               {copy.languageLabel}
             </label>
@@ -1992,7 +2049,7 @@ const CampaignMode: React.FC<CommonProps> = ({
           </div>
           <button
             type="button"
-            style={commonStyles.generateButton}
+            style={{ ...commonStyles.generateButton, padding: "12px" }}
             onClick={handleGenerate}
             disabled={isLoading}
           >
@@ -2006,7 +2063,7 @@ const CampaignMode: React.FC<CommonProps> = ({
           isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
         }
       >
-        <h3 style={commonStyles.frameTitle}>Campaña Generada</h3>
+        <h3 style={commonStyles.frameTitle}>Campaña</h3>
         <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
           <OutputDisplay
             generatedOutputs={generatedOutputs}
@@ -2061,15 +2118,10 @@ const RecycleMode: React.FC<CommonProps> = ({
     try {
       const languageDisplay =
         languages.find((l) => l.value === language)?.label || language;
-      const toneDisplay = tones.find((t) => t.value === tone)?.label || tone;
-      const formatDisplay =
-        recycleOptions.find((opt) => opt.value === format)?.label || format;
-      const prompt = `Actua como editor. Formato: ${formatDisplay}. Idioma: ${languageDisplay}. Tono: ${toneDisplay}. Contexto/destino: ${
-        context || "No especificado"
-      }. Convierte el siguiente texto manteniendo la coherencia y responde usando ${structuredOutputExample}. Texto: "${inputText}".`;
+      const prompt = `Rol: Editor. Tarea: Reciclar texto. Formato: ${format}. Tono: ${tone}. Contexto: ${context}. Texto original: "${inputText}". Salida JSON: ${structuredOutputExample}`;
       await onGenerate(prompt);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
+      setError(err instanceof Error ? err.message : "Error");
     } finally {
       setIsLoading(false);
     }
@@ -2085,7 +2137,9 @@ const RecycleMode: React.FC<CommonProps> = ({
     >
       <div
         style={
-          isMobile ? commonStyles.inputFrameMobile : commonStyles.inputFrame
+          isMobile
+            ? commonStyles.inputFrameMobile
+            : { ...commonStyles.inputFrame, overflowY: "hidden" }
         }
       >
         <h3 style={commonStyles.frameTitle}>{copy.originalLabel}</h3>
@@ -2095,12 +2149,26 @@ const RecycleMode: React.FC<CommonProps> = ({
             display: "flex",
             flexDirection: "column",
             flex: 1,
-            gap: "10px",
+            gap: "8px",
+            minHeight: 0,
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+          {/* Contenido Original - Ocupa más espacio */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: 1.5,
+              minHeight: 0,
+            }}
+          >
             <textarea
-              style={{ ...commonStyles.textarea, height: "100%" }}
+              style={{
+                ...commonStyles.textarea,
+                height: "100%",
+                minHeight: "60px",
+                resize: "none",
+              }}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder={copy.originalPlaceholder}
@@ -2110,87 +2178,91 @@ const RecycleMode: React.FC<CommonProps> = ({
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", flex: 0.6 }}>
+          {/* Contexto - Ocupa menos espacio */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: 1,
+              minHeight: 0,
+            }}
+          >
             <label
               style={{
                 ...commonStyles.label,
                 fontSize: "0.85em",
-                marginBottom: "4px",
+                marginBottom: "2px",
               }}
             >
               {copy.contextLabel}
             </label>
             <textarea
-              style={{ ...commonStyles.textarea, height: "100%" }}
+              style={{
+                ...commonStyles.textarea,
+                height: "100%",
+                minHeight: "50px",
+                resize: "none",
+              }}
               value={context}
               onChange={(e) => setContext(e.target.value)}
               placeholder={copy.contextPlaceholder}
             />
-            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
-              {formatCounterText(context, interfaceLanguage)}
-            </div>
           </div>
         </div>
 
+        {/* Controles Compactos en Grid */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "10px",
+            gap: "8px",
             flexShrink: 0,
             paddingTop: "8px",
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
-              {copy.formatLabel}
-            </label>
-            <select
-              style={{ ...commonStyles.select, padding: "8px" }}
-              value={format}
-              onChange={(e) => setFormat(e.target.value)}
-            >
-              {recycleOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
-              gap: "10px",
+              gap: "8px",
             }}
           >
+            {/* Columna 1: Formato */}
             <div
-              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              style={{ display: "flex", flexDirection: "column", gap: "2px" }}
             >
-              <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
-                {copy.languageLabel}
+              <label style={{ ...commonStyles.label, fontSize: "0.75em" }}>
+                {copy.formatLabel}
               </label>
               <select
-                style={{ ...commonStyles.select, padding: "8px" }}
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as "es" | "en")}
+                style={{
+                  ...commonStyles.select,
+                  padding: "6px",
+                  fontSize: "0.85em",
+                }}
+                value={format}
+                onChange={(e) => setFormat(e.target.value)}
               >
-                {languages.map((lang) => (
-                  <option key={lang.value} value={lang.value}>
-                    {lang.label}
+                {recycleOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
                   </option>
                 ))}
               </select>
             </div>
+            {/* Columna 2: Tono */}
             <div
-              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              style={{ display: "flex", flexDirection: "column", gap: "2px" }}
             >
-              <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
+              <label style={{ ...commonStyles.label, fontSize: "0.75em" }}>
                 {copy.toneLabel}
               </label>
               <select
-                style={{ ...commonStyles.select, padding: "8px" }}
+                style={{
+                  ...commonStyles.select,
+                  padding: "6px",
+                  fontSize: "0.85em",
+                }}
                 value={tone}
                 onChange={(e) => setTone(e.target.value)}
               >
@@ -2203,14 +2275,50 @@ const RecycleMode: React.FC<CommonProps> = ({
             </div>
           </div>
 
-          <button
-            type="button"
-            style={commonStyles.generateButton}
-            onClick={handleGenerate}
-            disabled={isLoading}
-          >
-            {isLoading ? copy.buttonLoading : copy.buttonIdle}
-          </button>
+          {/* Fila: Idioma + Botón */}
+          <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                gap: "2px",
+              }}
+            >
+              <label style={{ ...commonStyles.label, fontSize: "0.75em" }}>
+                {copy.languageLabel}
+              </label>
+              <select
+                style={{
+                  ...commonStyles.select,
+                  padding: "6px",
+                  fontSize: "0.85em",
+                }}
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as "es" | "en")}
+              >
+                {languages.map((l) => (
+                  <option key={l.value} value={l.value}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              style={{
+                ...commonStyles.generateButton,
+                flex: 1.5,
+                padding: "8px",
+                fontSize: "0.95em",
+                height: "36px",
+              }}
+              onClick={handleGenerate}
+              disabled={isLoading}
+            >
+              {isLoading ? copy.buttonLoading : copy.buttonIdle}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -2219,7 +2327,7 @@ const RecycleMode: React.FC<CommonProps> = ({
           isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
         }
       >
-        <h3 style={commonStyles.frameTitle}>Versión Reciclada</h3>
+        <h3 style={commonStyles.frameTitle}>Resultado</h3>
         <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
           <OutputDisplay
             generatedOutputs={generatedOutputs}
