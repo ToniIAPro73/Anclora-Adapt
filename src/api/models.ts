@@ -22,19 +22,19 @@ const API_KEY = (
 
 export const DEFAULT_TEXT_MODEL_ID = TEXT_MODEL_ID;
 
-const defaultTimeoutMs = 60_000;
+const defaultTimeoutMs = 300_000;
 
 const withTimeout = async <T>(
   promise: Promise<T>,
   timeoutMs = defaultTimeoutMs
 ) => {
+  let timer: ReturnType<typeof setTimeout>;
   const timeout = new Promise<never>((_, reject) => {
-    const timer = setTimeout(() => {
-      clearTimeout(timer);
-      reject(new Error("Timeout esperando respuesta del modelo"));
+    timer = setTimeout(() => {
+      reject(new Error("El modelo tardó demasiado en responder (timeout)."));
     }, timeoutMs);
   });
-  return Promise.race([promise, timeout]);
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer!));
 };
 
 const ensureEndpoint = (value: string, message: string) => {
@@ -64,53 +64,57 @@ export const callTextModel = async (
     targetModelId,
     "Define VITE_TEXT_MODEL_ID en tu .env.local (ej: llama2, mistral, neural-chat)"
   );
-  const response = await withTimeout(
-    fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-      method: "POST",
-      headers: jsonHeaders(),
-      body: JSON.stringify({
-        model: targetModelId,
-        prompt,
-        stream: false,
-        temperature: 0.4,
-      }),
-    })
-  );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `Error de Ollama: ${
-        errorText || response.statusText
-      }. ¿Está Ollama ejecutándose en ${OLLAMA_BASE_URL}?`
+  try {
+    const response = await withTimeout(
+      fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+        method: "POST",
+        headers: jsonHeaders(),
+        body: JSON.stringify({
+          model: targetModelId,
+          prompt,
+          stream: false,
+          temperature: 0.4,
+        }),
+      })
     );
-  }
 
-  const payload = await response.json();
-  return payload?.response ?? JSON.stringify(payload);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Error de Ollama (${response.status}): ${
+          errorText || response.statusText
+        }`
+      );
+    }
+
+    const payload = await response.json();
+    return payload?.response ?? JSON.stringify(payload);
+  } catch (error) {
+    throw error instanceof Error ? error : new Error(String(error));
+  }
 };
 
 export const listAvailableTextModels = async (): Promise<string[]> => {
-  const response = await withTimeout(
-    fetch(`${OLLAMA_BASE_URL}/api/tags`, {
-      method: "GET",
-      headers: jsonHeaders(),
-    }),
-    15_000
-  );
-
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(
-      detail || `No se pudo recuperar la lista de modelos (${response.status})`
+  try {
+    const response = await withTimeout(
+      fetch(`${OLLAMA_BASE_URL}/api/tags`, {
+        method: "GET",
+        headers: jsonHeaders(),
+      }),
+      15_000
     );
-  }
 
-  const payload = await response.json();
-  const models = Array.isArray(payload?.models) ? payload.models : [];
-  return models
-    .map((item) => item?.name)
-    .filter((name): name is string => Boolean(name));
+    if (!response.ok) return [];
+
+    const payload = await response.json();
+    const models = Array.isArray(payload?.models) ? payload.models : [];
+    return models
+      .map((item: any) => item?.name)
+      .filter((name: any): name is string => Boolean(name));
+  } catch (e) {
+    return [];
+  }
 };
 
 export const callImageModel = async (
@@ -122,27 +126,46 @@ export const callImageModel = async (
     "Configura VITE_IMAGE_MODEL_ENDPOINT o ejecuta `npm run image:bridge` para un backend local de imagen"
   );
 
-  const response = await withTimeout(
-    fetch(endpoint, {
-      method: "POST",
-      headers: jsonHeaders(),
-      body: JSON.stringify({
-        model: IMAGE_MODEL_ID || undefined,
-        prompt,
-        image: base64Image,
-      }),
-    })
-  );
-
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(
-      detail || `Fallo en generación de imagen (${response.status})`
+  try {
+    const response = await withTimeout(
+      fetch(endpoint, {
+        method: "POST",
+        headers: jsonHeaders(),
+        body: JSON.stringify({
+          model: IMAGE_MODEL_ID || undefined,
+          prompt,
+          image: base64Image,
+        }),
+      })
     );
-  }
 
-  const buffer = await response.arrayBuffer();
-  return URL.createObjectURL(new Blob([buffer], { type: "image/png" }));
+    if (!response.ok) {
+      const detail = await response.text();
+      // Intentar limpiar el mensaje si viene como JSON de error
+      let message = detail;
+      try {
+        const json = JSON.parse(detail);
+        if (json.error) message = json.error;
+      } catch (e) {}
+
+      throw new Error(
+        `Fallo en imagen (${response.status}): ${
+          message || response.statusText
+        }`
+      );
+    }
+
+    const buffer = await response.arrayBuffer();
+    return URL.createObjectURL(new Blob([buffer], { type: "image/png" }));
+  } catch (error) {
+    // Si es un error de conexión (fetch failed), dar un mensaje más útil
+    if (error instanceof Error && error.message.includes("fetch")) {
+      throw new Error(
+        `No se pudo conectar con el generador de imágenes en ${endpoint}. Asegúrate de ejecutar 'npm run image:bridge'.`
+      );
+    }
+    throw error instanceof Error ? error : new Error(String(error));
+  }
 };
 
 export const callTextToSpeech = async (
