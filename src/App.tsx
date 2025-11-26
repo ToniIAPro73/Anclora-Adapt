@@ -1589,6 +1589,13 @@ const IntelligentMode: React.FC<CommonProps> = ({
   const [imagePrompt, setImagePrompt] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
   useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
@@ -1623,8 +1630,7 @@ const IntelligentMode: React.FC<CommonProps> = ({
       if (includeImage && imagePrompt.trim()) {
         const base64 = imageFile ? await fileToBase64(imageFile) : undefined;
         const imageUrl = await callImageModel(
-          `${imagePrompt}
-Contexto: ${context || idea}`,
+          `${imagePrompt}\nContexto: ${context || idea}`,
           base64
         );
         setGeneratedImageUrl(imageUrl);
@@ -1638,104 +1644,215 @@ Contexto: ${context || idea}`,
   };
 
   return (
-    <>
-      <section style={commonStyles.section}>
-        <label style={commonStyles.label}>{copy.ideaLabel}</label>
-        <textarea
-          style={commonStyles.textarea}
-          value={idea}
-          onChange={(e) => setIdea(e.target.value)}
-          placeholder={copy.ideaPlaceholder}
-        />
-        <div style={commonStyles.inputCounter}>
-          {formatCounterText(idea, interfaceLanguage)}
-        </div>
-      </section>
-      <section style={commonStyles.section}>
-        <label style={commonStyles.label}>{copy.contextLabel}</label>
-        <textarea
-          style={commonStyles.textarea}
-          value={context}
-          onChange={(e) => setContext(e.target.value)}
-          placeholder={copy.contextPlaceholder}
-        />
-        <div style={commonStyles.inputCounter}>
-          {formatCounterText(context, interfaceLanguage)}
-        </div>
-      </section>
-      <section style={commonStyles.section}>
-        <label style={commonStyles.label}>{copy.languageLabel}</label>
-        <select
-          style={commonStyles.select}
-          value={language}
-          onChange={(e) => setLanguage(e.target.value as "es" | "en")}
-        >
-          {languages.map((lang) => (
-            <option key={lang.value} value={lang.value}>
-              {lang.label}
-            </option>
-          ))}
-        </select>
-      </section>
-      <section style={commonStyles.section}>
-        <label>
-          <input
-            type="checkbox"
-            checked={deepThinking}
-            onChange={(e) => setDeepThinking(e.target.checked)}
-          />{" "}
-          {copy.deepThinkingLabel}
-        </label>
-      </section>
-      <section style={commonStyles.section}>
-        <label>
-          <input
-            type="checkbox"
-            checked={includeImage}
-            onChange={(e) => setIncludeImage(e.target.checked)}
-          />{" "}
-          {copy.includeImageLabel}
-        </label>
-        {includeImage && (
-          <>
-            <input type="file" onChange={handleFileChange} accept="image/*" />
-            <textarea
-              style={commonStyles.textarea}
-              value={imagePrompt}
-              onChange={(e) => setImagePrompt(e.target.value)}
-              placeholder={copy.imagePromptPlaceholder}
-            />
-            <div style={commonStyles.inputCounter}>
-              {formatCounterText(imagePrompt, interfaceLanguage)}
-            </div>
-            {imagePreview && (
-              <img
-                src={imagePreview}
-                alt="Preview"
-                style={{ width: "100%", borderRadius: "12px" }}
-              />
-            )}
-          </>
-        )}
-      </section>
-      <button
-        type="button"
-        style={commonStyles.generateButton}
-        onClick={handleGenerate}
-        disabled={isLoading}
+    <div
+      style={
+        isMobile
+          ? commonStyles.twoFrameContainerMobile
+          : commonStyles.twoFrameContainer
+      }
+    >
+      {/* LEFT FRAME: INPUTS */}
+      <div
+        style={
+          isMobile ? commonStyles.inputFrameMobile : commonStyles.inputFrame
+        }
       >
-        {isLoading ? copy.buttonLoading : copy.buttonIdle}
-      </button>
-      <OutputDisplay
-        generatedOutputs={generatedOutputs}
-        error={error}
-        isLoading={isLoading}
-        onCopy={onCopy}
-        audioUrl={null}
-        imageUrl={generatedImageUrl}
-        interfaceLanguage={interfaceLanguage}
-      />
-    </>
+        <h3 style={commonStyles.frameTitle}>{copy.ideaLabel}</h3>
+
+        {/* Área flexible para Textareas */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            minHeight: "200px",
+            gap: "10px",
+            overflowY: "auto",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+            <textarea
+              style={{
+                ...commonStyles.textarea,
+                height: "100%",
+                minHeight: "100px",
+              }}
+              value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+              placeholder={copy.ideaPlaceholder}
+            />
+            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
+              {formatCounterText(idea, interfaceLanguage)}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", flex: 0.8 }}>
+            <label
+              style={{
+                ...commonStyles.label,
+                fontSize: "0.85em",
+                marginBottom: "4px",
+              }}
+            >
+              {copy.contextLabel}
+            </label>
+            <textarea
+              style={{
+                ...commonStyles.textarea,
+                height: "100%",
+                minHeight: "80px",
+              }}
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              placeholder={copy.contextPlaceholder}
+            />
+            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
+              {formatCounterText(context, interfaceLanguage)}
+            </div>
+          </div>
+        </div>
+
+        {/* Controles inferiores */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            flexShrink: 0,
+            paddingTop: "10px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ flex: 1, minWidth: "140px" }}>
+              <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
+                {copy.languageLabel}
+              </label>
+              <select
+                style={{ ...commonStyles.select, padding: "6px" }}
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as "es" | "en")}
+              >
+                {languages.map((lang) => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <label
+              style={{
+                ...commonStyles.checkboxLabel,
+                fontSize: "0.85em",
+                cursor: "pointer",
+                marginTop: "18px",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={deepThinking}
+                onChange={(e) => setDeepThinking(e.target.checked)}
+              />{" "}
+              {copy.deepThinkingLabel}
+            </label>
+          </div>
+
+          <div
+            style={{
+              borderTop: "1px solid var(--panel-border)",
+              paddingTop: "10px",
+            }}
+          >
+            <label
+              style={{
+                ...commonStyles.checkboxLabel,
+                fontSize: "0.9em",
+                marginBottom: includeImage ? "8px" : "0",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={includeImage}
+                onChange={(e) => setIncludeImage(e.target.checked)}
+              />{" "}
+              {copy.includeImageLabel}
+            </label>
+
+            {includeImage && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  flexDirection: "column",
+                  animation: "fadeIn 0.3s",
+                }}
+              >
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    style={{ fontSize: "0.8em", width: "100%" }}
+                  />
+                  {imagePreview && (
+                    <img
+                      src={imagePreview}
+                      alt="preview"
+                      style={{ height: "30px", borderRadius: "4px" }}
+                    />
+                  )}
+                </div>
+                <textarea
+                  style={{
+                    ...commonStyles.textarea,
+                    minHeight: "50px",
+                    padding: "8px",
+                  }}
+                  value={imagePrompt}
+                  onChange={(e) => setImagePrompt(e.target.value)}
+                  placeholder={copy.imagePromptPlaceholder}
+                />
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            style={commonStyles.generateButton}
+            onClick={handleGenerate}
+            disabled={isLoading}
+          >
+            {isLoading ? copy.buttonLoading : copy.buttonIdle}
+          </button>
+        </div>
+      </div>
+
+      {/* RIGHT FRAME: OUTPUTS */}
+      <div
+        style={
+          isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
+        }
+      >
+        <h3 style={commonStyles.frameTitle}>Resultados</h3>
+        <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
+          <OutputDisplay
+            generatedOutputs={generatedOutputs}
+            error={error}
+            isLoading={isLoading}
+            onCopy={onCopy}
+            audioUrl={null}
+            imageUrl={generatedImageUrl}
+            interfaceLanguage={interfaceLanguage}
+          />
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -1756,6 +1873,13 @@ const CampaignMode: React.FC<CommonProps> = ({
   const [context, setContext] = useState("");
   const campaignPlatforms = ["LinkedIn", "X", "Instagram", "Email"];
   const [language, setLanguage] = useState("es");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
   useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
@@ -1785,63 +1909,117 @@ const CampaignMode: React.FC<CommonProps> = ({
   };
 
   return (
-    <>
-      <section style={commonStyles.section}>
-        <label style={commonStyles.label}>{copy.ideaLabel}</label>
-        <textarea
-          style={commonStyles.textarea}
-          value={idea}
-          onChange={(e) => setIdea(e.target.value)}
-          placeholder={copy.ideaPlaceholder}
-        />
-        <div style={commonStyles.inputCounter}>
-          {formatCounterText(idea, interfaceLanguage)}
-        </div>
-      </section>
-      <section style={commonStyles.section}>
-        <label style={commonStyles.label}>{copy.contextLabel}</label>
-        <textarea
-          style={commonStyles.textarea}
-          value={context}
-          onChange={(e) => setContext(e.target.value)}
-          placeholder={copy.contextPlaceholder}
-        />
-        <div style={commonStyles.inputCounter}>
-          {formatCounterText(context, interfaceLanguage)}
-        </div>
-      </section>
-      <section style={commonStyles.section}>
-        <label style={commonStyles.label}>{copy.languageLabel}</label>
-        <select
-          style={commonStyles.select}
-          value={language}
-          onChange={(e) => setLanguage(e.target.value as "es" | "en")}
-        >
-          {languages.map((lang) => (
-            <option key={lang.value} value={lang.value}>
-              {lang.label}
-            </option>
-          ))}
-        </select>
-      </section>
-      <button
-        type="button"
-        style={commonStyles.generateButton}
-        onClick={handleGenerate}
-        disabled={isLoading}
+    <div
+      style={
+        isMobile
+          ? commonStyles.twoFrameContainerMobile
+          : commonStyles.twoFrameContainer
+      }
+    >
+      <div
+        style={
+          isMobile ? commonStyles.inputFrameMobile : commonStyles.inputFrame
+        }
       >
-        {isLoading ? copy.buttonLoading : copy.buttonIdle}
-      </button>
-      <OutputDisplay
-        generatedOutputs={generatedOutputs}
-        error={error}
-        isLoading={isLoading}
-        onCopy={onCopy}
-        audioUrl={null}
-        imageUrl={generatedImageUrl}
-        interfaceLanguage={interfaceLanguage}
-      />
-    </>
+        <h3 style={commonStyles.frameTitle}>{copy.ideaLabel}</h3>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            gap: "12px",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+            <textarea
+              style={{ ...commonStyles.textarea, height: "100%" }}
+              value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+              placeholder={copy.ideaPlaceholder}
+            />
+            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
+              {formatCounterText(idea, interfaceLanguage)}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+            <label
+              style={{
+                ...commonStyles.label,
+                fontSize: "0.85em",
+                marginBottom: "4px",
+              }}
+            >
+              {copy.contextLabel}
+            </label>
+            <textarea
+              style={{ ...commonStyles.textarea, height: "100%" }}
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              placeholder={copy.contextPlaceholder}
+            />
+            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
+              {formatCounterText(context, interfaceLanguage)}
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            flexShrink: 0,
+            paddingTop: "10px",
+          }}
+        >
+          <div>
+            <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
+              {copy.languageLabel}
+            </label>
+            <select
+              style={{ ...commonStyles.select, padding: "8px" }}
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as "es" | "en")}
+            >
+              {languages.map((lang) => (
+                <option key={lang.value} value={lang.value}>
+                  {lang.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            style={commonStyles.generateButton}
+            onClick={handleGenerate}
+            disabled={isLoading}
+          >
+            {isLoading ? copy.buttonLoading : copy.buttonIdle}
+          </button>
+        </div>
+      </div>
+
+      <div
+        style={
+          isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
+        }
+      >
+        <h3 style={commonStyles.frameTitle}>Campaña Generada</h3>
+        <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
+          <OutputDisplay
+            generatedOutputs={generatedOutputs}
+            error={error}
+            isLoading={isLoading}
+            onCopy={onCopy}
+            audioUrl={null}
+            imageUrl={generatedImageUrl}
+            interfaceLanguage={interfaceLanguage}
+          />
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -1863,6 +2041,13 @@ const RecycleMode: React.FC<CommonProps> = ({
   const [language, setLanguage] = useState("es");
   const [tone, setTone] = useState("detect");
   const [format, setFormat] = useState("summary");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
   useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
@@ -1891,93 +2076,163 @@ const RecycleMode: React.FC<CommonProps> = ({
   };
 
   return (
-    <>
-      <section style={commonStyles.section}>
-        <label style={commonStyles.label}>{copy.originalLabel}</label>
-        <textarea
-          style={commonStyles.textarea}
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          placeholder={copy.originalPlaceholder}
-        />
-        <div style={commonStyles.inputCounter}>
-          {formatCounterText(inputText, interfaceLanguage)}
-        </div>
-      </section>
-      <section style={commonStyles.section}>
-        <label style={commonStyles.label}>{copy.contextLabel}</label>
-        <textarea
-          style={commonStyles.textarea}
-          value={context}
-          onChange={(e) => setContext(e.target.value)}
-          placeholder={copy.contextPlaceholder}
-        />
-        <div style={commonStyles.inputCounter}>
-          {formatCounterText(context, interfaceLanguage)}
-        </div>
-      </section>
-      <section style={commonStyles.configSection}>
-        <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>{copy.formatLabel}</label>
-          <select
-            style={commonStyles.select}
-            value={format}
-            onChange={(e) => setFormat(e.target.value)}
-          >
-            {recycleOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>{copy.languageLabel}</label>
-          <select
-            style={commonStyles.select}
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as "es" | "en")}
-          >
-            {languages.map((lang) => (
-              <option key={lang.value} value={lang.value}>
-                {lang.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>{copy.toneLabel}</label>
-          <select
-            style={commonStyles.select}
-            value={tone}
-            onChange={(e) => setTone(e.target.value)}
-          >
-            {tones.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </section>
-      <button
-        type="button"
-        style={commonStyles.generateButton}
-        onClick={handleGenerate}
-        disabled={isLoading}
+    <div
+      style={
+        isMobile
+          ? commonStyles.twoFrameContainerMobile
+          : commonStyles.twoFrameContainer
+      }
+    >
+      <div
+        style={
+          isMobile ? commonStyles.inputFrameMobile : commonStyles.inputFrame
+        }
       >
-        {isLoading ? copy.buttonLoading : copy.buttonIdle}
-      </button>
-      <OutputDisplay
-        generatedOutputs={generatedOutputs}
-        error={error}
-        isLoading={isLoading}
-        onCopy={onCopy}
-        audioUrl={null}
-        imageUrl={generatedImageUrl}
-        interfaceLanguage={interfaceLanguage}
-      />
-    </>
+        <h3 style={commonStyles.frameTitle}>{copy.originalLabel}</h3>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            gap: "10px",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+            <textarea
+              style={{ ...commonStyles.textarea, height: "100%" }}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder={copy.originalPlaceholder}
+            />
+            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
+              {formatCounterText(inputText, interfaceLanguage)}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", flex: 0.6 }}>
+            <label
+              style={{
+                ...commonStyles.label,
+                fontSize: "0.85em",
+                marginBottom: "4px",
+              }}
+            >
+              {copy.contextLabel}
+            </label>
+            <textarea
+              style={{ ...commonStyles.textarea, height: "100%" }}
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              placeholder={copy.contextPlaceholder}
+            />
+            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
+              {formatCounterText(context, interfaceLanguage)}
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            flexShrink: 0,
+            paddingTop: "8px",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
+              {copy.formatLabel}
+            </label>
+            <select
+              style={{ ...commonStyles.select, padding: "8px" }}
+              value={format}
+              onChange={(e) => setFormat(e.target.value)}
+            >
+              {recycleOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "10px",
+            }}
+          >
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
+                {copy.languageLabel}
+              </label>
+              <select
+                style={{ ...commonStyles.select, padding: "8px" }}
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as "es" | "en")}
+              >
+                {languages.map((lang) => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
+                {copy.toneLabel}
+              </label>
+              <select
+                style={{ ...commonStyles.select, padding: "8px" }}
+                value={tone}
+                onChange={(e) => setTone(e.target.value)}
+              >
+                {tones.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            style={commonStyles.generateButton}
+            onClick={handleGenerate}
+            disabled={isLoading}
+          >
+            {isLoading ? copy.buttonLoading : copy.buttonIdle}
+          </button>
+        </div>
+      </div>
+
+      <div
+        style={
+          isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
+        }
+      >
+        <h3 style={commonStyles.frameTitle}>Versión Reciclada</h3>
+        <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
+          <OutputDisplay
+            generatedOutputs={generatedOutputs}
+            error={error}
+            isLoading={isLoading}
+            onCopy={onCopy}
+            audioUrl={null}
+            imageUrl={generatedImageUrl}
+            interfaceLanguage={interfaceLanguage}
+          />
+        </div>
+      </div>
+    </div>
   );
 };
 
