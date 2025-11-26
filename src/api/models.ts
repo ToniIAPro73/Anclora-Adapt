@@ -1,23 +1,33 @@
 import { BlobLike } from "@/types/app";
 
 const env = import.meta.env;
-const OLLAMA_BASE_URL =
-  (env.VITE_OLLAMA_BASE_URL || "http://localhost:11434").trim();
+const OLLAMA_BASE_URL = (
+  env.VITE_OLLAMA_BASE_URL || "http://localhost:11434"
+).trim();
 const TEXT_MODEL_ID = (env.VITE_TEXT_MODEL_ID || "llama2").trim();
 const IMAGE_MODEL_ID = (env.VITE_IMAGE_MODEL_ID || "").trim();
-const IMAGE_ENDPOINT =
-  (env.VITE_IMAGE_MODEL_ENDPOINT || "http://localhost:9090/image").trim();
+const IMAGE_ENDPOINT = (
+  env.VITE_IMAGE_MODEL_ENDPOINT || "http://localhost:9090/image"
+).trim();
 const TTS_MODEL_ID = (env.VITE_TTS_MODEL_ID || "").trim();
 const TTS_ENDPOINT = (env.VITE_TTS_ENDPOINT || "").trim();
 const STT_MODEL_ID = (env.VITE_STT_MODEL_ID || "").trim();
 const STT_ENDPOINT = (env.VITE_STT_ENDPOINT || "").trim();
-const API_KEY = (env.VITE_MODEL_API_KEY || env.HF_API_KEY || env.API_KEY || "").trim();
+const API_KEY = (
+  env.VITE_MODEL_API_KEY ||
+  env.HF_API_KEY ||
+  env.API_KEY ||
+  ""
+).trim();
 
 export const DEFAULT_TEXT_MODEL_ID = TEXT_MODEL_ID;
 
 const defaultTimeoutMs = 60_000;
 
-const withTimeout = async <T>(promise: Promise<T>, timeoutMs = defaultTimeoutMs) => {
+const withTimeout = async <T>(
+  promise: Promise<T>,
+  timeoutMs = defaultTimeoutMs
+) => {
   const timeout = new Promise<never>((_, reject) => {
     const timer = setTimeout(() => {
       clearTimeout(timer);
@@ -70,7 +80,9 @@ export const callTextModel = async (
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(
-      `Error de Ollama: ${errorText || response.statusText}. ¿Está Ollama ejecutándose en ${OLLAMA_BASE_URL}?`
+      `Error de Ollama: ${
+        errorText || response.statusText
+      }. ¿Está Ollama ejecutándose en ${OLLAMA_BASE_URL}?`
     );
   }
 
@@ -124,7 +136,9 @@ export const callImageModel = async (
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(detail || `Fallo en generación de imagen (${response.status})`);
+    throw new Error(
+      detail || `Fallo en generación de imagen (${response.status})`
+    );
   }
 
   const buffer = await response.arrayBuffer();
