@@ -999,6 +999,69 @@ const commonStyles: Record<string, React.CSSProperties> = {
     marginTop: "4px",
     paddingRight: "12px",
   },
+  // === Two-Frame Layout Styles (BasicMode) ===
+  twoFrameContainer: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "24px",
+    width: "100%",
+    height: "100%",
+    minHeight: 0,
+    padding: "0 4px",
+  },
+  twoFrameContainerMobile: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+    width: "100%",
+    height: "auto",
+    padding: "0",
+  },
+  inputFrame: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+    paddingRight: "4px",
+    minHeight: 0,
+    overflowY: "auto",
+    scrollBehavior: "smooth" as const,
+  },
+  inputFrameMobile: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+    paddingRight: "0px",
+    minHeight: "auto",
+    overflowY: "visible",
+  },
+  outputFrame: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+    paddingLeft: "4px",
+    minHeight: 0,
+    overflowY: "auto",
+    scrollBehavior: "smooth" as const,
+  },
+  outputFrameMobile: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+    paddingLeft: "0px",
+    minHeight: "auto",
+    overflowY: "visible",
+  },
+  frameTitle: {
+    fontSize: "0.85em",
+    fontWeight: 700,
+    color: "var(--azul-profundo, #23436B)",
+    textTransform: "uppercase",
+    letterSpacing: "0.6px",
+    margin: "0 0 4px 0",
+    paddingBottom: "10px",
+    borderBottom: "2px solid var(--azul-claro, #2EAFC4)",
+    opacity: 0.9,
+  },
   liveTranscript: {
     border: "1px solid var(--panel-border, #e0e0e0)",
     borderRadius: "12px",
@@ -1150,9 +1213,16 @@ const BasicMode: React.FC<CommonProps> = ({
   const [speed, setSpeed] = useState<"detailed" | "flash">("detailed");
   const [literalTranslation, setLiteralTranslation] = useState(false);
   const [maxChars, setMaxChars] = useState("");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
 
   useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
   useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const togglePlatform = (value: string) => {
     setPlatforms((prev) =>
@@ -1192,148 +1262,238 @@ const BasicMode: React.FC<CommonProps> = ({
   };
 
   return (
-    <>
-      <section style={commonStyles.section}>
-        <div style={{ maxWidth: "900px", margin: "0 auto", width: "100%" }}>
-          <label style={commonStyles.label} htmlFor="basic-idea">
-            {copy.ideaLabel}
+    <div style={isMobile ? commonStyles.twoFrameContainerMobile : commonStyles.twoFrameContainer}>
+      {/* LEFT FRAME - INPUTS */}
+      <div
+        style={{
+          ...(isMobile ? commonStyles.inputFrameMobile : commonStyles.inputFrame),
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <h3 style={commonStyles.frameTitle}>{copy.ideaLabel || "Tu Idea"}</h3>
+
+        {/* Scrollable Content */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1, minHeight: 0, overflowY: isMobile ? "visible" : "auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <textarea
+              id="basic-idea"
+              style={commonStyles.textarea}
+              value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+              placeholder={copy.ideaPlaceholder}
+            />
+            <div style={commonStyles.inputCounter}>
+              {formatCounterText(idea, interfaceLanguage)}
+            </div>
+          </div>
+
+          {/* Language & Tone - 2 Columns */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              <label style={commonStyles.label}>{copy.languageLabel}</label>
+              <select
+                style={commonStyles.select}
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as "es" | "en")}
+              >
+                {languages.map((lang) => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              <label style={commonStyles.label}>{copy.toneLabel}</label>
+              <select
+                style={commonStyles.select}
+                value={tone}
+                onChange={(e) => setTone(e.target.value)}
+                disabled={literalTranslation}
+              >
+                {tones.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Speed */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <label style={commonStyles.label}>{copy.speedLabel}</label>
+            <select
+              style={commonStyles.select}
+              value={speed}
+              onChange={(e) => setSpeed(e.target.value as "detailed" | "flash")}
+            >
+              <option value="detailed">{copy.speedDetailed}</option>
+              <option value="flash">{copy.speedFlash}</option>
+            </select>
+          </div>
+
+          {/* Platforms */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <label style={commonStyles.label}>{copy.platformLabel}</label>
+            <div style={commonStyles.checkboxRow}>
+              {["LinkedIn", "X", "Instagram", "WhatsApp", "Email"].map((option) => (
+                <label
+                  key={option}
+                  style={{
+                    ...commonStyles.checkboxChip,
+                    opacity: literalTranslation ? 0.5 : 1,
+                    cursor: literalTranslation ? "not-allowed" : "pointer",
+                    fontSize: "0.9em",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={platforms.includes(option)}
+                    onChange={() => togglePlatform(option)}
+                    disabled={literalTranslation}
+                  />{" "}
+                  {option}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Literal Translation Checkbox */}
+          <label style={{ ...commonStyles.checkboxLabel, gap: "6px", fontSize: "0.9em" }}>
+            <input
+              type="checkbox"
+              checked={literalTranslation}
+              onChange={(e) => setLiteralTranslation(e.target.checked)}
+            />{" "}
+            {copy.literalLabel}
           </label>
-          <textarea
-            id="basic-idea"
-            style={commonStyles.textarea}
-            value={idea}
-            onChange={(e) => setIdea(e.target.value)}
-            placeholder={copy.ideaPlaceholder}
-          />
-          <div style={commonStyles.inputCounter}>
-            {formatCounterText(idea, interfaceLanguage)}
+
+          {/* Max Chars */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <label style={commonStyles.label}>{copy.maxCharsLabel}</label>
+            <input
+              type="number"
+              min="0"
+              style={{
+                ...commonStyles.select,
+                opacity: literalTranslation ? 0.6 : 1,
+                marginTop: "0",
+              }}
+              value={maxChars}
+              onChange={(e) => setMaxChars(e.target.value)}
+              placeholder="280"
+              disabled={literalTranslation}
+            />
           </div>
         </div>
-      </section>
-      <section style={commonStyles.configSection}>
-        <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>{copy.languageLabel}</label>
-          <select
-            style={commonStyles.select}
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as "es" | "en")}
-          >
-            {languages.map((lang) => (
-              <option key={lang.value} value={lang.value}>
-                {lang.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>{copy.toneLabel}</label>
-          <select
-            style={commonStyles.select}
-            value={tone}
-            onChange={(e) => setTone(e.target.value)}
-            disabled={literalTranslation}
-          >
-            {tones.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div style={commonStyles.configGroup}>
-          <label style={commonStyles.label}>{copy.speedLabel}</label>
-          <select
-            style={commonStyles.select}
-            value={speed}
-            onChange={(e) => setSpeed(e.target.value as "detailed" | "flash")}
-          >
-            <option value="detailed">{copy.speedDetailed}</option>
-            <option value="flash">{copy.speedFlash}</option>
-          </select>
-        </div>
-      </section>
-      <section style={commonStyles.section}>
-        <label style={commonStyles.label}>{copy.platformLabel}</label>
-        <div style={commonStyles.checkboxRow}>
-          {["LinkedIn", "X", "Instagram", "WhatsApp", "Email"].map((option) => (
-            <label
-              key={option}
+
+        {/* Generate Button - Sticky at bottom */}
+        <button
+          type="button"
+          style={{
+            ...commonStyles.generateButton,
+            width: "100%",
+            margin: "8px 0 0 0",
+            paddingTop: "14px",
+            paddingBottom: "14px",
+          }}
+          onClick={handleGenerate}
+          disabled={isLoading}
+        >
+          {isLoading ? copy.buttonLoading : copy.buttonIdle}
+        </button>
+      </div>
+
+      {/* RIGHT FRAME - OUTPUTS */}
+      <div
+        style={{
+          ...(isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame),
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <h3 style={commonStyles.frameTitle}>{copy.outputs || "Resultados"}</h3>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1, minHeight: 0, overflowY: isMobile ? "visible" : "auto" }}>
+          {error && <div style={commonStyles.errorMessage}>{error}</div>}
+
+          {isLoading && (
+            <div style={commonStyles.loadingMessage}>
+              <div style={commonStyles.spinner}></div>
+              <span>{translations[interfaceLanguage].output.loading}</span>
+            </div>
+          )}
+
+          {generatedOutputs && generatedOutputs.length > 0 && (
+            <div style={{ ...commonStyles.outputGrid, gridTemplateColumns: "1fr" }}>
+              {generatedOutputs.map((output, index) => {
+                const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+                React.useEffect(() => {
+                  if (textareaRef.current) {
+                    textareaRef.current.style.height = "auto";
+                    textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+                  }
+                }, [output.content]);
+                return (
+                  <div key={index} style={commonStyles.outputCard}>
+                    <strong style={{ fontSize: "0.95em", color: "var(--azul-profundo, #23436B)" }}>
+                      {output.platform}
+                    </strong>
+                    <textarea
+                      ref={textareaRef}
+                      readOnly
+                      value={output.content}
+                      style={{
+                        flex: 1,
+                        borderRadius: "8px",
+                        border: "1px solid var(--panel-border, #e0e0e0)",
+                        padding: "10px",
+                        backgroundColor: "var(--input-bg, #FFFFFF)",
+                        color: "var(--texto, #162032)",
+                        fontFamily: "inherit",
+                        fontSize: "0.9em",
+                        lineHeight: "1.5",
+                        resize: "none",
+                        overflow: "hidden",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      style={{ ...commonStyles.copyButton, fontSize: "0.85em" }}
+                      onClick={() => onCopy(output.content)}
+                    >
+                      {translations[interfaceLanguage].output.copy}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {!isLoading && !generatedOutputs && !error && (
+            <div
               style={{
-                ...commonStyles.checkboxChip,
-                opacity: literalTranslation ? 0.5 : 1,
-                cursor: literalTranslation ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: "200px",
+                color: "var(--texto, #162032)",
+                opacity: 0.5,
+                textAlign: "center",
+                padding: "20px",
+                fontSize: "0.9em",
               }}
             >
-              <input
-                type="checkbox"
-                checked={platforms.includes(option)}
-                onChange={() => togglePlatform(option)}
-                disabled={literalTranslation}
-              />{" "}
-              {option}
-            </label>
-          ))}
+              <p style={{ margin: 0 }}>
+                {copy.emptyState || "Aquí aparecerán los resultados"}
+              </p>
+            </div>
+          )}
         </div>
-      </section>
-      <section style={commonStyles.section}>
-        <label style={commonStyles.checkboxLabel}>
-          <input
-            type="checkbox"
-            checked={literalTranslation}
-            onChange={(e) => setLiteralTranslation(e.target.checked)}
-          />{" "}
-          {copy.literalLabel}
-        </label>
-      </section>
-      <section style={commonStyles.configSection}>
-        <div style={commonStyles.configGroup}>
-          <label
-            style={{
-              ...commonStyles.label,
-              display: "inline-block",
-              marginRight: "16px",
-            }}
-          >
-            {copy.maxCharsLabel}
-          </label>
-          <input
-            type="number"
-            min="0"
-            style={{
-              ...commonStyles.select,
-              opacity: literalTranslation ? 0.6 : 1,
-              width: "8ch",
-              marginTop: "0",
-            }}
-            value={maxChars}
-            onChange={(e) => setMaxChars(e.target.value)}
-            placeholder="280"
-            disabled={literalTranslation}
-          />
-        </div>
-      </section>
-      <section style={commonStyles.section}>
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <button
-            type="button"
-            style={commonStyles.generateButton}
-            onClick={handleGenerate}
-            disabled={isLoading}
-          >
-            {isLoading ? copy.buttonLoading : copy.buttonIdle}
-          </button>
-        </div>
-      </section>
-      <OutputDisplay
-        generatedOutputs={generatedOutputs}
-        error={error}
-        isLoading={isLoading}
-        onCopy={onCopy}
-        audioUrl={null}
-        imageUrl={generatedImageUrl}
-        interfaceLanguage={interfaceLanguage}
-      />
-    </>
+      </div>
+    </div>
   );
 };
 
