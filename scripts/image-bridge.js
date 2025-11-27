@@ -2,7 +2,7 @@ import http from "http";
 
 // CAMBIO AQUÍ: Usar 127.0.0.1 en lugar de localhost para evitar errores de resolución
 const target =
-  process.env.SD_API_URL || "http://127.0.0.1:7861/sdapi/v1/txt2img";
+  process.env.SD_API_URL || "http://127.0.0.1:7860/sdapi/v1/txt2img";
 const port = Number(process.env.IMAGE_BRIDGE_PORT || 9090);
 const host = process.env.IMAGE_BRIDGE_HOST || "0.0.0.0";
 
