@@ -270,6 +270,38 @@ const callSpeechToText = async (audioBlob: Blob): Promise<string> => {
   return payload?.text?.trim?.() ?? payload?.transcript ?? "";
 };
 
+const speakWithBrowserTts = (text: string, language: string) =>
+  new Promise<void>((resolve, reject) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      reject(new Error("Speech synthesis not available in this browser."));
+      return;
+    }
+
+    const voices = window.speechSynthesis.getVoices();
+    const normalizedLang = language.toLowerCase();
+    const preferredVoice =
+      voices.find((voice) =>
+        voice.lang?.toLowerCase().startsWith(normalizedLang)
+      ) ||
+      voices.find((voice) => voice.lang?.toLowerCase().startsWith("en")) ||
+      null;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+      utterance.lang = preferredVoice.lang;
+    } else {
+      utterance.lang = language;
+    }
+
+    utterance.onend = () => resolve();
+    utterance.onerror = () =>
+      reject(new Error("No se pudo reproducir la voz del navegador."));
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  });
+
 // ==========================================
 // 3. ESTILOS GLOBALES Y UTILIDADES
 // ==========================================
@@ -594,7 +626,8 @@ const translations: Record<
       voiceLabel: string;
       buttonIdle: string;
       buttonLoading: string;
-      errors: { text: string };
+      noticeFallback: string;
+      errors: { text: string; unavailable: string };
     };
     live: {
       intro: string;
@@ -728,8 +761,12 @@ const translations: Record<
       voiceLabel: "Selecciona la voz",
       buttonIdle: "Generar voz",
       buttonLoading: "Generando audio...",
+      noticeFallback:
+        "Reproduccion con la voz del navegador (sin archivo descargable).",
       errors: {
         text: "Escribe el texto a convertir.",
+        unavailable:
+          "Configura VITE_TTS_ENDPOINT o usa un navegador con voz (speechSynthesis).",
       },
     },
     live: {
@@ -864,11 +901,15 @@ const translations: Record<
       textLabel: "Text to convert",
       textPlaceholder: "Hello, today we launch...",
       languageLabel: "Voice language",
-      voiceLabel: "Voice",
+      voiceLabel: "Select voice",
       buttonIdle: "Generate voice",
       buttonLoading: "Generating audio...",
+      noticeFallback:
+        "Played with the browser voice (no downloadable file available).",
       errors: {
         text: "Provide the text to convert.",
+        unavailable:
+          "Set VITE_TTS_ENDPOINT or use a browser that supports speechSynthesis.",
       },
     },
     live: {
@@ -2736,6 +2777,8 @@ const TTSMode: React.FC<{
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const browserTtsSupported =
+    typeof window !== "undefined" && "speechSynthesis" in window;
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
@@ -2763,10 +2806,19 @@ const TTSMode: React.FC<{
       const translated = (
         await callTextModel(translationPrompt, textModelId)
       ).trim();
-      const audio = await callTextToSpeech(
-        translated || textToSpeak,
-        selectedVoiceName
-      );
+      const targetText = translated || textToSpeak;
+
+      if (!TTS_ENDPOINT) {
+        if (!browserTtsSupported) {
+          setError(copy.errors.unavailable);
+        } else {
+          await speakWithBrowserTts(targetText, selectedLanguage);
+          setError(copy.noticeFallback);
+        }
+        return;
+      }
+
+      const audio = await callTextToSpeech(targetText, selectedVoiceName);
       setAudioUrl(audio);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
