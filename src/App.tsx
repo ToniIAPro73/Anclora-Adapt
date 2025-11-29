@@ -553,6 +553,7 @@ const translations: Record<
       refresh: string;
       loading: string;
       error: string;
+      reset: string;
     };
     output: {
       loading: string;
@@ -677,6 +678,7 @@ const translations: Record<
       current: "Modelo en uso",
       refresh: "Actualizar modelos",
       loading: "Actualizando...",
+      reset: "Reiniciar pantalla (mantiene el modo actual)",
       error: "No se pudo listar los modelos",
     },
     output: {
@@ -820,6 +822,7 @@ const translations: Record<
       current: "Current model",
       refresh: "Refresh models",
       loading: "Refreshing...",
+      reset: "Reset screen (keeps current mode)",
       error: "Could not list the models",
     },
     output: {
@@ -1038,6 +1041,18 @@ const commonStyles: Record<string, React.CSSProperties> = {
     fontSize: "0.85em",
     fontWeight: 600,
     color: "var(--texto-secundario, #4b5563)",
+  },
+  resetButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "8px 12px",
+    borderRadius: "10px",
+    border: "1px solid var(--panel-border, #e0e0e0)",
+    backgroundColor: "var(--muted-surface, #F3F4F6)",
+    color: "var(--texto, #162032)",
+    cursor: "pointer",
+    fontWeight: 600,
   },
   toggleButton: {
     border: "none",
@@ -3311,6 +3326,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [resetCounter, setResetCounter] = useState(0);
   const copy = translations[interfaceLanguage];
   const toggleCopy = copy.toggles;
   const modelCopy = copy.modelSelector;
@@ -3447,6 +3463,15 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
 
   const copyToClipboard = (text: string) => {
     void navigator.clipboard.writeText(text);
+  };
+
+  const handleScreenReset = () => {
+    setGeneratedOutputs(null);
+    setGeneratedImageUrl(null);
+    setError(null);
+    setIsLoading(false);
+    setIsHelpOpen(false);
+    setResetCounter((prev) => prev + 1);
   };
 
   const handleHelp = () => {
@@ -3616,6 +3641,21 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
               <option>{imageModelName}</option>
             </select>
           </div>
+
+          <div style={{ ...commonStyles.settingsGroup, marginLeft: "auto" }}>
+            <button
+              type="button"
+              style={commonStyles.resetButton}
+              onClick={handleScreenReset}
+              title={modelCopy.reset}
+              aria-label={modelCopy.reset}
+            >
+              <RefreshCw size={18} />
+              <span style={{ fontWeight: 700 }}>
+                {interfaceLanguage === "es" ? "Reiniciar" : "Reset"}
+              </span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -3641,12 +3681,27 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
         </nav>
 
         <div style={commonStyles.modeScrollArea}>
-          {activeTab === "basic" && <BasicMode {...commonProps} />}
-          {activeTab === "intelligent" && <IntelligentMode {...commonProps} />}
-          {activeTab === "campaign" && <CampaignMode {...commonProps} />}
-          {activeTab === "recycle" && <RecycleMode {...commonProps} />}
+          {activeTab === "basic" && (
+            <BasicMode key={`basic-${resetCounter}`} {...commonProps} />
+          )}
+          {activeTab === "intelligent" && (
+            <IntelligentMode
+              key={`intelligent-${resetCounter}`}
+              {...commonProps}
+            />
+          )}
+          {activeTab === "campaign" && (
+            <CampaignMode
+              key={`campaign-${resetCounter}`}
+              {...commonProps}
+            />
+          )}
+          {activeTab === "recycle" && (
+            <RecycleMode key={`recycle-${resetCounter}`} {...commonProps} />
+          )}
           {activeTab === "chat" && (
             <ChatMode
+              key={`chat-${resetCounter}`}
               interfaceLanguage={interfaceLanguage}
               onCopy={copyToClipboard}
               textModelId={textModelId}
@@ -3654,18 +3709,23 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
           )}
           {activeTab === "tts" && (
             <TTSMode
+              key={`tts-${resetCounter}`}
               interfaceLanguage={interfaceLanguage}
               textModelId={textModelId}
             />
           )}
           {activeTab === "live" && (
             <LiveChatMode
+              key={`live-${resetCounter}`}
               interfaceLanguage={interfaceLanguage}
               textModelId={textModelId}
             />
           )}
           {activeTab === "image" && (
-            <ImageEditMode interfaceLanguage={interfaceLanguage} />
+            <ImageEditMode
+              key={`image-${resetCounter}`}
+              interfaceLanguage={interfaceLanguage}
+            />
           )}
         </div>
       </main>
