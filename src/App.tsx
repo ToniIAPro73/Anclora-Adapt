@@ -2175,11 +2175,22 @@ const CampaignMode: React.FC<CommonProps> = ({
     setIsLoading(true);
     setGeneratedImageUrl(null);
     try {
+      const selectedLanguage =
+        languages.find((lang) => lang.value === language) ?? {
+          value: language,
+          label: language,
+        };
       const languageDisplay =
-        languages.find((l) => l.value === language)?.label || language;
-      const prompt = `Rol: Planificador de campañas. Idea: "${idea}". Contexto: "${
+        selectedLanguage.value === "detect"
+          ? `${selectedLanguage.label} (auto)`
+          : `${selectedLanguage.label} (${selectedLanguage.value})`;
+      const languageReminder =
+        interfaceLanguage === "es"
+          ? `Redacta todos los contenidos solo en ${selectedLanguage.label}, sin mezclar idiomas.`
+          : `Write every content block strictly in ${selectedLanguage.label} and do not mix languages.`;
+      const prompt = `Rol: Planificador de campanas. Idea: "${idea}". Contexto: "${
         context || "No especificado"
-      }". Idioma: ${languageDisplay}. Plataformas: ${campaignPlatforms.join(
+      }". Idioma: ${languageDisplay}. ${languageReminder} Plataformas: ${campaignPlatforms.join(
         ", "
       )}. Sigue el esquema ${structuredOutputExample}.`;
       await onGenerate(prompt);
