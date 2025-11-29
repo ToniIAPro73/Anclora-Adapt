@@ -1822,7 +1822,7 @@ const BasicMode: React.FC<CommonProps> = ({
                 }}
                 value={maxChars}
                 onChange={(e) => setMaxChars(e.target.value)}
-                placeholder="∞"
+                placeholder="0"
                 disabled={literalTranslation}
               />
             </div>
