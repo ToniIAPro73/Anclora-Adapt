@@ -1,128 +1,23 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AncloraAdapt — Estrategia y Análisis de Producto</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%2323436B'/%3E%3Ctext x='32' y='42' font-size='32' font-family='Arial,Helvetica,sans-serif' text-anchor='middle' fill='%23FFC979'%3EA%3C/text%3E%3C/svg%3E">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Libre+Baskerville:wght@700&display=swap" rel="stylesheet">
-    <style>
-        :root{
-            --azul-profundo:#23436B;
-            --azul-claro:#2EAFC4;
-            --ambar:#FFC979;
-            --gris-fondo:#F6F7F9;
-            --texto:#162032;
-            --blanco:#FFFFFF;
-            --panel-bg:#FFFFFF;
-            --panel-border:#E0E0E0;
-            --panel-shadow:0 10px 40px rgba(0,0,0,0.06);
-            --input-bg:#FFFFFF;
-            --chip-bg:#ECF0F1;
-            --chip-text:#162032;
-            --muted-surface:#F7F9FB;
-            --danger-bg:#FDECEA;
-            --danger-text:#C0392B;
-            --toggle-track:#F1F3F6;
-            --toggle-active-bg:#FFFFFF;
-            --toggle-inactive-text:#475467;
-            --toggle-active-text:#2EAFC4;
-            --button-contrast:#162032;
-        }
-        :root[data-theme='dark']{
-            --azul-profundo:#E5EDF7;
-            --azul-claro:#6ED8E7;
-            --ambar:#FFC979;
-            --gris-fondo:#0c1019;
-            --texto:#F6F7F9;
-            --blanco:#101828;
-            --panel-bg:#0F172A;
-            --panel-border:#1E293B;
-            --panel-shadow:0 20px 50px rgba(0,0,0,0.65);
-            --input-bg:#0B1220;
-            --chip-bg:#1F2937;
-            --chip-text:#F6F7F9;
-            --muted-surface:#111827;
-            --danger-bg:#3B1F1F;
-            --danger-text:#FCA5A5;
-            --toggle-track:#1C2535;
-            --toggle-active-bg:#1F2937;
-            --toggle-inactive-text:#94A3B8;
-            --toggle-active-text:#6ED8E7;
-            --button-contrast:#0B1220;
-        }
-
-        html {
-            height: 100%;
-            width: 100%;
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            background-color: var(--gris-fondo); /* Use Anclora background color */
-            color: var(--texto); /* Use Anclora text color */
-            overflow-x: hidden;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        #root {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            width: 100%;
-            overflow-x: hidden;
-            box-sizing: border-box;
-        }
-
-        /* Base typography from Anclora design system */
-        .h1, h1 { font: 700 38px/1.15 "Libre Baskerville", serif; color: var(--azul-profundo); margin: 0 0 8px; }
-        .h2, h2 { font: 700 26px/1.25 Inter, sans-serif; color: var(--azul-profundo); margin: 0 0 12px; }
-        .h3, h3 { font: 700 18px/1.35 Inter, sans-serif; color: var(--texto); margin: 0 0 8px; }
-        p, li { font: 400 15px/1.6 Inter, sans-serif; margin: 0 0 10px; }
-        .muted { opacity:.85; }
-        .tag{ display:inline-block; padding:6px 10px; border-radius:8px; font:600 12px/1 Inter; background:#EAF7FA; color:#0f3b47; margin-right:8px; }
-        .hr{ height:3px; background: linear-gradient(90deg, var(--azul-claro), var(--ambar)); border:none; margin:16px 0 10px; }
-        .card{ background: var(--blanco); border:1px solid #E5EAF0; border-radius:14px; padding:16px 18px; }
-        .callout{ background: linear-gradient(90deg,#fef7ea,#fff); border-left:4px solid var(--ambar); border-radius:10px; padding:14px 16px; }
-        .hero-section{ /* Renamed to avoid conflict, adapted for app sections */
-            background: linear-gradient(120deg, var(--azul-profundo), var(--azul-claro));
-            color:var(--blanco); border-radius:18px; padding:28px 30px; margin-bottom:16px;
-        }
-
-        /* Two-column responsive layout for modes */
-        .mode-two-column{
-            display:flex;
-            flex-direction:column;
-            gap:16px;
-            height:100%;
-        }
-        .mode-two-column-left,
-        .mode-two-column-right{
-            min-width:0;
-        }
-        @media (min-width: 900px){
-            .mode-two-column{
-                flex-direction:row;
-            }
-            .mode-two-column-left,
-            .mode-two-column-right{
-                flex:1 1 0;
-            }
-        }
-    </style>
-</head>
-<body>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%2323436B'/%3E%3Ctext x='32' y='42' font-size='32' font-family='Arial,Helvetica,sans-serif' text-anchor='middle' fill='%23FFC979'%3EA%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Libre+Baskerville:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-</body>
+  </body>
 </html>
