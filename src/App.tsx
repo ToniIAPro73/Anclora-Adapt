@@ -44,7 +44,7 @@ const extractJsonPayload = (raw: string) => {
       // 4. Corregir claves SIN comillas: { key: -> { "key":
       jsonString = jsonString.replace(
         /([{,]\s*)([a-zA-Z0-9_]+)\s*:/g,
-        '$1"$2":'
+        '$1"$2":',
       );
 
       // 5. Limpiar comas finales (trailing commas) que rompen JSON
@@ -765,7 +765,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     width: "100%",
     height: "100%", // Fuerza altura completa
     boxSizing: "border-box",
-    overflow: "hidden", // Evita scroll en este wrapper intermedio
+    overflow: "auto", // Permite scroll cuando sea necesario
     display: "flex",
     flexDirection: "column",
   },
@@ -1320,7 +1320,7 @@ const BasicMode: React.FC<CommonProps> = ({
 
   const togglePlatform = (value: string) => {
     setPlatforms((prev) =>
-      prev.includes(value) ? prev.filter((p) => p !== value) : [...prev, value]
+      prev.includes(value) ? prev.filter((p) => p !== value) : [...prev, value],
     );
   };
 
@@ -1345,7 +1345,7 @@ const BasicMode: React.FC<CommonProps> = ({
       prompt = `Traductor literal marketing. JSON outputs: [{ "content": "traduccion" }]. Texto: "${idea}". Idioma: ${languageDisplay}.${limitSuffix}`;
     } else {
       prompt = `Estratega contenidos. JSON outputs: ${structuredOutputExample}. Idea: "${idea}". Idioma: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas: ${platforms.join(
-        ", "
+        ", ",
       )}. Detalle: ${speedDisplay}.${limitSuffix}`;
     }
     await onGenerate(prompt);
@@ -1474,7 +1474,7 @@ const BasicMode: React.FC<CommonProps> = ({
                     />
                     {option}
                   </label>
-                )
+                ),
               )}
             </div>
           </div>
@@ -1614,7 +1614,7 @@ const IntelligentMode: React.FC<CommonProps> = ({
         const base64 = imageFile ? await fileToBase64(imageFile) : undefined;
         const imageUrl = await callImageModel(
           `${imagePrompt}\nContexto: ${context}`,
-          base64
+          base64,
         );
         setGeneratedImageUrl(imageUrl);
       }
@@ -1922,7 +1922,7 @@ const CampaignMode: React.FC<CommonProps> = ({
       const languageDisplay =
         languages.find((l) => l.value === language)?.label || language;
       const prompt = `Rol: Planificador de campañas. Idea: "${idea}". Contexto: "${context}". Idioma: ${languageDisplay}. Canales: ${campaignPlatforms.join(
-        ", "
+        ", ",
       )}. Salida JSON: ${structuredOutputExample}.`;
       await onGenerate(prompt);
     } catch (err) {
@@ -2369,7 +2369,7 @@ const ChatMode: React.FC<{
       const history = updated
         .map(
           (msg) =>
-            `${msg.role === "user" ? "Usuario" : "Asistente"}: ${msg.text}`
+            `${msg.role === "user" ? "Usuario" : "Asistente"}: ${msg.text}`,
         )
         .join("\\n");
       const prompt = `Eres AncloraAI, enfocado en adaptacion de contenido. Idioma preferido: ${interfaceLanguage.toUpperCase()}. Conversacion: ${history}. Responde de forma breve.`;
@@ -2484,7 +2484,7 @@ const TTSMode: React.FC<{
       ).trim();
       const audio = await callTextToSpeech(
         translated || textToSpeak,
-        selectedVoiceName
+        selectedVoiceName,
       );
       setAudioUrl(audio);
     } catch (err) {
@@ -2745,10 +2745,10 @@ const ImageEditMode: React.FC<{ interfaceLanguage: InterfaceLanguage }> = ({
 const App: React.FC = () => {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => getStoredTheme());
   const [interfaceLanguage, setInterfaceLanguage] = useState<InterfaceLanguage>(
-    () => getStoredLanguage()
+    () => getStoredLanguage(),
   );
   const [textModelId, setTextModelId] = useState<string>(() =>
-    getStoredTextModel()
+    getStoredTextModel(),
   );
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isFetchingModels, setIsFetchingModels] = useState(false);
@@ -2758,7 +2758,7 @@ const App: React.FC = () => {
     GeneratedOutput[] | null
   >(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(
-    null
+    null,
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -2767,7 +2767,7 @@ const App: React.FC = () => {
   const toggleCopy = copy.toggles;
   const modelCopy = copy.modelSelector;
   const modelOptions = Array.from(
-    new Set([textModelId, ...availableModels].filter(Boolean))
+    new Set([textModelId, ...availableModels].filter(Boolean)),
   );
 
   useEffect(() => {
@@ -2870,7 +2870,7 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
         setIsLoading(false);
       }
     },
-    [textModelId]
+    [textModelId],
   );
 
   const copyToClipboard = (text: string) => {
