@@ -635,7 +635,7 @@ const translations: Record<
       buttonStart: string;
       buttonStop: string;
       transcriptLabel: string;
-      errors: { microphone: string };
+      errors: { microphone: string; sttUnavailable: string };
     };
     image: {
       promptLabel: string;
@@ -778,6 +778,8 @@ const translations: Record<
       transcriptLabel: "Transcripcion",
       errors: {
         microphone: "No se pudo acceder al microfono.",
+        sttUnavailable:
+          "Live Chat necesita VITE_STT_ENDPOINT. Configura el endpoint o usa el modo Chat mientras tanto.",
       },
     },
     image: {
@@ -922,6 +924,8 @@ const translations: Record<
       transcriptLabel: "Transcript",
       errors: {
         microphone: "Unable to access microphone.",
+        sttUnavailable:
+          "Live Chat needs VITE_STT_ENDPOINT. Configure it or use Chat mode meanwhile.",
       },
     },
     image: {
@@ -3013,6 +3017,7 @@ const LiveChatMode: React.FC<{
   textModelId: string;
 }> = ({ interfaceLanguage, textModelId }) => {
   const copy = translations[interfaceLanguage].live;
+  const hasSttEndpoint = Boolean(STT_ENDPOINT);
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -3021,6 +3026,10 @@ const LiveChatMode: React.FC<{
   const chunksRef = useRef<Blob[]>([]);
 
   const startRecording = async () => {
+    if (!hasSttEndpoint) {
+      setError(copy.errors.sttUnavailable);
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
@@ -3045,6 +3054,10 @@ const LiveChatMode: React.FC<{
   };
 
   const handleConversation = async (audioBlob: Blob) => {
+    if (!hasSttEndpoint) {
+      setError(copy.errors.sttUnavailable);
+      return;
+    }
     try {
       const userText = await callSpeechToText(audioBlob);
       const userMessage: ChatMessage = { role: "user", text: userText };
@@ -3067,9 +3080,15 @@ const LiveChatMode: React.FC<{
         type="button"
         style={commonStyles.generateButton}
         onClick={isRecording ? stopRecording : startRecording}
+        disabled={!hasSttEndpoint}
       >
         {isRecording ? copy.buttonStop : copy.buttonStart}
       </button>
+      {!hasSttEndpoint && (
+        <p style={{ marginTop: "8px", opacity: 0.8 }}>
+          {copy.errors.sttUnavailable}
+        </p>
+      )}
       {error && <div style={commonStyles.errorMessage}>{error}</div>}
       <div style={commonStyles.liveTranscript}>
         {transcript.map((msg, index) => (
