@@ -27,6 +27,15 @@ export interface GeneratedOutput {
   content: string;
 }
 
+type AutoModelContext = {
+  mode?: string;
+  preferSpeed?: boolean;
+  preferReasoning?: boolean;
+  preferChat?: boolean;
+};
+
+const AUTO_TEXT_MODEL_ID = "auto";
+
 const fileToBase64 = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -166,6 +175,66 @@ const listAvailableTextModels = async (): Promise<string[]> => {
   } catch (e) {
     return [];
   }
+};
+
+const findModelByTokens = (models: string[], tokens: string[]) => {
+  const normalized = models.map((model) => model.trim().toLowerCase());
+  for (const token of tokens) {
+    const index = normalized.findIndex((name) => name.includes(token));
+    if (index !== -1) return models[index];
+  }
+  return null;
+};
+
+const resolveTextModelId = (
+  requestedModelId: string,
+  availableModels: string[],
+  context?: AutoModelContext
+) => {
+  const desired = (requestedModelId || "").trim();
+  const pool = Array.from(
+    new Set(
+      [...availableModels, TEXT_MODEL_ID, DEFAULT_TEXT_MODEL_ID].filter(
+        (model) => model && model !== AUTO_TEXT_MODEL_ID
+      )
+    )
+  );
+
+  if (desired && desired !== AUTO_TEXT_MODEL_ID) {
+    return desired;
+  }
+
+  if (pool.length === 0) return DEFAULT_TEXT_MODEL_ID;
+
+  const preferChat =
+    context?.preferChat || context?.mode === "chat" || context?.mode === "live";
+  const preferReasoning =
+    context?.preferReasoning ||
+    context?.mode === "intelligent" ||
+    context?.mode === "campaign" ||
+    context?.mode === "recycle";
+  const preferSpeed =
+    context?.preferSpeed || context?.mode === "tts" || context?.mode === "basic";
+
+  const priorityTokens = [
+    ...(preferChat ? ["chat", "instruct", "neural-chat"] : []),
+    ...(preferReasoning
+      ? ["mistral", "llama3", "llama 3", "mixtral", "llama2", "command"]
+      : []),
+    ...(preferSpeed ? ["orca", "phi", "tiny", "mini", "small"] : []),
+    "mistral",
+    "llama3",
+    "llama 3",
+    "llama2",
+    "mixtral",
+    "neural-chat",
+    "orca",
+    "gemma",
+    "qwen",
+  ];
+
+  const match = findModelByTokens(pool, priorityTokens);
+  return match || pool[0];
 };
 
 const callImageModel = async (
@@ -377,7 +446,7 @@ interface CommonProps {
   error: string | null;
   generatedOutputs: GeneratedOutput[] | null;
   generatedImageUrl: string | null;
-  onGenerate: (prompt: string) => Promise<void>;
+  onGenerate: (prompt: string, context?: AutoModelContext) => Promise<void>;
   onCopy: (text: string) => void;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
@@ -387,20 +456,20 @@ interface CommonProps {
 }
 
 const languages = [
-  { value: "detect", label: "Detectar automatico" },
-  { value: "es", label: "Espanol" },
+  { value: "detect", label: "Detectar automático" },
+  { value: "es", label: "Español" },
   { value: "en", label: "English" },
-  { value: "fr", label: "Francais" },
+  { value: "fr", label: "Francés" },
   { value: "de", label: "Deutsch" },
-  { value: "pt", label: "Portugues" },
+  { value: "pt", label: "Portugués" },
   { value: "it", label: "Italiano" },
   { value: "zh", label: "Chino" },
-  { value: "ja", label: "Japones" },
+  { value: "ja", label: "Japonés" },
   { value: "ru", label: "Ruso" },
 ];
 
 const tones = [
-  { value: "detect", label: "Detectar automatico" },
+  { value: "detect", label: "Detectar automático" },
   { value: "Profesional", label: "Profesional" },
   { value: "Amistoso", label: "Amistoso" },
   { value: "Formal", label: "Formal" },
@@ -466,16 +535,16 @@ const ttsLanguageVoiceMap: Record<string, { value: string; label: string }[]> =
   };
 
 const ttsLanguageOptions = [
-  { value: "es", label: "Espanol" },
+  { value: "es", label: "Español" },
   { value: "en", label: "English" },
-  { value: "fr", label: "Francais" },
+  { value: "fr", label: "Français" },
   { value: "de", label: "Deutsch" },
-  { value: "pt", label: "Portugues" },
+  { value: "pt", label: "Portugués" },
   { value: "it", label: "Italiano" },
   { value: "zh", label: "Chino" },
-  { value: "ja", label: "Japones" },
+  { value: "ja", label: "Japonés" },
   { value: "ru", label: "Ruso" },
-  { value: "ar", label: "Arabe" },
+  { value: "ar", label: "Árabe" },
 ];
 
 const themeIconProps: React.SVGProps<SVGSVGElement> = {
@@ -676,6 +745,7 @@ const translations: Record<
     modelSelector: {
       label: "Modelo de texto",
       current: "Modelo en uso",
+      auto: "Automático (elige por ti)",
       refresh: "Actualizar modelos",
       loading: "Actualizando...",
       reset: "Reiniciar pantalla (mantiene el modo actual)",
@@ -822,6 +892,7 @@ const translations: Record<
     modelSelector: {
       label: "Text model",
       current: "Current model",
+      auto: "Auto (best fit)",
       refresh: "Refresh models",
       loading: "Refreshing...",
       reset: "Reset screen (keeps current mode)",
@@ -1660,7 +1731,11 @@ const BasicMode: React.FC<CommonProps> = ({
         ", "
       )}. Nivel de detalle: ${speedDisplay}.${limitSuffix}`;
     }
-    await onGenerate(prompt);
+    await onGenerate(prompt, {
+      mode: "basic",
+      preferSpeed: speed === "flash",
+      preferReasoning: speed === "detailed" && !literalTranslation,
+    });
   };
 
   return (
@@ -1920,7 +1995,11 @@ const IntelligentMode: React.FC<CommonProps> = ({
         context || "General"
       }". Idioma: ${languageDisplay}. ${thinking} Salida JSON: ${structuredOutputExample}`;
 
-      await onGenerate(prompt);
+      await onGenerate(prompt, {
+        mode: "intelligent",
+        preferReasoning: true,
+        preferSpeed: !deepThinking,
+      });
 
       if (includeImage && imagePrompt.trim()) {
         const base64 = imageFile ? await fileToBase64(imageFile) : undefined;
@@ -2253,7 +2332,10 @@ const CampaignMode: React.FC<CommonProps> = ({
       }". Idioma: ${languageDisplay}. ${languageReminder} Plataformas: ${campaignPlatforms.join(
         ", "
       )}. Sigue el esquema ${structuredOutputExample}.`;
-      await onGenerate(prompt);
+      await onGenerate(prompt, {
+        mode: "campaign",
+        preferReasoning: true,
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error desconocido";
       setError(message);
@@ -2453,7 +2535,10 @@ const RecycleMode: React.FC<CommonProps> = ({
       const prompt = `Actua como editor. Formato: ${formatDisplay}. Idioma: ${languageDisplay}. Tono: ${toneDisplay}. Contexto: ${
         context || "No especificado"
       }. Convierte el siguiente texto manteniendo la coherencia y responde usando ${structuredOutputExample}. Texto: "${inputText}".`;
-      await onGenerate(prompt);
+      await onGenerate(prompt, {
+        mode: "recycle",
+        preferReasoning: true,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -2685,8 +2770,8 @@ interface ChatMessage {
 const ChatMode: React.FC<{
   interfaceLanguage: InterfaceLanguage;
   onCopy: (text: string) => void;
-  textModelId: string;
-}> = ({ interfaceLanguage, onCopy, textModelId }) => {
+  resolveTextModelId: (context?: AutoModelContext) => string;
+}> = ({ interfaceLanguage, onCopy, resolveTextModelId }) => {
   const copy = translations[interfaceLanguage].chat;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [current, setCurrent] = useState("");
@@ -2707,7 +2792,12 @@ const ChatMode: React.FC<{
         )
         .join("\\n");
       const prompt = `Eres AncloraAI, enfocado en adaptacion de contenido. Idioma preferido: ${interfaceLanguage.toUpperCase()}. Conversacion: ${history}. Responde de forma breve.`;
-      const raw = await callTextModel(prompt, textModelId);
+      const modelIdToUse = resolveTextModelId({
+        mode: "chat",
+        preferChat: true,
+        preferSpeed: true,
+      });
+      const raw = await callTextModel(prompt, modelIdToUse);
       const reply = raw.trim();
       const assistantMessage: ChatMessage = { role: "assistant", text: reply };
       setMessages((prev) => [...prev, assistantMessage]);
@@ -2786,8 +2876,8 @@ const ChatMode: React.FC<{
 
 const TTSMode: React.FC<{
   interfaceLanguage: InterfaceLanguage;
-  textModelId: string;
-}> = ({ interfaceLanguage, textModelId }) => {
+  resolveTextModelId: (context?: AutoModelContext) => string;
+}> = ({ interfaceLanguage, resolveTextModelId }) => {
   const copy = translations[interfaceLanguage].tts;
   const [textToSpeak, setTextToSpeak] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("es");
@@ -2822,8 +2912,12 @@ const TTSMode: React.FC<{
     setAudioUrl(null);
     try {
       const translationPrompt = `Traduce el siguiente texto al idioma de la voz (${selectedLanguage}) y responde solo con el texto traducido: "${textToSpeak}".`;
+      const modelIdToUse = resolveTextModelId({
+        mode: "tts",
+        preferSpeed: true,
+      });
       const translated = (
-        await callTextModel(translationPrompt, textModelId)
+        await callTextModel(translationPrompt, modelIdToUse)
       ).trim();
       const targetText = translated || textToSpeak;
 
@@ -3014,8 +3108,8 @@ const TTSMode: React.FC<{
 
 const LiveChatMode: React.FC<{
   interfaceLanguage: InterfaceLanguage;
-  textModelId: string;
-}> = ({ interfaceLanguage, textModelId }) => {
+  resolveTextModelId: (context?: AutoModelContext) => string;
+}> = ({ interfaceLanguage, resolveTextModelId }) => {
   const copy = translations[interfaceLanguage].live;
   const hasSttEndpoint = Boolean(STT_ENDPOINT);
   const [isRecording, setIsRecording] = useState(false);
@@ -3063,7 +3157,12 @@ const LiveChatMode: React.FC<{
       const userMessage: ChatMessage = { role: "user", text: userText };
       setTranscript((prev) => [...prev, userMessage]);
       const prompt = `Convierte el siguiente texto del usuario en una respuesta breve y accionable enfocada en marketing: "${userText}".`;
-      const reply = (await callTextModel(prompt, textModelId)).trim();
+      const modelIdToUse = resolveTextModelId({
+        mode: "live",
+        preferChat: true,
+        preferSpeed: true,
+      });
+      const reply = (await callTextModel(prompt, modelIdToUse)).trim();
       const assistantMessage: ChatMessage = { role: "assistant", text: reply };
       setTranscript((prev) => [...prev, assistantMessage]);
       const audioResponse = await callTextToSpeech(reply, "es_male_0");
@@ -3350,7 +3449,7 @@ const App: React.FC = () => {
   const toggleCopy = copy.toggles;
   const modelCopy = copy.modelSelector;
   const modelOptions = Array.from(
-    new Set([textModelId, ...availableModels].filter(Boolean))
+    new Set([AUTO_TEXT_MODEL_ID, textModelId, ...availableModels].filter(Boolean))
   );
 
   // Constante para el nombre del modelo de imagen
@@ -3419,7 +3518,11 @@ const App: React.FC = () => {
     try {
       const models = await listAvailableTextModels();
       setAvailableModels(models);
-      if (models.length > 0 && !models.includes(textModelId)) {
+      if (
+        models.length > 0 &&
+        textModelId !== AUTO_TEXT_MODEL_ID &&
+        !models.includes(textModelId)
+      ) {
         setTextModelId(models[0]);
       }
     } catch (err) {
@@ -3433,8 +3536,25 @@ const App: React.FC = () => {
     void refreshAvailableModels();
   }, [refreshAvailableModels]);
 
+  const selectTextModelForTask = useCallback(
+    (context?: AutoModelContext) => {
+      const pool = Array.from(
+        new Set(
+          [
+            textModelId,
+            ...availableModels,
+            TEXT_MODEL_ID,
+            DEFAULT_TEXT_MODEL_ID,
+          ].filter((model) => model && model !== AUTO_TEXT_MODEL_ID)
+        )
+      );
+      return resolveTextModelId(textModelId, pool, context);
+    },
+    [availableModels, textModelId]
+  );
+
   const generateContentApiCall = useCallback(
-    async (prompt: string) => {
+    async (prompt: string, context?: AutoModelContext) => {
       setIsLoading(true);
       setError(null);
       setGeneratedOutputs(null);
@@ -3442,7 +3562,11 @@ const App: React.FC = () => {
       try {
         const enforcedPrompt = `${prompt}
 Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutputExample}`;
-        const raw = await callTextModel(enforcedPrompt, textModelId);
+        const modelIdToUse = selectTextModelForTask({
+          mode: "basic",
+          ...context,
+        });
+        const raw = await callTextModel(enforcedPrompt, modelIdToUse);
         const jsonString = extractJsonPayload(raw);
         const parsed = JSON.parse(jsonString);
         // Manejar casos donde el modelo devuelve un solo objeto en lugar de un array dentro de "outputs"
@@ -3477,7 +3601,7 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
         setIsLoading(false);
       }
     },
-    [textModelId]
+    [selectTextModelForTask]
   );
 
   const copyToClipboard = (text: string) => {
@@ -3623,11 +3747,17 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
                   width: "auto",
                 }}
               >
-                {modelOptions.map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                ))}
+                {modelOptions.map((model) => {
+                  const label =
+                    model === AUTO_TEXT_MODEL_ID
+                      ? modelCopy.auto || "Auto"
+                      : model;
+                  return (
+                    <option key={model} value={model}>
+                      {label}
+                    </option>
+                  );
+                })}
               </select>
               <button
                 type="button"
@@ -3723,21 +3853,21 @@ Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutput
               key={`chat-${resetCounter}`}
               interfaceLanguage={interfaceLanguage}
               onCopy={copyToClipboard}
-              textModelId={textModelId}
+              resolveTextModelId={selectTextModelForTask}
             />
           )}
           {activeTab === "tts" && (
             <TTSMode
               key={`tts-${resetCounter}`}
               interfaceLanguage={interfaceLanguage}
-              textModelId={textModelId}
+              resolveTextModelId={selectTextModelForTask}
             />
           )}
           {activeTab === "live" && (
             <LiveChatMode
               key={`live-${resetCounter}`}
               interfaceLanguage={interfaceLanguage}
-              textModelId={textModelId}
+              resolveTextModelId={selectTextModelForTask}
             />
           )}
           {activeTab === "image" && (
