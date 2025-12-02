@@ -9,19 +9,23 @@ Landing page moderna, responsive y accesible para Anclora Adapt.
 ✅ **Moderno**: Animaciones suaves, efectos visuales, gradientes
 ✅ **Rápido**: HTML puro (sin dependencias externas)
 ✅ **Botones Operativos**: Todos los CTA vinculados a:
-   - Descarga (Google Drive)
-   - GitHub (repositorio)
-   - Navegación interna (smooth scroll)
+
+- Descarga (Google Drive)
+- GitHub (repositorio)
+- Navegación interna (smooth scroll)
 
 ## Ejecutar la Landing Page
 
 ### Opción 1: Con npm (recomendado)
+
 ```bash
 npm run dev:landing
 ```
+
 Luego abre `http://localhost:4173` en tu navegador.
 
 ### Opción 2: Con cualquier servidor HTTP
+
 ```bash
 # Con Python 3
 python -m http.server 8000 --directory landing
@@ -31,6 +35,7 @@ npx http-server landing -p 8000
 ```
 
 ### Opción 3: Abrir directamente
+
 Simplemente abre el archivo `landing/index.html` en tu navegador (sin servidor).
 
 ## Secciones
@@ -77,22 +82,27 @@ Simplemente abre el archivo `landing/index.html` en tu navegador (sin servidor).
 ## Personalización
 
 ### Cambiar colores
+
 Edita las variables CSS en `<style>`:
+
 ```css
 :root {
-    --color-primary: #1C2A47;      /* Azul profundo */
-    --color-accent: #00BCD4;       /* Cyan */
-    --color-success: #27AE60;      /* Verde */
+  --color-primary: #1c2a47; /* Azul profundo */
+  --color-accent: #00bcd4; /* Cyan */
+  --color-success: #27ae60; /* Verde */
 }
 ```
 
 ### Cambiar tipografía
+
 Modifica `--font-family`:
+
 ```css
---font-family: 'Tu-Fuente', sans-serif;
+--font-family: "Tu-Fuente", sans-serif;
 ```
 
 ### Agregar/Editar secciones
+
 Todas las secciones están encapsuladas en `<section id="...">` con contenedor `.container`.
 
 ## Performance
