@@ -22,7 +22,7 @@ Landing page moderna, responsive y accesible para Anclora Adapt.
 npm run dev:landing
 ```
 
-Luego abre `http://localhost:4173` en tu navegador.
+Luego abre `http://localhost:4174` en tu navegador.
 
 ### Opción 2: Con cualquier servidor HTTP
 

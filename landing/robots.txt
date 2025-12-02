@@ -7,7 +7,7 @@ Allow: /sitemap.xml
 Disallow: /node_modules/
 Disallow: *.env
 
-Sitemap: http://localhost:4173/sitemap.xml
+Sitemap: http://localhost:4174/sitemap.xml
 Crawl-delay: 1
 
 # Plausible Analytics

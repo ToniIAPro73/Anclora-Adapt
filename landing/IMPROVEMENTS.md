@@ -320,7 +320,7 @@ language = Spanish
 ### 1. Imagen de Hero
 ```bash
 npm run dev:landing
-# Abre http://localhost:4173
+# Abre http://localhost:4174
 # Verifica que la imagen SVG se carga en la sección hero
 ```
 
@@ -351,9 +351,9 @@ npm run dev:landing
 
 ### 5. Sitemap
 ```bash
-# Abre http://localhost:4173/sitemap.xml
+# Abre http://localhost:4174/sitemap.xml
 # Deberías ver XML con 8 URLs
-# Abre http://localhost:4173/robots.txt
+# Abre http://localhost:4174/robots.txt
 ```
 
 ### 6. Open Graph
