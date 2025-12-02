@@ -38,9 +38,10 @@ export default defineConfig({
   },
   server: {
     port: 4173,
-    host: "0.0.0.0",
+    host: "localhost",
     headers: securityHeaders,
     strictPort: false,
+    middlewareMode: false,
   },
   build: {
     outDir: "dist",
