@@ -23,9 +23,9 @@ VITE_TEXT_MODEL_ID=llama2
 VITE_IMAGE_MODEL_ENDPOINT=http://localhost:9090/image
 VITE_IMAGE_MODEL_ID=stable-diffusion
 
-# Audio local (configura tus endpoints TTS/STT si los tienes)
-VITE_TTS_ENDPOINT=
-VITE_TTS_MODEL_ID=
+# Audio local - TTS/STT (configura tus endpoints si los tienes)
+VITE_TTS_ENDPOINT=http://localhost:9000/tts
+VITE_TTS_MODEL_ID=pyttsx3
 VITE_STT_ENDPOINT=
 VITE_STT_MODEL_ID=
 
@@ -41,38 +41,78 @@ VITE_MODEL_API_KEY=
 
 ## Cómo ejecutar
 
-1. Instala dependencias:
+### Paso 1: Instala dependencias Node.js
 
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
-2. Arranca Ollama y descarga un modelo ligero, por ejemplo:
+### Paso 2: Arranca Ollama y descarga un modelo
 
-   ```bash
-   ollama pull llama2
-   ollama serve
-   ```
+```bash
+ollama pull llama2   # o mistral, neural-chat, orca-mini
+ollama serve
+```
 
-3. (Opcional) Lanza el bridge de imagen si usas Stable Diffusion local (necesita que `SD_API_URL` apunte a tu servidor SD, por defecto `http://localhost:7860/sdapi/v1/txt2img`):
+### Paso 3 (Opcional): Servidor TTS Local
 
-   ```bash
-   npm run image:bridge
-   ```
+Si quieres generar audio descargable en modo "Voz":
 
-4. Verifica la salud de los endpoints configurados:
+**Prerequisitos:**
+- Python 3.8+ instalado
+- Instalar dependencias Python:
 
-   ```bash
-   npm run check:health
-   ```
+```bash
+pip install flask flask-cors pyttsx3
+```
 
-5. Ejecuta la app en dev:
+**Lanzar el servidor TTS:**
 
-   ```bash
-   npm run dev
-   ```
+En una terminal nueva:
+```bash
+npm run tts:server
+```
 
-   La app quedará disponible en <http://localhost:4173>.
+Verifica que funciona:
+```bash
+curl http://localhost:9000/health
+```
+
+**Configurar en .env.local:**
+```dotenv
+VITE_TTS_ENDPOINT=http://localhost:9000/tts
+VITE_TTS_MODEL_ID=pyttsx3
+```
+
+**Troubleshooting TTS:**
+- **Error: `ModuleNotFoundError: No module named 'flask'`** → Instala: `pip install flask flask-cors pyttsx3`
+- **Error: `pyttsx3.init() fails`** → En Windows, asegúrate que SAPI5 está instalado (estándar en Windows)
+- **Sin voces disponibles** → El servidor fallará. Consulta `/voices` endpoint para debugging
+- **Audio lento/entrecortado** → Reduce el tamaño del texto en la app
+
+### Paso 4 (Opcional): Bridge de imagen
+
+Si usas Stable Diffusion local:
+
+```bash
+npm run image:bridge
+```
+
+### Paso 5: Verifica la salud de endpoints
+
+```bash
+npm run check:health
+```
+
+Esto valida Ollama, imagen (si está activada), y TTS (si está activado).
+
+### Paso 6: Ejecuta la app en dev
+
+```bash
+npm run dev
+```
+
+La app quedará disponible en <http://localhost:4173>.
 
 ## Selector de modelo y salud de endpoints
 
@@ -89,8 +129,9 @@ VITE_MODEL_API_KEY=
 | Texto  | neural-chat        | 4 GB               | Conversación optimizada      | `ollama pull neural-chat`                               |
 | Texto  | orca-mini          | 2 GB               | Rápido/ligero en portátiles  | `ollama pull orca-mini`                                 |
 | Imagen | SD 1.5 cuantizada  | 4 GB VRAM          | Generación base 768x768      | `npm run image:bridge` (requiere SD corriendo)          |
+| Audio  | pyttsx3 (TTS)      | CPU (≤100MB)       | Síntesis simple local        | `npm run tts:server` + `pip install pyttsx3 flask`     |
 | Audio  | Whisper small/base | CPU/GPU 4–6 GB RAM | STT local, latencia moderada | Configura `VITE_STT_ENDPOINT` hacia tu servidor Whisper |
-| Audio  | Bark/MeloTTS       | GPU recomendada    | TTS multilingüe              | Configura `VITE_TTS_ENDPOINT` hacia tu servidor TTS     |
+| Audio  | Bark/MeloTTS       | GPU recomendada    | TTS multilingüe de calidad   | Configura `VITE_TTS_ENDPOINT` hacia tu servidor TTS     |
 
 ## Limitaciones y optimización local
 
@@ -100,27 +141,43 @@ VITE_MODEL_API_KEY=
 
 ## Perfiles `.env.local` ejemplo
 
-### RTX 3050 (GPU)
+### RTX 3050 (GPU) - Completo
 
 ```dotenv
 VITE_OLLAMA_BASE_URL=http://localhost:11434
 VITE_TEXT_MODEL_ID=mistral
+
+# Imagen
 VITE_IMAGE_MODEL_ENDPOINT=http://localhost:9090/image
 VITE_IMAGE_MODEL_ID=stable-diffusion
+
+# Audio
 VITE_TTS_ENDPOINT=http://localhost:9000/tts
-VITE_TTS_MODEL_ID=xtts
+VITE_TTS_MODEL_ID=pyttsx3
 VITE_STT_ENDPOINT=http://localhost:9001/stt
 VITE_STT_MODEL_ID=whisper-small
 ```
 
-### Solo CPU
+### Solo CPU - Mínimo
 
 ```dotenv
 VITE_OLLAMA_BASE_URL=http://localhost:11434
 VITE_TEXT_MODEL_ID=orca-mini
-VITE_IMAGE_MODEL_ENDPOINT=   # deja vacío si no hay backend de imagen
-VITE_TTS_ENDPOINT=
+
+# Imagen: comentada
+VITE_IMAGE_MODEL_ENDPOINT=
+
+# Audio: solo TTS simple
+VITE_TTS_ENDPOINT=http://localhost:9000/tts
+VITE_TTS_MODEL_ID=pyttsx3
 VITE_STT_ENDPOINT=
+```
+
+### Solo texto (sin imagen ni audio)
+
+```dotenv
+VITE_OLLAMA_BASE_URL=http://localhost:11434
+VITE_TEXT_MODEL_ID=llama2
 ```
 
 ## QA manual
