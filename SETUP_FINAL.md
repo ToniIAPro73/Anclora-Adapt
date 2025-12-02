@@ -15,20 +15,17 @@
 npm run dev
 ```
 
-Esto ejecutará automáticamente:
-1. Limpia puertos viejos (4173, 4174)
-2. Inicia Vite
-3. Abre la app en `http://localhost:4173`
+Esto inicia Vite directamente en `http://localhost:4173`
 
-### Opción 2: Script Directo
+### Opción 2: Script Directo (Si hay puertos ocupados)
 ```bash
-# En Windows
+# En Windows PowerShell o CMD
 dev.bat
-
-# Hace exactamente lo mismo que npm run dev
 ```
 
-### Opción 3: Manual (No recomendado)
+Este script limpia puertos viejos (4173, 4174) antes de ejecutar Vite
+
+### Opción 3: Directamente con Vite
 ```bash
 npx vite
 ```
