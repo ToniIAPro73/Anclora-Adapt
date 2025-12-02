@@ -1,0 +1,175 @@
+Implementation Plan - Local TTS Server (COMPLETADO CON MEJORAS)
+=================================================================
+
+OBJETIVO
+--------
+Habilitar la generación y descarga de archivos de audio en modo "Voz".
+El servidor TTS local usa Python + pyttsx3 + Flask.
+
+ESTADO: ✅ COMPLETADO CON MEJORAS IMPLEMENTADAS
+
+CAMBIOS IMPLEMENTADOS
+====================
+
+1. scripts/tts_server.py ✅ MEJORADO
+   - Validación de entrada (máximo 5000 caracteres)
+   - Uso de directorio temporal limpio (/tmp en Linux, %TEMP% en Windows)
+   - Mejor manejo de errores específicos de pyttsx3
+   - Logging detallado con emojis para mejor UX
+   - Endpoints adicionales:
+     * GET /health - Health check del servidor
+     * GET /voices - Lista de voces disponibles en el sistema
+   - Cleanup automático de archivos temporales al iniciar
+   - Mejor documentación del código
+
+2. package.json ✅ YA CONFIGURADO
+   - Script "tts:server": "python scripts/tts_server.py" ya existe
+
+3. README.md ✅ ACTUALIZADO
+   - Paso 3 dedicado a configuración del servidor TTS
+   - Instrucciones claras de instalación: pip install flask flask-cors pyttsx3
+   - Troubleshooting específico para problemas comunes
+   - Ejemplos de .env.local para diferentes configuraciones
+   - Tabla de modelos recomendados actualizada
+
+REQUISITOS PREVIOS
+==================
+- Python 3.8+
+- pip install flask flask-cors pyttsx3
+
+INSTRUCCIONES DE USO
+===================
+
+1. Instalar dependencias Python:
+   pip install flask flask-cors pyttsx3
+
+2. Lanzar el servidor (en terminal nueva):
+   npm run tts:server
+
+3. Verificar que funciona:
+   curl http://localhost:9000/health
+
+4. Configurar .env.local:
+   VITE_TTS_ENDPOINT=http://localhost:9000/tts
+
+5. Reiniciar la app:
+   npm run dev
+
+6. Ir a modo "Voz" y probar:
+   - Escribir texto
+   - Cliquear "Generar voz"
+   - Verificar que el audio se reproduce
+   - Clicar "Descargar audio"
+
+ENDPOINTS DISPONIBLES
+====================
+
+POST /tts
+---------
+Genera audio WAV a partir de texto.
+
+Entrada JSON:
+{
+  "inputs": "texto a convertir a voz",
+  "parameters": {
+    "voice_preset": "es"  // idioma o ID de voz
+  }
+}
+
+Respuesta: Audio WAV descargable
+
+GET /health
+-----------
+Verifica salud del servidor.
+
+Respuesta JSON:
+{
+  "status": "ok",
+  "service": "Local TTS Server (pyttsx3)",
+  "platform": "Windows|Linux|Darwin",
+  "available_voices": N
+}
+
+GET /voices
+-----------
+Lista todas las voces disponibles en el sistema.
+
+Respuesta JSON:
+{
+  "platform": "Windows|Linux|Darwin",
+  "voices": [
+    {"id": "...", "name": "...", "languages": [...]},
+    ...
+  ]
+}
+
+VALIDACIONES IMPLEMENTADAS
+===========================
+- Texto no vacío (mínimo 1 carácter)
+- Máximo 5000 caracteres por petición
+- Manejo automático de archivos temporales
+- Limpieza de recursos en caso de error
+
+TESTING MANUAL
+==============
+
+✅ Health check:
+   curl http://localhost:9000/health
+
+✅ Listar voces:
+   curl http://localhost:9000/voices
+
+✅ Generar audio en español:
+   curl -X POST http://localhost:9000/tts \
+   -H "Content-Type: application/json" \
+   -d '{"inputs": "Hola mundo", "parameters": {"voice_preset": "es"}}' \
+   --output test.wav
+
+✅ UI en la app:
+   1. Ir a modo "Voz"
+   2. Escribir texto
+   3. Seleccionar idioma/voz
+   4. Cliquear "Generar voz"
+   5. Verificar reproducción
+   6. Descargar audio
+
+NOTAS IMPORTANTES
+=================
+
+1. pyttsx3 en Windows usa SAPI5 (incluido en el SO)
+2. En macOS usa NSSpeechSynthesizer
+3. En Linux puede necesitar festival o espeak instalados
+4. El servidor usa PORT=9000 por defecto (configurable via TTS_PORT)
+5. Los archivos temporales se limpian automáticamente después de enviarlos
+6. El servidor es thread-safe (cada petición obtiene su propia instancia del motor)
+
+TROUBLESHOOTING
+===============
+
+Error: ModuleNotFoundError: No module named 'flask'
+→ Ejecuta: pip install flask flask-cors pyttsx3
+
+Error: pyttsx3.init() fails
+→ En Windows: Asegúrate que SAPI5 está disponible (estándar)
+→ En macOS: Verifica que el audio está habilitado
+→ En Linux: Instala festival: sudo apt-get install festival
+
+Sin voces disponibles
+→ Verifica: curl http://localhost:9000/voices
+→ Instala voces en tu SO
+
+Audio lento o entrecortado
+→ Reduce el tamaño del texto
+→ Usa voces más rápidas (ajusta 'rate' en el código)
+
+Port 9000 en uso
+→ Usa: TTS_PORT=9001 npm run tts:server
+→ Actualiza VITE_TTS_ENDPOINT en .env.local
+
+MEJORAS FUTURAS (OPCIONAL)
+===========================
+- Integración con Bark/MeloTTS para mejor calidad
+- Integración con Whisper para STT
+- WebSocket para streaming de audio
+- Caché de audios generados
+- Métricas de uso
