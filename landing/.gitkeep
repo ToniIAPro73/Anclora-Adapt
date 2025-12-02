@@ -1,8 +1,0 @@
-# Esta carpeta contiene la landing page de Anclora Adapt
-# Es completamente independiente de la aplicación React
-
-# Si deseas eliminar la landing del repositorio, simplemente elimina esta carpeta:
-# git rm -r landing/
-#
-# La aplicación React seguirá funcionando sin problemas en:
-# npm run dev  (http://localhost:4173)
