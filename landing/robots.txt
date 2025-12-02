@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /assets/
+Allow: /sitemap.xml
+
+Disallow: /node_modules/
+Disallow: *.env
+
+Sitemap: http://localhost:4173/sitemap.xml
+Crawl-delay: 1
+
+# Plausible Analytics
+User-agent: Plausible
+Allow: /
