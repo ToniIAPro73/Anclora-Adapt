@@ -295,6 +295,8 @@ const callTextToSpeech = async (
     "Define VITE_TTS_ENDPOINT para usar tu servicio local de TTS"
   );
 
+  console.log(`🎙️ TTS Request: "${text.substring(0, 50)}..." (${text.length} chars), preset: ${voicePreset}`);
+
   const response = await withTimeout(
     fetch(endpoint, {
       method: "POST",
@@ -313,7 +315,16 @@ const callTextToSpeech = async (
   }
 
   const buffer = await response.arrayBuffer();
-  return URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }));
+  console.log(`✓ TTS Response: ${buffer.byteLength} bytes received`);
+
+  if (buffer.byteLength === 0) {
+    throw new Error("Servidor TTS devolvió audio vacío. Verifica que el servidor está corriendo correctamente.");
+  }
+
+  const blob = new Blob([buffer], { type: "audio/wav" });
+  const url = URL.createObjectURL(blob);
+  console.log(`✓ Audio blob created: ${url}`);
+  return url;
 };
 
 const callSpeechToText = async (audioBlob: Blob): Promise<string> => {
@@ -2911,15 +2922,9 @@ const TTSMode: React.FC<{
     setError(null);
     setAudioUrl(null);
     try {
-      const translationPrompt = `Traduce el siguiente texto al idioma de la voz (${selectedLanguage}) y responde solo con el texto traducido: "${textToSpeak}".`;
-      const modelIdToUse = resolveTextModelId({
-        mode: "tts",
-        preferSpeed: true,
-      });
-      const translated = (
-        await callTextModel(translationPrompt, modelIdToUse)
-      ).trim();
-      const targetText = translated || textToSpeak;
+      // Usar el texto directamente sin traducción
+      // El usuario ya ha escrito exactamente lo que quiere que se hable
+      const targetText = textToSpeak.trim();
 
       if (!TTS_ENDPOINT) {
         if (!browserTtsSupported) {
