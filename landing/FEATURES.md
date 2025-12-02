@@ -3,6 +3,7 @@
 ## ✅ Funcionalidades Completadas
 
 ### 1. Mobile-First & Responsive Design
+
 - ✅ Responsive en todos los breakpoints
 - ✅ Mobile (<480px), Tablet (480-768px), Desktop (768px+)
 - ✅ Tipografía escalable con `clamp()`
@@ -10,6 +11,7 @@
 - ✅ Botones a ancho completo en mobile
 
 ### 2. Efectos Visuales Premium
+
 - ✅ **Cards con Elevación**: Descienden 8px en hover
 - ✅ **Brillo (Glow)**: Efecto de luz azul cian alrededor de cards
 - ✅ **Bordes Dinámicos**: Bordes se iluminan en hover
@@ -18,14 +20,16 @@
 - ✅ **Animaciones de Entrada**: Slide-down, slide-up, fade-in
 
 ### 3. Botones Completamente Operativos
-- ✅ **Descarga** → Google Drive (target="_blank")
-- ✅ **GitHub** → Repositorio (target="_blank")
+
+- ✅ **Descarga** → Google Drive (target="\_blank")
+- ✅ **GitHub** → Repositorio (target="\_blank")
 - ✅ **Navegación Interna** → Smooth scroll automático
 - ✅ **Issues** → GitHub issues tracker
 - ✅ **Discussions** → GitHub discussions
 - ✅ **Todos los CTAs** → Funcionan correctamente
 
 ### 4. Accesibilidad (WCAG 2.1)
+
 - ✅ Focus visible en todos los elementos interactivos
 - ✅ Contraste de colores ≥ 4.5:1 (AA)
 - ✅ Semantic HTML (section, footer, role attributes)
@@ -34,6 +38,7 @@
 - ✅ Navegación por teclado completa
 
 ### 5. Diseño Coherente con la App
+
 - ✅ Colores primarios: #1C2A47 (azul profundo)
 - ✅ Acento: #00BCD4 (cyan)
 - ✅ Tipografía: Inter (misma que la app)
@@ -41,6 +46,7 @@
 - ✅ Sombras: Profundidad visual coherente
 
 ### 6. Secciones Optimizadas
+
 - ✅ **Hero**: Animaciones de entrada, badge, CTA dual
 - ✅ **Problem**: Contexto y dolor del usuario
 - ✅ **Solution**: Tabla comparativa, mensaje emocional
@@ -50,6 +56,7 @@
 - ✅ **Footer**: Enlaces y copyright
 
 ### 7. Performance & Optimización
+
 - ✅ HTML puro (0 dependencias)
 - ✅ CSS inline (carga instantánea)
 - ✅ Vanilla JS (sin librerías)
@@ -58,6 +65,7 @@
 - ✅ Load time: <100ms
 
 ### 8. Comandos NPM
+
 - ✅ `npm run dev:landing` → Inicia servidor en puerto 4173
 - ✅ Compatible con Windows, Mac, Linux
 - ✅ Python como fallback integrado
@@ -65,6 +73,7 @@
 ## 📊 Especificaciones Técnicas
 
 ### Animaciones
+
 - Entrada: `slideDown`, `slideUp`, `fadeIn`
 - Hover: `translateY`, box-shadow, border glow
 - Background: `drift` (20s loop)
@@ -72,23 +81,26 @@
 - Easing: `cubic-bezier(0.4, 0, 0.2, 1)` (natural)
 
 ### Colores
-| Variable | Valor | Uso |
-|----------|-------|-----|
-| primary | #1C2A47 | Headers, texto principal |
-| secondary | #2A2E3E | Gradientes, fondos |
-| accent | #00BCD4 | Botones, highlights |
-| success | #27AE60 | Ventajas, indicadores positivos |
-| error | #E74C3C | Inconvenientes, alertas |
+
+| Variable  | Valor   | Uso                             |
+| --------- | ------- | ------------------------------- |
+| primary   | #1C2A47 | Headers, texto principal        |
+| secondary | #2A2E3E | Gradientes, fondos              |
+| accent    | #00BCD4 | Botones, highlights             |
+| success   | #27AE60 | Ventajas, indicadores positivos |
+| error     | #E74C3C | Inconvenientes, alertas         |
 
 ### Tipografía
+
 | Elemento | Tamaño (Desktop) | Tamaño (Mobile) | Peso |
-|----------|-----------------|-----------------|------|
-| H1 | 3.5rem | 1.75rem | 700 |
-| H2 | 2.25rem | 1.5rem | 600 |
-| H3 | 1.75rem | 1.25rem | 600 |
-| Body | 1rem | 1rem | 400 |
+| -------- | ---------------- | --------------- | ---- |
+| H1       | 3.5rem           | 1.75rem         | 700  |
+| H2       | 2.25rem          | 1.5rem          | 600  |
+| H3       | 1.75rem          | 1.25rem         | 600  |
+| Body     | 1rem             | 1rem            | 400  |
 
 ### Espaciado
+
 - xs: 0.5rem
 - sm: 1rem
 - md: 1.5rem
@@ -99,6 +111,7 @@
 ## 🎨 Efectos Visuales Detallados
 
 ### Feature Cards
+
 ```css
 /* Estado normal */
 - Fondo: Gradiente sutil
@@ -114,6 +127,7 @@
 ```
 
 ### Botones
+
 ```css
 /* Primario (Cyan) */
 - Background: #00BCD4
@@ -130,6 +144,7 @@
 ```
 
 ### Gradientes de Secciones
+
 - Hero: 135deg (primary → secondary)
 - Problem: 180deg (light → white)
 - Features: 180deg (light → white)
@@ -137,12 +152,12 @@
 
 ## 📱 Tested Responsiveness
 
-| Dispositivo | Resolución | Estado |
-|------------|-----------|--------|
-| iPhone 12 | 390x844 | ✅ Perfecto |
-| iPad | 768x1024 | ✅ Perfecto |
-| Desktop | 1920x1080 | ✅ Perfecto |
-| Ultra-wide | 2560x1440 | ✅ Perfecto |
+| Dispositivo | Resolución | Estado      |
+| ----------- | ---------- | ----------- |
+| iPhone 12   | 390x844    | ✅ Perfecto |
+| iPad        | 768x1024   | ✅ Perfecto |
+| Desktop     | 1920x1080  | ✅ Perfecto |
+| Ultra-wide  | 2560x1440  | ✅ Perfecto |
 
 ## 🔧 Cómo Usar
 
