@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "cmd /c dev.bat",
+    "dev": "vite",
     "dev:landing": "python -m http.server 4174 --directory landing",
     "build": "vite build",
     "preview": "vite preview",
