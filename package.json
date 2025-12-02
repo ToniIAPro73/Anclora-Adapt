@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:landing": "python -m http.server 4173 --directory landing",
     "build": "vite build",
     "preview": "vite preview",
     "check:health": "node scripts/check-endpoints.js",
