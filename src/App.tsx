@@ -501,62 +501,101 @@ const recycleOptions = [
   { value: "press_release", label: "Nota de prensa" },
 ];
 
-const ttsLanguageVoiceMap: Record<string, { value: string; label: string }[]> =
-  {
-    es: [
-      { value: "es_male_0", label: "Mateo (ES)" },
-      { value: "es_female_0", label: "Clara (ES)" },
-    ],
-    en: [
-      { value: "en_male_0", label: "Noah (EN)" },
-      { value: "en_female_0", label: "Ava (EN)" },
-    ],
-    fr: [
-      { value: "fr_male_0", label: "Louis (FR)" },
-      { value: "fr_female_0", label: "Chloe (FR)" },
-    ],
-    de: [
-      { value: "de_male_0", label: "Felix (DE)" },
-      { value: "de_female_0", label: "Lena (DE)" },
-    ],
-    pt: [
-      { value: "pt_male_0", label: "Caio (PT)" },
-      { value: "pt_female_0", label: "Marina (PT)" },
-    ],
-    it: [
-      { value: "it_male_0", label: "Marco (IT)" },
-      { value: "it_female_0", label: "Giulia (IT)" },
-    ],
-    zh: [
-      { value: "zh_male_0", label: "Wei (ZH)" },
-      { value: "zh_female_0", label: "Lan (ZH)" },
-    ],
-    ja: [
-      { value: "ja_male_0", label: "Ren (JA)" },
-      { value: "ja_female_0", label: "Yui (JA)" },
-    ],
-    ru: [
-      { value: "ru_male_0", label: "Ivan (RU)" },
-      { value: "ru_female_0", label: "Eva (RU)" },
-    ],
-    ar: [
-      { value: "ar_male_0", label: "Omar (AR)" },
-      { value: "ar_female_0", label: "Sara (AR)" },
-    ],
-  };
+// Mapear códigos de idioma a prefijos para buscar en voces del servidor
+const LANGUAGE_CODE_MAP: Record<string, string[]> = {
+  es: ["es-ES", "es"],
+  en: ["en-US", "en"],
+  fr: ["fr-FR", "fr"],
+  de: ["de-DE", "de"],
+  pt: ["pt-BR", "pt-PT", "pt"],
+  it: ["it-IT", "it"],
+  zh: ["zh-CN", "zh"],
+  ja: ["ja-JP", "ja"],
+  ru: ["ru-RU", "ru"],
+  ar: ["ar-SA", "ar"],
+};
 
-const ttsLanguageOptions = [
-  { value: "es", label: "Español" },
-  { value: "en", label: "English" },
-  { value: "fr", label: "Français" },
-  { value: "de", label: "Deutsch" },
-  { value: "pt", label: "Portugués" },
-  { value: "it", label: "Italiano" },
-  { value: "zh", label: "Chino" },
-  { value: "ja", label: "Japonés" },
-  { value: "ru", label: "Ruso" },
-  { value: "ar", label: "Árabe" },
-];
+const LANGUAGE_LABELS: Record<string, string> = {
+  es: "Español",
+  en: "English",
+  fr: "Français",
+  de: "Deutsch",
+  pt: "Portugués",
+  it: "Italiano",
+  zh: "中文",
+  ja: "日本語",
+  ru: "Русский",
+  ar: "العربية",
+};
+
+// Estado global para voces del servidor
+let cachedTtsVoices: Array<{ id: string; name: string; languages: string[] }> = [];
+let ttsLanguageVoiceMap: Record<string, { value: string; label: string }[]> = {};
+let ttsLanguageOptions: Array<{ value: string; label: string }> = [];
+
+// Función para cargar voces del servidor TTS
+const loadTtsVoices = async () => {
+  if (cachedTtsVoices.length > 0) {
+    return; // Ya están cargadas
+  }
+
+  try {
+    if (!TTS_ENDPOINT) {
+      console.warn("⚠️ TTS_ENDPOINT no configurado, usando voces por defecto");
+      return;
+    }
+
+    const response = await fetch(TTS_ENDPOINT.replace("/tts", "/voices"));
+    if (!response.ok) {
+      console.error("❌ No se pudieron cargar voces del servidor TTS");
+      return;
+    }
+
+    const data = await response.json();
+    cachedTtsVoices = data.voices || [];
+
+    // Mapear voces reales a idiomas
+    ttsLanguageVoiceMap = {};
+    const mappedLanguages = new Set<string>();
+
+    cachedTtsVoices.forEach((voice) => {
+      // Buscar en qué idioma encaja esta voz
+      Object.entries(LANGUAGE_CODE_MAP).forEach(([langCode, patterns]) => {
+        const voiceLangs = voice.languages || [];
+        const matches = patterns.some((pattern) =>
+          voiceLangs.some((vl) => vl.toLowerCase().startsWith(pattern.toLowerCase()))
+        );
+
+        if (matches) {
+          if (!ttsLanguageVoiceMap[langCode]) {
+            ttsLanguageVoiceMap[langCode] = [];
+          }
+          ttsLanguageVoiceMap[langCode].push({
+            value: voice.id,
+            label: voice.name,
+          });
+          mappedLanguages.add(langCode);
+        }
+      });
+    });
+
+    // Crear lista de opciones de idioma solo con idiomas que tienen voces
+    ttsLanguageOptions = Array.from(mappedLanguages)
+      .sort()
+      .map((langCode) => ({
+        value: langCode,
+        label: LANGUAGE_LABELS[langCode] || langCode,
+      }));
+
+    console.log(`✓ Voces TTS cargadas: ${cachedTtsVoices.length} voces, ${ttsLanguageOptions.length} idiomas`);
+    console.log("Idiomas disponibles:", ttsLanguageOptions.map((o) => o.label).join(", "));
+  } catch (error) {
+    console.error("Error al cargar voces TTS:", error);
+  }
+};
+
+// Cargar voces al iniciar la app
+loadTtsVoices();
 
 const themeIconProps: React.SVGProps<SVGSVGElement> = {
   width: 20,
@@ -2891,8 +2930,8 @@ const TTSMode: React.FC<{
 }> = ({ interfaceLanguage, resolveTextModelId }) => {
   const copy = translations[interfaceLanguage].tts;
   const [textToSpeak, setTextToSpeak] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState("es");
-  const [selectedVoiceName, setSelectedVoiceName] = useState("es_male_0");
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("");
+  const [selectedVoiceName, setSelectedVoiceName] = useState("");
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -2905,6 +2944,16 @@ const TTSMode: React.FC<{
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Inicializar idioma cuando se cargan las voces
+  useEffect(() => {
+    if (!selectedLanguage && ttsLanguageOptions.length > 0) {
+      // Preferir español si está disponible, si no usar el primer idioma disponible
+      const preferredLang = ttsLanguageOptions.find((o) => o.value === "es")?.value
+        || ttsLanguageOptions[0]?.value;
+      setSelectedLanguage(preferredLang);
+    }
+  }, [selectedLanguage]);
 
   useEffect(() => {
     const voices = ttsLanguageVoiceMap[selectedLanguage];
