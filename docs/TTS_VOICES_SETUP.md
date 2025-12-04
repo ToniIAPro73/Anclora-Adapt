@@ -4,10 +4,10 @@
 
 Tu Windows tiene instaladas **2 voces**:
 
-| Idioma | Voz | ID |
-|--------|-----|-----|
+| Idioma     | Voz                      | ID                                                |
+| ---------- | ------------------------ | ------------------------------------------------- |
 | 🇪🇸 Español | Microsoft Helena Desktop | `HKEY_LOCAL_MACHINE\...\TTS_MS_ES-ES_HELENA_11.0` |
-| 🇺🇸 English | Microsoft Zira Desktop | `HKEY_LOCAL_MACHINE\...\TTS_MS_EN-US_ZIRA_11.0` |
+| 🇺🇸 English | Microsoft Zira Desktop   | `HKEY_LOCAL_MACHINE\...\TTS_MS_EN-US_ZIRA_11.0`   |
 
 **La app ahora detecta automáticamente qué voces tienes y las muestra.**
 
@@ -47,31 +47,38 @@ Si quieres tener TTS en más idiomas:
 ### Windows 11/10 - Descargar Voces
 
 1. **Abre Configuración**
+
    ```
    Inicio → Configuración
    ```
 
 2. **Ve a Accesibilidad → Síntesis de Voz**
+
    ```
    Busca "Síntesis de voz" en la búsqueda
    ```
 
 3. **Haz clic en "Voces disponibles"**
+
    - Verás un botón "Añadir voces"
 
 4. **Selecciona idiomas que quieras**
+
    - Español, Français, Deutsch, 日本語, etc.
    - Descargarás los paquetes de voz
 
 5. **Espera a que se descarguen**
+
    - Puede tardar unos minutos
 
 6. **Reinicia la app**
+
    ```bash
    npm run dev
    ```
 
 7. **Abre DevTools (F12) → Console**
+
    ```
    ✓ Voces TTS cargadas: 4 voces, 4 idiomas
    Idiomas disponibles: Deutsch, English, Français, Español
@@ -88,11 +95,11 @@ Si quieres tener TTS en más idiomas:
 ```javascript
 // Abrir DevTools (F12) → Console
 // Pegar:
-fetch('http://localhost:9000/voices')
-  .then(r => r.json())
-  .then(d => {
+fetch("http://localhost:9000/voices")
+  .then((r) => r.json())
+  .then((d) => {
     console.log(`Total voces: ${d.voices.length}`);
-    d.voices.forEach(v => console.log(`- ${v.name} (${v.languages})`));
+    d.voices.forEach((v) => console.log(`- ${v.name} (${v.languages})`));
   });
 ```
 
@@ -103,6 +110,7 @@ curl http://localhost:9000/voices | ConvertFrom-Json | Select-Object -ExpandProp
 ```
 
 Salida:
+
 ```
 name                                  languages
 ----                                  ---------
@@ -114,18 +122,18 @@ Microsoft Zira Desktop - English      en-US
 
 ## Qué Idiomas Puedes Instalar
 
-| Código | Idioma | Patrón | Descargar |
-|--------|--------|--------|-----------|
-| `es` | Español | `es-ES` | Microsoft Helena (Spain) |
-| `en` | English | `en-US` | Microsoft Zira (US) |
-| `fr` | Français | `fr-FR` | Microsoft Paul (France) |
-| `de` | Deutsch | `de-DE` | Microsoft Hedda (Germany) |
-| `pt` | Portugués | `pt-BR`, `pt-PT` | Microsoft Maria (Brazil) |
-| `it` | Italiano | `it-IT` | Microsoft Elsa (Italy) |
-| `zh` | 中文 | `zh-CN` | Microsoft Huihui (China) |
-| `ja` | 日本語 | `ja-JP` | Microsoft Haruka (Japan) |
-| `ru` | Русский | `ru-RU` | Microsoft Irina (Russia) |
-| `ar` | العربية | `ar-SA` | Microsoft Hana (Saudi Arabia) |
+| Código | Idioma    | Patrón           | Descargar                     |
+| ------ | --------- | ---------------- | ----------------------------- |
+| `es`   | Español   | `es-ES`          | Microsoft Helena (Spain)      |
+| `en`   | English   | `en-US`          | Microsoft Zira (US)           |
+| `fr`   | Français  | `fr-FR`          | Microsoft Paul (France)       |
+| `de`   | Deutsch   | `de-DE`          | Microsoft Hedda (Germany)     |
+| `pt`   | Portugués | `pt-BR`, `pt-PT` | Microsoft Maria (Brazil)      |
+| `it`   | Italiano  | `it-IT`          | Microsoft Elsa (Italy)        |
+| `zh`   | 中文      | `zh-CN`          | Microsoft Huihui (China)      |
+| `ja`   | 日本語    | `ja-JP`          | Microsoft Haruka (Japan)      |
+| `ru`   | Русский   | `ru-RU`          | Microsoft Irina (Russia)      |
+| `ar`   | العربية   | `ar-SA`          | Microsoft Hana (Saudi Arabia) |
 
 ---
 
@@ -135,20 +143,22 @@ La app tiene un mapeo de **patrones de idioma** a **códigos cortos**:
 
 ```javascript
 const LANGUAGE_CODE_MAP = {
-  es: ["es-ES", "es"],      // Cualquier voz que empiece con es-ES o es
-  en: ["en-US", "en"],      // Cualquier voz que empiece con en-US o en
-  fr: ["fr-FR", "fr"],      // Cualquier voz que empiece con fr-FR o fr
+  es: ["es-ES", "es"], // Cualquier voz que empiece con es-ES o es
+  en: ["en-US", "en"], // Cualquier voz que empiece con en-US o en
+  fr: ["fr-FR", "fr"], // Cualquier voz que empiece con fr-FR o fr
   // ... etc
 };
 ```
 
 Cuando la app inicia:
+
 1. Obtiene todas las voces del servidor
 2. Para cada voz, comprueba si coincide con algún patrón
 3. Si coincide → La añade al idioma correspondiente
 4. Si no coincide con nada → No la usa
 
 **Ejemplo:**
+
 ```
 Voz: "Microsoft Helena Desktop"
 Idiomas: ["es-ES"]
@@ -176,6 +186,7 @@ ttsLanguageVoiceMap = {
 ```
 
 En la UI verás un dropdown:
+
 ```
 Selecciona la voz:
 - Microsoft Helena Desktop - Spanish (Spain)
@@ -191,6 +202,7 @@ Selecciona la voz:
 Obtiene todas las voces disponibles en el sistema.
 
 **Respuesta:**
+
 ```json
 {
   "platform": "Windows",
@@ -225,39 +237,45 @@ El campo `id` es lo que se envía al endpoint `/tts` en `voice_preset`.
 ### "Instalé una voz pero no aparece"
 
 **Solución 1:** Reinicia la app
+
 ```bash
 npm run dev
 ```
 
 **Solución 2:** Verifica que la voz está instalada
+
 ```powershell
 curl http://localhost:9000/voices
 ```
 
 **Solución 3:** Si aparece en `/voices` pero no en la app
+
 - Puede que el código de idioma no coincida
 - Abre un issue o revisa los logs de la consola
 
 ### "El audio está en idioma incorrecto"
 
 **Verificar:**
+
 1. ¿Seleccionaste el idioma correcto?
 2. ¿La voz que seleccionaste es del idioma que esperas?
 3. Abre DevTools console durante la generación
+
    ```
    🎙️ TTS Request: "Tu texto..." (X chars), preset: <VOICE_ID>
    ```
+
    Verifica que el `preset` es el ID correcto de la voz
 
 ---
 
 ## Resumen
 
-| Acción | Resultado |
-|--------|-----------|
-| Instalar voces en Windows | App las detecta automáticamente |
+| Acción                         | Resultado                                   |
+| ------------------------------ | ------------------------------------------- |
+| Instalar voces en Windows      | App las detecta automáticamente             |
 | Seleccionar idioma en Voz mode | App envía el ID correcto de voz al servidor |
-| Generar audio | Servidor usa la voz correcta |
-| Descargar | Audio descargado en el idioma seleccionado |
+| Generar audio                  | Servidor usa la voz correcta                |
+| Descargar                      | Audio descargado en el idioma seleccionado  |
 
 **La app es totalmente automática y se adapta a las voces disponibles.**
