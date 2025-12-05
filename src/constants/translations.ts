@@ -239,17 +239,26 @@ export const translations: Record<InterfaceLanguage, {
       voiceLabel: "Selecciona la voz",
       buttonIdle: "Generar voz",
       buttonLoading: "Generando audio...",
+      voicesLoading: "Cargando voces...",
+      noticeFallback:
+        "Reproducción con la voz del navegador (sin archivo descargable).",
       errors: {
         text: "Escribe el texto a convertir.",
+        unavailable:
+          "Configura VITE_TTS_ENDPOINT o usa un navegador con voz (speechSynthesis).",
+        voices: "No se pudieron cargar las voces del servidor.",
       },
     },
     live: {
       intro: "Graba un fragmento corto y obten respuesta inmediata.",
       buttonStart: "Hablar",
       buttonStop: "Detener",
-      transcriptLabel: "Transcripcion",
+      transcriptLabel: "Transcripción",
       errors: {
-        microphone: "No se pudo acceder al microfono.",
+        microphone: "No se pudo acceder al micrófono.",
+        sttUnavailable:
+          "Live Chat necesita VITE_STT_ENDPOINT. Configura el endpoint o usa Chat mientras tanto.",
+        noSpeech: "No se detectó audio en la grabación.",
       },
     },
     image: {
@@ -379,8 +388,14 @@ export const translations: Record<InterfaceLanguage, {
       voiceLabel: "Voice",
       buttonIdle: "Generate voice",
       buttonLoading: "Generating audio...",
+      voicesLoading: "Loading voices...",
+      noticeFallback:
+        "Played with the browser voice (no downloadable file available).",
       errors: {
         text: "Provide the text to convert.",
+        unavailable:
+          "Set VITE_TTS_ENDPOINT or use a browser that supports speechSynthesis.",
+        voices: "Could not load the voices from the server.",
       },
     },
     live: {
@@ -390,6 +405,9 @@ export const translations: Record<InterfaceLanguage, {
       transcriptLabel: "Transcript",
       errors: {
         microphone: "Unable to access microphone.",
+        sttUnavailable:
+          "Live Chat needs VITE_STT_ENDPOINT. Configure it or use Chat mode meanwhile.",
+        noSpeech: "No speech detected in the recording.",
       },
     },
     image: {

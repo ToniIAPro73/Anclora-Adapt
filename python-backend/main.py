@@ -1,13 +1,14 @@
 import os
 import io
 import time
+import json
 import psutil
 import logging
 import torch
 import soundfile as sf
 import numpy as np
 from contextlib import asynccontextmanager
-from typing import Optional, Literal
+from typing import Optional, Literal, List, Dict, Any
 from pathlib import Path
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
@@ -37,6 +38,29 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # --- Gestión de Hardware y Modelos ---
+DEFAULT_VOICES = [
+    {"id": "es_male_0", "name": "Mateo (ES)", "languages": ["es-ES"], "gender": "male"},
+    {"id": "es_female_0", "name": "Clara (ES)", "languages": ["es-ES"], "gender": "female"},
+    {"id": "en_male_0", "name": "Noah (EN)", "languages": ["en-US", "en-GB"], "gender": "male"},
+    {"id": "en_female_0", "name": "Ava (EN)", "languages": ["en-US", "en-GB"], "gender": "female"},
+    {"id": "fr_male_0", "name": "Louis (FR)", "languages": ["fr-FR"], "gender": "male"},
+    {"id": "fr_female_0", "name": "Chloé (FR)", "languages": ["fr-FR"], "gender": "female"},
+    {"id": "de_male_0", "name": "Felix (DE)", "languages": ["de-DE"], "gender": "male"},
+    {"id": "de_female_0", "name": "Lena (DE)", "languages": ["de-DE"], "gender": "female"},
+    {"id": "pt_male_0", "name": "Caio (PT)", "languages": ["pt-BR", "pt-PT"], "gender": "male"},
+    {"id": "pt_female_0", "name": "Marina (PT)", "languages": ["pt-BR", "pt-PT"], "gender": "female"},
+    {"id": "it_male_0", "name": "Marco (IT)", "languages": ["it-IT"], "gender": "male"},
+    {"id": "it_female_0", "name": "Giulia (IT)", "languages": ["it-IT"], "gender": "female"},
+    {"id": "zh_male_0", "name": "Wei (ZH)", "languages": ["zh-CN", "zh-TW"], "gender": "male"},
+    {"id": "zh_female_0", "name": "Lan (ZH)", "languages": ["zh-CN", "zh-TW"], "gender": "female"},
+    {"id": "ja_male_0", "name": "Ren (JA)", "languages": ["ja-JP"], "gender": "male"},
+    {"id": "ja_female_0", "name": "Yui (JA)", "languages": ["ja-JP"], "gender": "female"},
+    {"id": "ru_male_0", "name": "Ivan (RU)", "languages": ["ru-RU"], "gender": "male"},
+    {"id": "ru_female_0", "name": "Eva (RU)", "languages": ["ru-RU"], "gender": "female"},
+    {"id": "af_sarah", "name": "Sarah (EN)", "languages": ["en-US"], "gender": "female"},
+    {"id": "am_adam", "name": "Adam (EN)", "languages": ["en-US"], "gender": "male"},
+]
+
 class ModelManager:
     def __init__(self):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -151,6 +175,63 @@ class ModelManager:
             del self.stt_model
             self.stt_model = None
             torch.cuda.empty_cache()
+
+    def list_available_voices(self) -> List[Dict[str, Any]]:
+        voices_path = self.models_path / "voices.json"
+
+        if not voices_path.exists():
+            return DEFAULT_VOICES
+
+        try:
+            with open(voices_path, "r", encoding="utf-8") as file:
+                data = json.load(file)
+        except Exception as exc:
+            logger.warning(f"No se pudo leer voices.json: {exc}")
+            return DEFAULT_VOICES
+
+        raw_voices: List[Dict[str, Any]] = []
+        if isinstance(data, list):
+            raw_voices = [voice for voice in data if isinstance(voice, dict)]
+        elif isinstance(data, dict):
+            if isinstance(data.get("voices"), list):
+                raw_voices = [
+                    voice for voice in data["voices"] if isinstance(voice, dict)
+                ]
+            else:
+                for key, value in data.items():
+                    if isinstance(value, dict):
+                        voice_entry = value.copy()
+                        voice_entry.setdefault("id", key)
+                        raw_voices.append(voice_entry)
+        else:
+            return DEFAULT_VOICES
+
+        normalized: List[Dict[str, Any]] = []
+        for voice in raw_voices:
+            voice_id = voice.get("id") or voice.get("voice") or voice.get("name")
+            if not voice_id:
+                continue
+            languages = voice.get("languages")
+            if isinstance(languages, str):
+                languages = [languages]
+            elif not isinstance(languages, list):
+                languages = []
+
+            if voice.get("language"):
+                languages.append(voice["language"])
+
+            normalized.append(
+                {
+                    "id": voice_id,
+                    "name": voice.get("name") or voice_id,
+                    "languages": list(
+                        {lang.lower() for lang in languages if isinstance(lang, str)}
+                    ),
+                    "gender": voice.get("gender"),
+                }
+            )
+
+        return normalized or DEFAULT_VOICES
 
 model_manager = ModelManager()
 
@@ -306,6 +387,17 @@ async def generate_image(req: ImageRequest):
     except Exception as e:
         logger.error(f"Error Imagen: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/voices")
+async def list_tts_voices():
+    """Lista las voces disponibles para el servicio de TTS"""
+    try:
+        return {"voices": model_manager.list_available_voices()}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error(f"Error al listar voces: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail="No se pudieron listar las voces")
 
 if __name__ == "__main__":
     import uvicorn

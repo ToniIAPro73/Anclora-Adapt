@@ -68,7 +68,7 @@ Anclora-Adapt/
 | `npm run build` | Compila para producción |
 | `npm run preview` | Previsualiza el build |
 | `npm run check:health` | Verifica endpoints |
-| `npm run image:bridge` | Bridge de imágenes |
+| `node achive/tools/image-bridge.js` | Bridge de imágenes (legacy, sólo si usas Automatic1111) |
 
 ---
 

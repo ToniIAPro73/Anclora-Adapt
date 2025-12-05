@@ -101,7 +101,7 @@ export class AudioRecorder {
    * Retorna true si está grabando en este momento
    */
   isRecording(): boolean {
-    return this.mediaRecorder?.state === "recording" ?? false;
+    return this.mediaRecorder?.state === "recording";
   }
 }
 
@@ -282,6 +282,7 @@ export interface VoicePreset {
   id: string;
   name: string;
   language: string;
+  languages?: string[];
   gender?: "male" | "female" | "neutral";
 }
 
@@ -290,28 +291,159 @@ export interface VoicePreset {
  * Estos se cargarán desde el backend en el futuro
  */
 export const DEFAULT_VOICE_PRESETS: Record<string, VoicePreset> = {
+  es_male_0: {
+    id: "es_male_0",
+    name: "Mateo (ES)",
+    language: "es",
+    languages: ["es-ES"],
+    gender: "male",
+  },
+  es_female_0: {
+    id: "es_female_0",
+    name: "Clara (ES)",
+    language: "es",
+    languages: ["es-ES"],
+    gender: "female",
+  },
+  en_male_0: {
+    id: "en_male_0",
+    name: "Noah (EN)",
+    language: "en",
+    languages: ["en-US", "en-GB"],
+    gender: "male",
+  },
+  en_female_0: {
+    id: "en_female_0",
+    name: "Ava (EN)",
+    language: "en",
+    languages: ["en-US", "en-GB"],
+    gender: "female",
+  },
+  fr_male_0: {
+    id: "fr_male_0",
+    name: "Louis (FR)",
+    language: "fr",
+    languages: ["fr-FR", "fr-CA"],
+    gender: "male",
+  },
+  fr_female_0: {
+    id: "fr_female_0",
+    name: "Chloé (FR)",
+    language: "fr",
+    languages: ["fr-FR", "fr-CA"],
+    gender: "female",
+  },
+  de_male_0: {
+    id: "de_male_0",
+    name: "Felix (DE)",
+    language: "de",
+    languages: ["de-DE"],
+    gender: "male",
+  },
+  de_female_0: {
+    id: "de_female_0",
+    name: "Lena (DE)",
+    language: "de",
+    languages: ["de-DE"],
+    gender: "female",
+  },
+  pt_male_0: {
+    id: "pt_male_0",
+    name: "Caio (PT)",
+    language: "pt",
+    languages: ["pt-BR", "pt-PT"],
+    gender: "male",
+  },
+  pt_female_0: {
+    id: "pt_female_0",
+    name: "Marina (PT)",
+    language: "pt",
+    languages: ["pt-BR", "pt-PT"],
+    gender: "female",
+  },
+  it_male_0: {
+    id: "it_male_0",
+    name: "Marco (IT)",
+    language: "it",
+    languages: ["it-IT"],
+    gender: "male",
+  },
+  it_female_0: {
+    id: "it_female_0",
+    name: "Giulia (IT)",
+    language: "it",
+    languages: ["it-IT"],
+    gender: "female",
+  },
+  zh_male_0: {
+    id: "zh_male_0",
+    name: "Wei (ZH)",
+    language: "zh",
+    languages: ["zh-CN", "zh-TW"],
+    gender: "male",
+  },
+  zh_female_0: {
+    id: "zh_female_0",
+    name: "Lan (ZH)",
+    language: "zh",
+    languages: ["zh-CN", "zh-TW"],
+    gender: "female",
+  },
+  ja_male_0: {
+    id: "ja_male_0",
+    name: "Ren (JA)",
+    language: "ja",
+    languages: ["ja-JP"],
+    gender: "male",
+  },
+  ja_female_0: {
+    id: "ja_female_0",
+    name: "Yui (JA)",
+    language: "ja",
+    languages: ["ja-JP"],
+    gender: "female",
+  },
+  ru_male_0: {
+    id: "ru_male_0",
+    name: "Ivan (RU)",
+    language: "ru",
+    languages: ["ru-RU"],
+    gender: "male",
+  },
+  ru_female_0: {
+    id: "ru_female_0",
+    name: "Eva (RU)",
+    language: "ru",
+    languages: ["ru-RU"],
+    gender: "female",
+  },
+  // Voces genéricas (compatibilidad con versiones anteriores)
   af_sarah: {
     id: "af_sarah",
-    name: "Sarah (Female)",
+    name: "Sarah (EN)",
     language: "en",
+    languages: ["en-US"],
     gender: "female",
   },
   am_adam: {
     id: "am_adam",
-    name: "Adam (Male)",
+    name: "Adam (EN)",
     language: "en",
+    languages: ["en-US"],
     gender: "male",
   },
   bf_emma: {
     id: "bf_emma",
-    name: "Emma (Female)",
+    name: "Emma (EN)",
     language: "en",
+    languages: ["en-US"],
     gender: "female",
   },
   bm_george: {
     id: "bm_george",
-    name: "George (Male)",
+    name: "George (EN)",
     language: "en",
+    languages: ["en-US"],
     gender: "male",
   },
 };

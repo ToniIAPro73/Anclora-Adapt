@@ -10,7 +10,6 @@
     "preview": "vite preview",
     "test": "vitest",
     "check:health": "node scripts/check-endpoints.js",
-    "image:bridge": "node scripts/image-bridge.js",
     "tts:server": "python scripts/tts_server.py"
   },
   "dependencies": {

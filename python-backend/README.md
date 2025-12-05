@@ -7,6 +7,7 @@ Backend unificado que gestiona TTS, STT e Imagen para Anclora Adapt.
 - 🎤 **TTS (Text-to-Speech)**: Kokoro-82M - Voces naturales en español
 - 👂 **STT (Speech-to-Text)**: Faster-Whisper Large-v3-Turbo - Transcripción rápida
 - 🎨 **Imagen**: SDXL Lightning (4-step) - Generación rápida de imágenes
+- 🗣️ **Listado de voces**: `/api/voices` expone los presets disponibles para el frontend
 - ⚡ **Gestión inteligente de VRAM**: Carga/descarga modelos según se necesite
 - 🔧 **Detección automática de hardware**: Se adapta a tu RTX 3050 4GB
 
@@ -112,6 +113,27 @@ Detalles de capacidades del hardware
 
 ```bash
 curl http://localhost:8000/api/system/capabilities
+```
+
+### GET `/api/voices`
+Lista las voces/presets disponibles para Kokoro
+
+```bash
+curl http://localhost:8000/api/voices
+```
+
+**Respuesta:**
+```json
+{
+  "voices": [
+    {
+      "id": "es_male_0",
+      "name": "Mateo (ES)",
+      "languages": ["es-ES"],
+      "gender": "male"
+    }
+  ]
+}
 ```
 
 ### POST `/api/tts`

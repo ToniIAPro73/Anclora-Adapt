@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import type {
   InterfaceLanguage,
   AutoModelContext,
+  ImageGenerationOptions,
 } from "@/types";
 import { languages } from "@/constants/options";
 import { structuredOutputExample } from "@/constants/prompts";
@@ -14,8 +15,7 @@ import OutputDisplay, {
 import { useInteraction } from "@/context/InteractionContext";
 
 type GenerateImageFn = (
-  prompt: string,
-  base64Image?: string
+  options: ImageGenerationOptions
 ) => Promise<string>;
 
 interface IntelligentCopy {
@@ -113,10 +113,10 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
 
       if (includeImage && imagePrompt.trim()) {
         const base64 = imageFile ? await fileToBase64(imageFile) : undefined;
-        const imageResult = await onGenerateImage(
-          `${imagePrompt}\nContexto: ${context}`,
-          base64
-        );
+        const imageResult = await onGenerateImage({
+          prompt: `${imagePrompt}\nContexto: ${context || "General"}`,
+          base64Image: base64,
+        });
         setImageUrl(imageResult);
       }
     } catch (err) {

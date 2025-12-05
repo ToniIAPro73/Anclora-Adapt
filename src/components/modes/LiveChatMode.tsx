@@ -1,11 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
-import type { InterfaceLanguage, AutoModelContext } from "../../types";
-import commonStyles from "../../styles/commonStyles";
-import type { OutputCopy } from "../common/OutputDisplay";
+import type {
+  InterfaceLanguage,
+  AutoModelContext,
+  STTResponse,
+} from "@/types";
+import commonStyles from "@/styles/commonStyles";
+import type { OutputCopy } from "@/components/common/OutputDisplay";
 
 interface ChatMessage {
   role: "user" | "assistant";
   text: string;
+  language?: string;
 }
 
 interface LiveCopy {
@@ -13,7 +18,7 @@ interface LiveCopy {
   buttonStart: string;
   buttonStop: string;
   transcriptLabel: string;
-  errors: { microphone: string; sttUnavailable: string };
+  errors: { microphone: string; sttUnavailable: string; noSpeech: string };
 }
 
 type LiveChatModeProps = {
@@ -21,9 +26,13 @@ type LiveChatModeProps = {
   copy: LiveCopy;
   outputCopy: OutputCopy;
   resolveTextModelId: (context?: AutoModelContext) => string;
-  callSpeechToText: (audioBlob: Blob) => Promise<string>;
+  callSpeechToText: (audioBlob: Blob) => Promise<STTResponse>;
   callTextModel: (prompt: string, modelId?: string) => Promise<string>;
-  callTextToSpeech: (text: string, voicePreset: string) => Promise<string>;
+  callTextToSpeech: (
+    text: string,
+    voicePreset: string,
+    language?: string
+  ) => Promise<string>;
   hasSttEndpoint: boolean;
   defaultVoicePreset: string;
 };
@@ -80,8 +89,19 @@ const LiveChatMode: React.FC<LiveChatModeProps> = ({
       return;
     }
     try {
-      const userText = await callSpeechToText(audioBlob);
-      const userMessage: ChatMessage = { role: "user", text: userText };
+      const sttResult = await callSpeechToText(audioBlob);
+      const userText = sttResult.text;
+
+      if (!userText) {
+        setError(copy.errors.noSpeech);
+        return;
+      }
+
+      const userMessage: ChatMessage = {
+        role: "user",
+        text: userText,
+        language: sttResult.language,
+      };
       setTranscript((prev) => [...prev, userMessage]);
       const prompt = `Convierte el siguiente texto del usuario en una respuesta breve y accionable enfocada en marketing: "${userText}". Idioma: ${interfaceLanguage.toUpperCase()}.`;
       const modelIdToUse = resolveTextModelId({
@@ -90,11 +110,19 @@ const LiveChatMode: React.FC<LiveChatModeProps> = ({
         preferSpeed: true,
       });
       const reply = (await callTextModel(prompt, modelIdToUse)).trim();
-      const assistantMessage: ChatMessage = { role: "assistant", text: reply };
+      const detectedLanguage =
+        sttResult.language?.slice(0, 2) || interfaceLanguage;
+      const assistantMessage: ChatMessage = {
+        role: "assistant",
+        text: reply,
+        language: detectedLanguage,
+      };
       setTranscript((prev) => [...prev, assistantMessage]);
+      setAudioUrl(null);
       const audioResponse = await callTextToSpeech(
         reply,
-        defaultVoicePreset
+        defaultVoicePreset,
+        detectedLanguage
       );
       setAudioUrl(audioResponse);
     } catch (err) {
@@ -130,12 +158,26 @@ const LiveChatMode: React.FC<LiveChatModeProps> = ({
       )}
       {error && <div style={commonStyles.errorMessage}>{error}</div>}
       <div style={commonStyles.liveTranscript}>
-        {transcript.map((msg, index) => (
-          <p key={index}>
-            <strong>{msg.role === "user" ? "Tú" : "AncloraAI"}:</strong>{" "}
-            {msg.text}
-          </p>
-        ))}
+        {transcript.map((msg, index) => {
+          const speakerLabel =
+            msg.role === "user"
+              ? interfaceLanguage === "es"
+                ? "Tú"
+                : "You"
+              : "AncloraAI";
+          const languageSuffix = msg.language
+            ? ` (${msg.language.toUpperCase()})`
+            : "";
+          return (
+            <p key={index}>
+              <strong>
+                {speakerLabel}
+                {languageSuffix}:
+              </strong>{" "}
+              {msg.text}
+            </p>
+          );
+        })}
         {transcript.length === 0 && <p>{copy.transcriptLabel}</p>}
       </div>
       {audioUrl && (

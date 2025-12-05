@@ -89,9 +89,9 @@ All logic resides in `index.tsx` (~80KB). The application:
 3. **Makes API calls** through dedicated helper functions:
 
    - `callTextModel(prompt)` → POST to Ollama `/api/generate` endpoint
-   - `callImageModel(prompt, base64Image?)` → Placeholder (Ollama doesn't do images yet)
-   - `callTextToSpeech(text, voicePreset)` → Placeholder (Ollama doesn't do TTS yet)
-   - `callSpeechToText(audioBlob)` → Placeholder (Ollama doesn't do STT yet)
+  - `callImageModel(options)` → Llama al backend FastAPI `/api/image` (SDXL Lightning)
+  - `callTextToSpeech(text, voicePreset, language?)` → Invoca FastAPI `/api/tts` (Kokoro-82M)
+  - `callSpeechToText(audioBlob)` → Invoca FastAPI `/api/stt` (Faster-Whisper)
 
 4. **Manages Ollama integration**:
 
