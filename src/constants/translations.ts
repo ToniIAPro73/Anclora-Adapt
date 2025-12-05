@@ -30,6 +30,7 @@ export const translations: Record<InterfaceLanguage, {
       loading: string;
       error: string;
       reset: string;
+      lastUsed?: string;
     };
     output: {
       loading: string;
@@ -156,6 +157,7 @@ export const translations: Record<InterfaceLanguage, {
       loading: "Actualizando...",
       error: "No se pudo listar los modelos",
       reset: "Reiniciar pantalla (mantiene el modo actual)",
+      lastUsed: "Modelo usado",
     },
     output: {
       loading: "La IA esta trabajando...",
@@ -305,6 +307,7 @@ export const translations: Record<InterfaceLanguage, {
       loading: "Refreshing...",
       error: "Could not list the models",
       reset: "Reset screen (keeps current mode)",
+      lastUsed: "Model used",
     },
     output: {
       loading: "The AI is crafting your content...",

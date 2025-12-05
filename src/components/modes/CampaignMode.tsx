@@ -4,6 +4,7 @@ import type {
   AutoModelContext,
 } from "@/types";
 import { languages } from "@/constants/options";
+import type { LanguageOptionAvailability } from "@/constants/modelCapabilities";
 import { structuredOutputExample } from "@/constants/prompts";
 import commonStyles from "@/styles/commonStyles";
 import OutputDisplay, {
@@ -28,6 +29,7 @@ type CampaignModeProps = {
   onCopy: (text: string) => void;
   copy: CampaignCopy;
   outputCopy: OutputCopy;
+  languageOptions: LanguageOptionAvailability[];
 };
 
 const campaignPlatforms = ["LinkedIn", "X", "Instagram", "Email"];
@@ -38,6 +40,7 @@ const CampaignMode: React.FC<CampaignModeProps> = ({
   interfaceLanguage,
   copy,
   outputCopy,
+  languageOptions,
 }) => {
   const {
     isLoading,
@@ -61,6 +64,26 @@ const CampaignMode: React.FC<CampaignModeProps> = ({
 
   useEffect(() => setImageUrl(null), [setImageUrl]);
   useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
+
+  const normalizedLanguageOptions =
+    languageOptions?.length > 0
+      ? languageOptions
+      : languages.map((lang) => ({ ...lang, disabled: false }));
+
+  useEffect(() => {
+    if (
+      !normalizedLanguageOptions.some(
+        (option) => option.value === language && !option.disabled
+      )
+    ) {
+      const fallback =
+        normalizedLanguageOptions.find((option) => !option.disabled)?.value ||
+        "es";
+      if (fallback && fallback !== language) {
+        setLanguage(fallback);
+      }
+    }
+  }, [normalizedLanguageOptions, language]);
 
   const handleGenerate = async () => {
     if (!idea.trim()) {
@@ -92,6 +115,7 @@ const CampaignMode: React.FC<CampaignModeProps> = ({
       await onGenerate(prompt, {
         mode: "campaign",
         preferReasoning: true,
+        targetLanguage: language,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error desconocido";
@@ -172,11 +196,17 @@ const CampaignMode: React.FC<CampaignModeProps> = ({
             <select
               style={{ ...commonStyles.select, padding: "8px" }}
               value={language}
-              onChange={(e) => setLanguage(e.target.value as "es" | "en")}
+              onChange={(e) => setLanguage(e.target.value)}
             >
-              {languages.map((lang) => (
-                <option key={lang.value} value={lang.value}>
+              {normalizedLanguageOptions.map((lang) => (
+                <option
+                  key={lang.value}
+                  value={lang.value}
+                  disabled={lang.disabled}
+                  title={lang.disabled ? lang.reason : undefined}
+                >
                   {lang.label}
+                  {lang.disabled ? " (no disponible)" : ""}
                 </option>
               ))}
             </select>

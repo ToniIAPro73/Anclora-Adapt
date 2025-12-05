@@ -5,6 +5,7 @@ import type {
   ImageGenerationOptions,
 } from "@/types";
 import { languages } from "@/constants/options";
+import type { LanguageOptionAvailability } from "@/constants/modelCapabilities";
 import { structuredOutputExample } from "@/constants/prompts";
 import commonStyles from "@/styles/commonStyles";
 import { formatCounterText } from "@/utils/text";
@@ -40,6 +41,7 @@ type IntelligentModeProps = {
   copy: IntelligentCopy;
   outputCopy: OutputCopy;
   onGenerateImage: GenerateImageFn;
+  languageOptions: LanguageOptionAvailability[];
 };
 
 const IntelligentMode: React.FC<IntelligentModeProps> = ({
@@ -49,6 +51,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
   copy,
   outputCopy,
   onGenerateImage,
+  languageOptions,
 }) => {
   const {
     isLoading,
@@ -61,7 +64,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
   } = useInteraction();
   const [idea, setIdea] = useState("");
   const [context, setContext] = useState("");
-  const [language, setLanguage] = useState(interfaceLanguage);
+  const [language, setLanguage] = useState<string>(interfaceLanguage);
   const [deepThinking, setDeepThinking] = useState(false);
   const [includeImage, setIncludeImage] = useState(false);
   const [imagePrompt, setImagePrompt] = useState("");
@@ -77,6 +80,26 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
 
   useEffect(() => setImageUrl(null), [setImageUrl]);
   useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
+
+  const normalizedLanguageOptions =
+    languageOptions?.length > 0
+      ? languageOptions
+      : languages.map((lang) => ({ ...lang, disabled: false }));
+
+  useEffect(() => {
+    if (
+      !normalizedLanguageOptions.some(
+        (option) => option.value === language && !option.disabled
+      )
+    ) {
+      const fallback =
+        normalizedLanguageOptions.find((option) => !option.disabled)?.value ||
+        "es";
+      if (fallback && fallback !== language) {
+        setLanguage(fallback);
+      }
+    }
+  }, [normalizedLanguageOptions, language]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
@@ -109,6 +132,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
         mode: "intelligent",
         preferReasoning: true,
         preferSpeed: !deepThinking,
+        targetLanguage: language,
       });
 
       if (includeImage && imagePrompt.trim()) {
@@ -230,11 +254,17 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
                   fontSize: "0.9em",
                 }}
                 value={language}
-                onChange={(e) => setLanguage(e.target.value as "es" | "en")}
+                onChange={(e) => setLanguage(e.target.value)}
               >
-                {languages.map((lang) => (
-                  <option key={lang.value} value={lang.value}>
+                {normalizedLanguageOptions.map((lang) => (
+                  <option
+                    key={lang.value}
+                    value={lang.value}
+                    disabled={lang.disabled}
+                    title={lang.disabled ? lang.reason : undefined}
+                  >
                     {lang.label}
+                    {lang.disabled ? " (no disponible)" : ""}
                   </option>
                 ))}
               </select>

@@ -8,6 +8,7 @@ import OutputDisplay, {
 } from "@/components/common/OutputDisplay";
 import commonStyles from "@/styles/commonStyles";
 import { languages, tones } from "@/constants/options";
+import type { LanguageOptionAvailability } from "@/constants/modelCapabilities";
 import { structuredOutputExample } from "@/constants/prompts";
 import { formatCounterText } from "@/utils/text";
 import { useInteraction } from "@/context/InteractionContext";
@@ -34,6 +35,7 @@ type BasicModeProps = {
   onCopy: (text: string) => void;
   copy: BasicCopy;
   outputCopy: OutputCopy;
+  languageOptions: LanguageOptionAvailability[];
 };
 
 const BasicMode: React.FC<BasicModeProps> = ({
@@ -42,6 +44,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
   interfaceLanguage,
   copy,
   outputCopy,
+  languageOptions,
 }) => {
   const {
     isLoading,
@@ -66,6 +69,26 @@ const BasicMode: React.FC<BasicModeProps> = ({
 
   useEffect(() => setImageUrl(null), [setImageUrl]);
   useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
+
+  const normalizedLanguageOptions =
+    languageOptions?.length > 0
+      ? languageOptions
+      : languages.map((lang) => ({ ...lang, disabled: false }));
+
+  useEffect(() => {
+    if (
+      !normalizedLanguageOptions.some(
+        (option) => option.value === language && !option.disabled
+      )
+    ) {
+      const fallback =
+        normalizedLanguageOptions.find((option) => !option.disabled)?.value ||
+        "es";
+      if (fallback && fallback !== language) {
+        setLanguage(fallback);
+      }
+    }
+  }, [normalizedLanguageOptions, language]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
@@ -101,7 +124,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
         : "";
     let prompt: string;
     if (literalTranslation) {
-      prompt = `Actua como traductor literal especializado en marketing. Devuelve UNICAMENTE la traduccion en formato JSON bajo la clave "outputs" con UN UNICO elemento SIN plataforma: { "outputs": [{ "content": "traduccion aqui" }] }. Texto original: "${idea}". Idioma de destino: ${languageDisplay}.${limitSuffix}`;
+      prompt = `Actúa como traductor profesional nativo. Traduce el siguiente texto de forma literal al idioma "${languageDisplay}" sin añadir explicaciones ni notas. Responde ÚNICAMENTE en formato JSON con la estructura { "outputs": [{ "platform": "${languageDisplay}", "content": "texto traducido aquí" }] }. Texto original: "${idea}".${limitSuffix}`;
     } else {
       prompt = `Eres un estratega de contenidos. Genera una lista JSON bajo la clave "outputs" siguiendo ${structuredOutputExample}. Idea: "${idea}". Idioma solicitado: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas: ${platforms.join(
         ", "
@@ -113,27 +136,28 @@ const BasicMode: React.FC<BasicModeProps> = ({
           mode: "basic",
           preferSpeed: speed === "flash",
           preferReasoning: speed === "detailed" && !literalTranslation,
+          targetLanguage: language,
         }
       );
   };
 
+  const containerStyle = isMobile
+    ? commonStyles.twoFrameContainerMobile
+    : commonStyles.twoFrameContainer;
+
   return (
     <div
-      style={
-        isMobile
-          ? commonStyles.twoFrameContainerMobile
-          : commonStyles.twoFrameContainer
-      }
+      style={{
+        ...containerStyle,
+        flex: 1,
+        minHeight: 0,
+      }}
     >
       <div
         style={
           isMobile
             ? commonStyles.inputFrameMobile
-            : {
-                ...commonStyles.inputFrame,
-                padding: "4px 12px 4px 4px",
-                overflowY: "hidden",
-              }
+            : commonStyles.inputFrame
         }
       >
         <h3 style={commonStyles.frameTitle}>{copy.ideaLabel}</h3>
@@ -142,14 +166,12 @@ const BasicMode: React.FC<BasicModeProps> = ({
           style={{
             display: "flex",
             flexDirection: "column",
-            flex: 1,
-            minHeight: "120px",
             gap: "6px",
           }}
         >
           <textarea
             id="basic-idea"
-            style={{ ...commonStyles.textarea, height: "100%" }}
+            style={{ ...commonStyles.textarea, minHeight: "130px", maxHeight: "240px" }}
             value={idea}
             onChange={(e) => setIdea(e.target.value)}
             placeholder={copy.ideaPlaceholder}
@@ -183,11 +205,17 @@ const BasicMode: React.FC<BasicModeProps> = ({
               <select
                 style={{ ...commonStyles.select, padding: "8px" }}
                 value={language}
-                onChange={(e) => setLanguage(e.target.value as "es" | "en")}
+                onChange={(e) => setLanguage(e.target.value)}
               >
-                {languages.map((lang) => (
-                  <option key={lang.value} value={lang.value}>
+                {normalizedLanguageOptions.map((lang) => (
+                  <option
+                    key={lang.value}
+                    value={lang.value}
+                    disabled={lang.disabled}
+                    title={lang.disabled ? lang.reason : undefined}
+                  >
                     {lang.label}
+                    {lang.disabled ? " (no disponible)" : ""}
                   </option>
                 ))}
               </select>
