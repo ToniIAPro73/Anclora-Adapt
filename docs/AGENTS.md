@@ -83,9 +83,9 @@ npm run preview
 
 **Helpers Estándar** (refactorizar cuando sea posible):
 - `callTextModel(prompt)` → Ollama `/api/generate`
-- `callImageModel(prompt, base64Image?)` → Placeholder para imagen
-- `callTextToSpeech(text, voicePreset)` → Placeholder para TTS
-- `callSpeechToText(audioBlob)` → Placeholder para STT
+- `callImageModel(options)` → Generación de imagen vía backend (FastAPI /api/image, SDXL Lightning)
+- `callTextToSpeech(text, voicePreset, language?)` → Usa el backend FastAPI (`/api/tts`, Kokoro-82M)
+- `callSpeechToText(audioBlob)` → Usa el backend FastAPI (`/api/stt`, Faster-Whisper)
 - `fileToBase64(file)` → Convierte File a base64
 - `ensureApiKey()` → Valida credenciales
 

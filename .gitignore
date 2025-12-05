@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python virtualenvs                                                                          
+python-backend/venv/
+python-backend/.venv/
+venv/
+.venv/

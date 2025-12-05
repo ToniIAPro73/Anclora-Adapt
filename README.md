@@ -52,18 +52,19 @@ La raíz queda reservada para archivos estándar de un proyecto Vite/React (`pac
 ## Configuración rápida (`.env.local`)
 
 ```dotenv
+VITE_API_BASE_URL=http://localhost:8000
 VITE_OLLAMA_BASE_URL=http://localhost:11434
 VITE_TEXT_MODEL_ID=llama2
 
-# Imagen (bridge local opcional)
-VITE_IMAGE_MODEL_ENDPOINT=http://localhost:9090/image
-VITE_IMAGE_MODEL_ID=stable-diffusion
+# Imagen (FastAPI expone /api/image)
+VITE_IMAGE_MODEL_ENDPOINT=http://localhost:8000/api/image
+VITE_IMAGE_MODEL_ID=sdxl-lightning
 
-# Audio (configura tus endpoints si los tienes)
-VITE_TTS_ENDPOINT=http://localhost:9000/tts
-VITE_TTS_MODEL_ID=pyttsx3
-VITE_STT_ENDPOINT=
-VITE_STT_MODEL_ID=
+# Audio (FastAPI expone /api/tts y /api/stt)
+VITE_TTS_ENDPOINT=http://localhost:8000/api/tts
+VITE_TTS_MODEL_ID=kokoro
+VITE_STT_ENDPOINT=http://localhost:8000/api/stt
+VITE_STT_MODEL_ID=whisper-large-v3
 
 # (Opcional) Token para backends externos
 VITE_MODEL_API_KEY=
@@ -81,8 +82,8 @@ npm run dev          # Dev server (http://localhost:4173)
 npm run build        # Build de producción
 npm test             # Vitest + React Testing Library
 npm run check:health # Valida Ollama y endpoints configurados
-npm run image:bridge # Bridge HTTP -> Stable Diffusion (si lo necesitas)
-npm run tts:server   # Ejemplo simple de TTS (pyttsx3)
+node achive/tools/image-bridge.js # Bridge → Automatic1111 (legacy, opcional)
+python python-backend/main.py  # Backend FastAPI (Kokoro + Whisper + SDXL)
 ```
 
 > **Tip:** ejecuta `npm run check:health` antes de QA para asegurarte de que Ollama y tus endpoints opcionales responden.
@@ -114,18 +115,38 @@ Perfiles ejemplo:
 1. **Instala dependencias**  
    `npm install`
 
-2. **Arranca Ollama**  
+2. **Backend FastAPI (python-backend/)**  
+   ```bash
+   cd python-backend
+   python -m venv venv
+   .\\venv\\Scripts\\Activate.ps1
+   pip install -r requirements.txt
+   # Descarga kokoro.onnx + voices.json en python-backend/models/
+   python main.py
+   ```
+   El backend expone `/api/tts`, `/api/stt`, `/api/image` y `/api/voices`.
+
+3. **Arranca Ollama**  
    `ollama pull llama2` → `ollama serve`
 
-3. **(Opcional) Endpoints de imagen/voz**  
-   - Imagen: `npm run image:bridge` o apunta a tu servidor SD.
-   - TTS/STT: usa `python-backend` o scripts propios y actualiza `.env.local`.
+4. **(Opcional) Otros endpoints**  
+   - Imagen: usa el backend FastAPI (`/api/image`). Si prefieres Automatic1111, ejecuta `node achive/tools/image-bridge.js` (legacy).
+   - TTS/STT legacy: `npm run tts:server` sólo para pruebas rápidas.
 
-4. **Dev server**  
+5. **Dev server**  
    `npm run dev` → <http://localhost:4173>
 
-5. **Tests & build antes de publicar**  
+6. **Tests & build antes de publicar**  
    `npm test` → `npm run build`
+
+---
+
+## Selector de modelo, voces y salud
+
+- El selector de modelos consulta `GET ${VITE_OLLAMA_BASE_URL}/api/tags` y persiste la elección en `localStorage`.
+- El modo **Voz** llama a `GET ${VITE_TTS_ENDPOINT}/voices` (FastAPI expone `/api/voices`) para poblar idiomas/presets. Si la llamada falla, se muestran presets locales como fallback.
+- `npm run check:health` confirma rápidamente que Ollama y los endpoints configurados responden antes de abrir la SPA.
+- El modo **Imagen** permite elegir dimensiones (512–1216), pasos y negative prompt; todo se procesa desde `/api/image` (SDXL Lightning, 4–8 pasos recomendados).
 
 ---
 

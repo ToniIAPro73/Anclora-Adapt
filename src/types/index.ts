@@ -86,6 +86,15 @@ export interface ImageResponse {
   // The response is a Blob, not JSON
 }
 
+export interface ImageGenerationOptions {
+  prompt: string;
+  negativePrompt?: string;
+  width?: number;
+  height?: number;
+  steps?: number;
+  base64Image?: string;
+}
+
 // ==========================================
 // MODE PROP TYPES
 // ==========================================
@@ -192,7 +201,8 @@ export interface ParsedEnvConfig {
 export interface VoiceInfo {
   id: string;
   name: string;
-  language: string;
+  language?: string;
+  languages?: string[];
   gender?: "male" | "female" | "neutral";
 }
 

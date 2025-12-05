@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
-import type { InterfaceLanguage } from "../../types";
-import commonStyles from "../../styles/commonStyles";
-import { formatCounterText } from "../../utils/text";
-import type { OutputCopy } from "../common/OutputDisplay";
+import type { InterfaceLanguage, VoiceInfo } from "@/types";
+import commonStyles from "@/styles/commonStyles";
+import { formatCounterText } from "@/utils/text";
+import type { OutputCopy } from "@/components/common/OutputDisplay";
+import { fetchAvailableTtsVoices } from "@/api/models";
+import { DEFAULT_VOICE_PRESETS } from "@/services/audio";
 
 interface TtsCopy {
   textLabel: string;
@@ -23,11 +25,100 @@ type TTSModeProps = {
   interfaceLanguage: InterfaceLanguage;
   copy: TtsCopy;
   outputCopy: OutputCopy;
-  callTextToSpeech: (text: string, voicePreset: string) => Promise<string>;
+  callTextToSpeech: (
+    text: string,
+    voicePreset: string,
+    language?: string
+  ) => Promise<string>;
   speakWithBrowserTts: (text: string, language: string) => Promise<void>;
   ttsEndpoint: string;
   languageCodeMap: Record<string, string[]>;
   languageLabels: Record<string, string>;
+};
+
+const FALLBACK_VOICES: VoiceInfo[] = Object.values(DEFAULT_VOICE_PRESETS).map(
+  (preset) => ({
+    id: preset.id,
+    name: preset.name,
+    language: preset.language,
+    languages:
+      preset.languages && preset.languages.length
+        ? preset.languages
+        : [preset.language],
+    gender: preset.gender,
+  })
+);
+
+const normalizeVoiceLanguages = (
+  voice: VoiceInfo
+): string[] => {
+  const baseLanguages = new Set<string>();
+  if (voice.languages?.length) {
+    voice.languages.forEach((lang) => {
+      if (typeof lang === "string") {
+        baseLanguages.add(lang.toLowerCase());
+      }
+    });
+  }
+  if (voice.language) {
+    baseLanguages.add(voice.language.toLowerCase());
+  }
+  return Array.from(baseLanguages);
+};
+
+const mapVoicesByLanguage = (
+  voices: VoiceInfo[],
+  languageCodeMap: Record<string, string[]>,
+  languageLabels: Record<string, string>
+) => {
+  const grouped: Record<string, VoiceOption[]> = {};
+  const languages = new Set<string>();
+
+  voices.forEach((voice) => {
+    const normalizedLanguages = normalizeVoiceLanguages(voice);
+    if (!normalizedLanguages.length) return;
+
+    const matchingCodes = new Set<string>();
+
+    Object.entries(languageCodeMap).forEach(([langCode, patterns]) => {
+      const hasMatch = patterns.some((pattern) =>
+        normalizedLanguages.some((lang) =>
+          lang.startsWith(pattern.toLowerCase())
+        )
+      );
+      if (hasMatch) {
+        matchingCodes.add(langCode);
+      }
+    });
+
+    if (!matchingCodes.size) {
+      // Fallback: usar los dos primeros caracteres del idioma detectado
+      matchingCodes.add(normalizedLanguages[0].slice(0, 2));
+    }
+
+    const label = voice.name || voice.id;
+
+    matchingCodes.forEach((code) => {
+      if (!grouped[code]) {
+        grouped[code] = [];
+      }
+
+      grouped[code].push({
+        value: voice.id,
+        label,
+      });
+      languages.add(code);
+    });
+  });
+
+  const languageOptions: LanguageOption[] = Array.from(languages)
+    .sort()
+    .map((code) => ({
+      value: code,
+      label: languageLabels[code] || code.toUpperCase(),
+    }));
+
+  return { grouped, languageOptions };
 };
 
 const TTSMode: React.FC<TTSModeProps> = ({
@@ -41,7 +132,8 @@ const TTSMode: React.FC<TTSModeProps> = ({
   languageLabels,
 }) => {
   const [textToSpeak, setTextToSpeak] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState<string>("");
+  const [selectedLanguage, setSelectedLanguage] =
+    useState<string>(interfaceLanguage);
   const [selectedVoiceName, setSelectedVoiceName] = useState("");
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -66,13 +158,24 @@ const TTSMode: React.FC<TTSModeProps> = ({
 
   useEffect(() => {
     let isMounted = true;
-    const controller = new AbortController();
 
-    const fetchVoices = async () => {
+    const applyVoices = (voices: VoiceInfo[]) => {
+      const { grouped, languageOptions: mappedLanguages } =
+        mapVoicesByLanguage(voices, languageCodeMap, languageLabels);
+
+      if (isMounted) {
+        setVoiceOptionsByLanguage(grouped);
+        setLanguageOptions(mappedLanguages);
+        setVoiceLoadError(
+          mappedLanguages.length ? null : copy.errors.voices
+        );
+      }
+    };
+
+    const loadVoices = async () => {
       if (!normalizedEndpoint) {
+        applyVoices(FALLBACK_VOICES);
         if (isMounted) {
-          setLanguageOptions([]);
-          setVoiceOptionsByLanguage({});
           setVoiceLoadError(copy.errors.unavailable);
         }
         return;
@@ -82,73 +185,25 @@ const TTSMode: React.FC<TTSModeProps> = ({
       setVoiceLoadError(null);
 
       try {
-        const response = await fetch(
-          normalizedEndpoint.replace("/tts", "/voices"),
-          {
-            signal: controller.signal,
-          }
+        const remoteVoices = await fetchAvailableTtsVoices(
+          normalizedEndpoint
         );
 
-        if (!response.ok) {
-          throw new Error(copy.errors.voices);
+        if (!remoteVoices.length) {
+          applyVoices(FALLBACK_VOICES);
+          if (isMounted) {
+            setVoiceLoadError(copy.errors.voices);
+          }
+          return;
         }
 
-        const data = await response.json();
-        const voices = Array.isArray(data?.voices) ? data.voices : [];
-        const languages = new Set<string>();
-        const mapped: Record<string, VoiceOption[]> = {};
-
-        voices.forEach((voice: any) => {
-          const voiceLangs = Array.isArray(voice?.languages)
-            ? voice.languages
-            : [];
-
-          Object.entries(languageCodeMap).forEach(([langCode, patterns]) => {
-            const matches = patterns.some((pattern) =>
-              voiceLangs.some(
-                (lang) =>
-                  typeof lang === "string" &&
-                  lang.toLowerCase().startsWith(pattern.toLowerCase())
-              )
-            );
-
-            if (matches) {
-              if (!mapped[langCode]) {
-                mapped[langCode] = [];
-              }
-
-              mapped[langCode].push({
-                value: voice.id,
-                label: voice.name,
-              });
-              languages.add(langCode);
-            }
-          });
-        });
-
-        const languageList = Array.from(languages)
-          .sort()
-          .map((langCode) => ({
-            value: langCode,
-            label: languageLabels[langCode] || langCode,
-          }));
-
+        applyVoices(remoteVoices);
+      } catch (error) {
+        console.error("Error al cargar voces TTS:", error);
+        applyVoices(FALLBACK_VOICES);
         if (isMounted) {
-          setVoiceOptionsByLanguage(mapped);
-          setLanguageOptions(languageList);
           setVoiceLoadError(
-            languageList.length ? null : copy.errors.voices
-          );
-        }
-      } catch (fetchError) {
-        if (!controller.signal.aborted && isMounted) {
-          console.error("Error al cargar voces TTS:", fetchError);
-          setVoiceOptionsByLanguage({});
-          setLanguageOptions([]);
-          setVoiceLoadError(
-            fetchError instanceof Error
-              ? fetchError.message
-              : copy.errors.voices
+            error instanceof Error ? error.message : copy.errors.voices
           );
         }
       } finally {
@@ -158,11 +213,10 @@ const TTSMode: React.FC<TTSModeProps> = ({
       }
     };
 
-    fetchVoices();
+    loadVoices();
 
     return () => {
       isMounted = false;
-      controller.abort();
     };
   }, [
     copy.errors.unavailable,
@@ -173,13 +227,19 @@ const TTSMode: React.FC<TTSModeProps> = ({
   ]);
 
   useEffect(() => {
-    if (!selectedLanguage && languageOptions.length > 0) {
-      const preferredLang =
-        languageOptions.find((o) => o.value === "es")?.value ||
-        languageOptions[0]?.value;
-      setSelectedLanguage(preferredLang);
+    if (!languageOptions.length) return;
+
+    const preferred =
+      languageOptions.find((option) => option.value === interfaceLanguage) ||
+      languageOptions[0];
+
+    if (
+      preferred &&
+      languageOptions.every((option) => option.value !== selectedLanguage)
+    ) {
+      setSelectedLanguage(preferred.value);
     }
-  }, [selectedLanguage, languageOptions]);
+  }, [interfaceLanguage, languageOptions, selectedLanguage]);
 
   useEffect(() => {
     if (!selectedLanguage) {
@@ -227,7 +287,11 @@ const TTSMode: React.FC<TTSModeProps> = ({
         return;
       }
 
-      const audio = await callTextToSpeech(targetText, selectedVoiceName);
+      const audio = await callTextToSpeech(
+        targetText,
+        selectedVoiceName,
+        selectedLanguage || interfaceLanguage
+      );
       setAudioUrl(audio);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");

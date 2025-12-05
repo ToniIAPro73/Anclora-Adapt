@@ -1,4 +1,9 @@
 import { BlobLike } from "@/types/app";
+import type {
+  STTResponse,
+  VoiceInfo,
+  ImageGenerationOptions,
+} from "@/types";
 
 const env = import.meta.env;
 const OLLAMA_BASE_URL = (
@@ -7,7 +12,7 @@ const OLLAMA_BASE_URL = (
 const TEXT_MODEL_ID = (env.VITE_TEXT_MODEL_ID || "llama2").trim();
 const IMAGE_MODEL_ID = (env.VITE_IMAGE_MODEL_ID || "").trim();
 const IMAGE_ENDPOINT = (
-  env.VITE_IMAGE_MODEL_ENDPOINT || "http://localhost:9090/image"
+  env.VITE_IMAGE_MODEL_ENDPOINT || "http://localhost:8000/api/image"
 ).trim();
 const TTS_MODEL_ID = (env.VITE_TTS_MODEL_ID || "").trim();
 const TTS_ENDPOINT = (env.VITE_TTS_ENDPOINT || "").trim();
@@ -118,12 +123,19 @@ export const listAvailableTextModels = async (): Promise<string[]> => {
 };
 
 export const callImageModel = async (
-  prompt: string,
-  base64Image?: string
+  options: ImageGenerationOptions
 ): Promise<string> => {
+  const { prompt, negativePrompt, width, height, steps, base64Image } =
+    options;
+
+  const trimmedPrompt = prompt?.trim();
+  if (!trimmedPrompt) {
+    throw new Error("El prompt de la imagen no puede estar vacío");
+  }
+
   const endpoint = ensureEndpoint(
     IMAGE_ENDPOINT,
-    "Configura VITE_IMAGE_MODEL_ENDPOINT o ejecuta `npm run image:bridge` para un backend local de imagen"
+    "Configura VITE_IMAGE_MODEL_ENDPOINT (por defecto FastAPI /api/image) o apunta a tu backend de imágenes"
   );
 
   try {
@@ -133,7 +145,11 @@ export const callImageModel = async (
         headers: jsonHeaders(),
         body: JSON.stringify({
           model: IMAGE_MODEL_ID || undefined,
-          prompt,
+          prompt: trimmedPrompt,
+          negative_prompt: negativePrompt,
+          width,
+          height,
+          num_inference_steps: steps || 4,
           image: base64Image,
         }),
       })
@@ -161,7 +177,7 @@ export const callImageModel = async (
     // Si es un error de conexión (fetch failed), dar un mensaje más útil
     if (error instanceof Error && error.message.includes("fetch")) {
       throw new Error(
-        `No se pudo conectar con el generador de imágenes en ${endpoint}. Asegúrate de ejecutar 'npm run image:bridge'.`
+        `No se pudo conectar con el generador de imágenes en ${endpoint}. Asegúrate de que tu backend de imagen (python-backend/main.py) esté en ejecución.`
       );
     }
     throw error instanceof Error ? error : new Error(String(error));
@@ -170,7 +186,8 @@ export const callImageModel = async (
 
 export const callTextToSpeech = async (
   text: string,
-  voicePreset: string
+  voicePreset: string,
+  language?: string
 ): Promise<string> => {
   const endpoint = ensureEndpoint(
     TTS_ENDPOINT,
@@ -184,7 +201,8 @@ export const callTextToSpeech = async (
       body: JSON.stringify({
         model: TTS_MODEL_ID || undefined,
         inputs: text,
-        parameters: { voice_preset: voicePreset },
+        language: language || undefined,
+        voice_preset: voicePreset,
       }),
     })
   );
@@ -198,7 +216,9 @@ export const callTextToSpeech = async (
   return URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }));
 };
 
-export const callSpeechToText = async (audioBlob: Blob): Promise<string> => {
+export const callSpeechToText = async (
+  audioBlob: Blob
+): Promise<STTResponse> => {
   const endpoint = ensureEndpoint(
     STT_ENDPOINT,
     "Define VITE_STT_ENDPOINT para usar tu servicio local de STT"
@@ -218,7 +238,69 @@ export const callSpeechToText = async (audioBlob: Blob): Promise<string> => {
   }
 
   const payload = await response.json();
-  return payload?.text?.trim?.() ?? payload?.transcript ?? "";
+  return {
+    text: payload?.text?.trim?.() ?? payload?.transcript?.trim?.() ?? "",
+    language:
+      payload?.language?.toLowerCase?.() ??
+      payload?.detected_language?.toLowerCase?.() ??
+      "",
+    probability: Number(
+      payload?.probability ?? payload?.confidence ?? 0
+    ),
+  };
+};
+
+export const fetchAvailableTtsVoices = async (
+  baseEndpoint: string
+): Promise<VoiceInfo[]> => {
+  if (!baseEndpoint) return [];
+
+  const trimmed = baseEndpoint.replace(/\/$/, "");
+  const voicesEndpoint = trimmed.endsWith("/tts")
+    ? `${trimmed.slice(0, -4)}/voices`
+    : `${trimmed}/voices`;
+
+  try {
+    const response = await withTimeout(
+      fetch(voicesEndpoint, {
+        method: "GET",
+        headers: jsonHeaders(),
+      }),
+      15_000
+    );
+
+    if (!response.ok) return [];
+
+    const payload = await response.json();
+    const voices = Array.isArray(payload?.voices)
+      ? payload.voices
+      : Array.isArray(payload)
+      ? payload
+      : [];
+
+    return voices
+      .map((voice: any): VoiceInfo | null => {
+        if (typeof voice !== "object" || voice === null) return null;
+        const id = String(voice.id || voice.voice || voice.name || "");
+        if (!id) return null;
+        const languages = Array.isArray(voice.languages)
+          ? voice.languages
+          : voice.language
+          ? [voice.language]
+          : [];
+
+        return {
+          id,
+          name: String(voice.name || id),
+          languages,
+          language: languages[0]?.slice(0, 2),
+          gender: voice.gender,
+        };
+      })
+      .filter((voice): voice is VoiceInfo => Boolean(voice?.id));
+  } catch (error) {
+    return [];
+  }
 };
 
 export const buildBlobLikeFromBase64 = (dataUrl: string): BlobLike => {
