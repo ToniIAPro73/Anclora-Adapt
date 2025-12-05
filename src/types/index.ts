@@ -37,6 +37,7 @@ export type AutoModelContext = {
   preferSpeed?: boolean;
   preferReasoning?: boolean;
   preferChat?: boolean;
+  targetLanguage?: string;
 };
 
 export const AUTO_TEXT_MODEL_ID = "auto";
@@ -159,6 +160,8 @@ export interface InteractionContextType {
   // Model Selection
   selectedModel: string;
   setSelectedModel: (model: string) => void;
+  lastModelUsed: string | null;
+  setLastModelUsed: (model: string | null) => void;
 
   // Media (for image/voice modes)
   selectedFile: File | null;

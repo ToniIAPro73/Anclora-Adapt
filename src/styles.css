@@ -19,6 +19,10 @@
   --toggle-inactive-text: #475467;
   --toggle-active-text: #2eafc4;
   --button-contrast: #162032;
+  --tab-bg: #ffffff;
+  --tab-text: #162032;
+  --tab-border: rgba(22, 32, 50, 0.2);
+  --tab-text-contrast: #ffffff;
 }
 :root[data-theme="dark"] {
   --azul-profundo: #e5edf7;
@@ -41,6 +45,10 @@
   --toggle-inactive-text: #94a3b8;
   --toggle-active-text: #6ed8e7;
   --button-contrast: #0b1220;
+  --tab-bg: #ffffff;
+  --tab-text: #162032;
+  --tab-border: rgba(22, 32, 50, 0.2);
+  --tab-text-contrast: #ffffff;
 }
 
 html {

@@ -36,6 +36,10 @@ import {
 import { useLanguage } from "@/context/LanguageContext";
 import { useInteraction } from "@/context/InteractionContext";
 import { STT_ENDPOINT, TTS_ENDPOINT } from "@/config";
+import {
+  buildLanguageOptions,
+  LanguageOptionAvailability,
+} from "@/constants/modelCapabilities";
 
 const extractJsonPayload = (raw: string) => {
   const start = raw.indexOf("{");
@@ -140,6 +144,7 @@ const App: React.FC = () => {
     setSelectedModel,
     imageUrl,
     setImageUrl,
+    setLastModelUsed,
   } = useInteraction();
 
   const [availableModels, setAvailableModels] = useState<string[]>([]);
@@ -148,6 +153,21 @@ const App: React.FC = () => {
   const [resetCounter, setResetCounter] = useState(0);
 
   const copy = translations[language];
+
+  const installedModels = useMemo(() => {
+    const set = new Set<string>();
+    availableModels.forEach((model) => set.add(model));
+    if (selectedModel) {
+      set.add(selectedModel);
+    }
+    set.add(DEFAULT_TEXT_MODEL_ID);
+    return Array.from(set);
+  }, [availableModels, selectedModel]);
+
+  const languageOptions: LanguageOptionAvailability[] = useMemo(
+    () => buildLanguageOptions(selectedModel, installedModels),
+    [selectedModel, installedModels]
+  );
 
   const tabs: { id: AppMode; label: string }[] = useMemo(
     () => [
@@ -225,6 +245,25 @@ const App: React.FC = () => {
         return index >= 0 ? pool[index] : null;
       };
 
+      if (context?.targetLanguage && context.targetLanguage !== "detect") {
+        const lang = context.targetLanguage.toLowerCase();
+        const needsCjkSupport = ["ja", "zh", "ko"].includes(lang);
+        const needsCyrillicSupport = ["ru"].includes(lang);
+
+        if (needsCjkSupport) {
+          const cjkReady = findByKeywords([
+            "qwen",
+            "yi",
+            "gemma",
+            "mistral",
+          ]);
+          if (cjkReady) return cjkReady;
+        } else if (needsCyrillicSupport) {
+          const cyrillicReady = findByKeywords(["qwen", "mistral", "llama3"]);
+          if (cyrillicReady) return cyrillicReady;
+        }
+      }
+
       if (context?.preferChat || context?.preferSpeed) {
         const speedy = findByKeywords(["phi", "mini", "chat", "orca"]);
         if (speedy) return speedy;
@@ -249,6 +288,7 @@ const App: React.FC = () => {
       try {
         const enforcedPrompt = `${prompt}\nResponde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutputExample}`;
         const modelIdToUse = resolveTextModelId(context);
+        setLastModelUsed(modelIdToUse);
         const rawResponse = await callTextModel(enforcedPrompt, modelIdToUse);
         const parsed = JSON.parse(extractJsonPayload(rawResponse));
         const normalized = normalizeOutputs(parsed);
@@ -316,6 +356,7 @@ const App: React.FC = () => {
             interfaceLanguage={language}
             onGenerate={handleGenerate}
             onCopy={handleCopy}
+            languageOptions={languageOptions}
           />
         );
       case "intelligent":
@@ -328,6 +369,7 @@ const App: React.FC = () => {
             onGenerate={handleGenerate}
             onCopy={handleCopy}
             onGenerateImage={callImageModel}
+            languageOptions={languageOptions}
           />
         );
       case "campaign":
@@ -339,6 +381,7 @@ const App: React.FC = () => {
             interfaceLanguage={language}
             onGenerate={handleGenerate}
             onCopy={handleCopy}
+            languageOptions={languageOptions}
           />
         );
       case "recycle":
@@ -350,6 +393,7 @@ const App: React.FC = () => {
             interfaceLanguage={language}
             onGenerate={handleGenerate}
             onCopy={handleCopy}
+            languageOptions={languageOptions}
           />
         );
       case "chat":

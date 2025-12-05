@@ -18,6 +18,7 @@ interface ModelCopy {
   loading: string;
   reset: string;
   auto?: string;
+  lastUsed?: string;
 }
 
 interface HelpConfig {
@@ -68,7 +69,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 }) => {
   const { theme, setTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
-  const { activeMode } = useInteraction();
+  const { activeMode, lastModelUsed } = useInteraction();
 
   return (
     <div style={commonStyles.mainContainer}>
@@ -139,7 +140,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               </select>
               <button
                 type="button"
-                style={{ ...commonStyles.copyButton, padding: "6px 10px" }}
+                style={{
+                  ...commonStyles.copyButton,
+                  padding: "6px 10px",
+                  color: "#fff",
+                  backgroundColor: "var(--tab-text, #162032)",
+                }}
                 onClick={() => void onRefreshModels()}
                 disabled={isRefreshingModels}
                 title={modelCopy.refresh}
@@ -147,6 +153,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                 {isRefreshingModels ? "…" : "↻"}
               </button>
             </div>
+            {lastModelUsed && (
+              <span style={commonStyles.settingsHint}>
+                {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
+              </span>
+            )}
           </div>
 
           <div style={{ ...commonStyles.settingsGroup, marginLeft: "auto" }}>
@@ -158,7 +169,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               aria-label={modelCopy.reset}
             >
               <RefreshCw size={18} />
-              <span style={{ fontWeight: 700 }}>
+              <span>
                 {language === "es" ? "Reiniciar" : "Reset"}
               </span>
             </button>

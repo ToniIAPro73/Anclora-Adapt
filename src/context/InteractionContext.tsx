@@ -57,6 +57,7 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
       DEFAULT_TEXT_MODEL_ID
     );
   });
+  const [lastModelUsed, setLastModelUsed] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -99,6 +100,8 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
     // Model Selection
     selectedModel,
     setSelectedModel: setSelectedModelState,
+    lastModelUsed,
+    setLastModelUsed,
 
     // Media
     selectedFile,

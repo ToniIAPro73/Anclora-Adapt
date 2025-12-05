@@ -4,6 +4,7 @@ import type {
   AutoModelContext,
 } from "@/types";
 import { languages, recycleOptions, tones } from "@/constants/options";
+import type { LanguageOptionAvailability } from "@/constants/modelCapabilities";
 import { structuredOutputExample } from "@/constants/prompts";
 import commonStyles from "@/styles/commonStyles";
 import { formatCounterText } from "@/utils/text";
@@ -31,6 +32,7 @@ type RecycleModeProps = {
   onCopy: (text: string) => void;
   copy: RecycleCopy;
   outputCopy: OutputCopy;
+  languageOptions: LanguageOptionAvailability[];
 };
 
 const formatLibrary: Record<string, string> = {
@@ -49,6 +51,7 @@ const RecycleMode: React.FC<RecycleModeProps> = ({
   interfaceLanguage,
   copy,
   outputCopy,
+  languageOptions,
 }) => {
   const {
     isLoading,
@@ -75,6 +78,26 @@ const RecycleMode: React.FC<RecycleModeProps> = ({
   useEffect(() => setImageUrl(null), [setImageUrl]);
   useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
 
+  const normalizedLanguageOptions =
+    languageOptions?.length > 0
+      ? languageOptions
+      : languages.map((lang) => ({ ...lang, disabled: false }));
+
+  useEffect(() => {
+    if (
+      !normalizedLanguageOptions.some(
+        (option) => option.value === language && !option.disabled
+      )
+    ) {
+      const fallback =
+        normalizedLanguageOptions.find((option) => !option.disabled)?.value ||
+        "es";
+      if (fallback && fallback !== language) {
+        setLanguage(fallback);
+      }
+    }
+  }, [normalizedLanguageOptions, language]);
+
   const handleGenerate = async () => {
     if (!inputText.trim()) {
       setError(copy.errors.original);
@@ -96,6 +119,7 @@ const RecycleMode: React.FC<RecycleModeProps> = ({
       await onGenerate(prompt, {
         mode: "recycle",
         preferReasoning: true,
+        targetLanguage: language,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
@@ -241,11 +265,17 @@ const RecycleMode: React.FC<RecycleModeProps> = ({
                   fontSize: "0.85em",
                 }}
                 value={language}
-                onChange={(e) => setLanguage(e.target.value as "es" | "en")}
+                onChange={(e) => setLanguage(e.target.value)}
               >
-                {languages.map((l) => (
-                  <option key={l.value} value={l.value}>
+                {normalizedLanguageOptions.map((l) => (
+                  <option
+                    key={l.value}
+                    value={l.value}
+                    disabled={l.disabled}
+                    title={l.disabled ? l.reason : undefined}
+                  >
                     {l.label}
+                    {l.disabled ? " (no disponible)" : ""}
                   </option>
                 ))}
               </select>
