@@ -1,0 +1,2517 @@
+const translations: Record<
+  InterfaceLanguage,
+  {
+    title: string;
+    subtitle: string;
+    help: string;
+    helpTitle: string;
+    helpTips: string[];
+    tabs: {
+      basic: string;
+      intelligent: string;
+      campaign: string;
+      recycle: string;
+      chat: string;
+      tts: string;
+      live: string;
+      image: string;
+    };
+    toggles: {
+      themeLight: string;
+      themeDark: string;
+      themeSystem: string;
+      langEs: string;
+      langEn: string;
+    };
+    modelSelector: {
+      label: string;
+      current: string;
+      refresh: string;
+      loading: string;
+      error: string;
+    };
+    output: {
+      loading: string;
+      downloadAudio: string;
+      downloadImage: string;
+      copy: string;
+    };
+    basic: {
+      ideaLabel: string;
+      ideaPlaceholder: string;
+      languageLabel: string;
+      toneLabel: string;
+      speedLabel: string;
+      speedDetailed: string;
+      speedFlash: string;
+      platformLabel: string;
+      literalLabel: string;
+      maxCharsLabel: string;
+      buttonIdle: string;
+      buttonLoading: string;
+      outputs: string;
+      emptyState: string;
+      errors: { idea: string; platforms: string };
+    };
+    intelligent: {
+      ideaLabel: string;
+      ideaPlaceholder: string;
+      contextLabel: string;
+      contextPlaceholder: string;
+      languageLabel: string;
+      deepThinkingLabel: string;
+      includeImageLabel: string;
+      imagePromptLabel: string;
+      imagePromptPlaceholder: string;
+      buttonIdle: string;
+      buttonLoading: string;
+      errors: { idea: string; imagePrompt: string };
+    };
+    campaign: {
+      ideaLabel: string;
+      ideaPlaceholder: string;
+      contextLabel: string;
+      contextPlaceholder: string;
+      languageLabel: string;
+      buttonIdle: string;
+      buttonLoading: string;
+      errors: { idea: string };
+    };
+    recycle: {
+      originalLabel: string;
+      originalPlaceholder: string;
+      contextLabel: string;
+      contextPlaceholder: string;
+      formatLabel: string;
+      languageLabel: string;
+      toneLabel: string;
+      buttonIdle: string;
+      buttonLoading: string;
+      errors: { original: string };
+    };
+    chat: {
+      intro: string;
+      placeholder: string;
+      button: string;
+      typing: string;
+    };
+    tts: {
+      textLabel: string;
+      textPlaceholder: string;
+      languageLabel: string;
+      voiceLabel: string;
+      buttonIdle: string;
+      buttonLoading: string;
+      errors: { text: string };
+    };
+    live: {
+      intro: string;
+      buttonStart: string;
+      buttonStop: string;
+      transcriptLabel: string;
+      errors: { microphone: string };
+    };
+    image: {
+      promptLabel: string;
+      promptPlaceholder: string;
+      buttonIdle: string;
+      buttonLoading: string;
+      errors: { prompt: string };
+    };
+  }
+> = {
+  es: {
+    title: "AncloraAdapt",
+    subtitle: "Adapta, planifica y recicla contenido con modelos open source.",
+    help: "Explora cada modo, agrega contexto y prueba prompts cortos antes de compartirlos.",
+    helpTitle: "Guia rapida",
+    helpTips: [
+      "Completa el contexto/destino en cada modo para resultados mas precisos.",
+      "Activa el proxy local (npm run dev) para evitar errores CORS con Hugging Face.",
+      "Recuerda que la interfaz arranca en español; cambia a ingles con el toggle de idioma.",
+    ],
+    tabs: {
+      basic: "Basico",
+      intelligent: "Inteligente",
+      campaign: "Campaña",
+      recycle: "Reciclar",
+      chat: "Chat",
+      tts: "Voz",
+      live: "Live chat",
+      image: "Imagen",
+    },
+    toggles: {
+      themeLight: "Modo claro",
+      themeDark: "Modo oscuro",
+      themeSystem: "Seguir el modo del sistema",
+      langEs: "Interfaz en espanol",
+      langEn: "Interfaz en ingles",
+    },
+    modelSelector: {
+      label: "Modelo de texto",
+      current: "Modelo en uso",
+      refresh: "Actualizar modelos",
+      loading: "Actualizando...",
+      error: "No se pudo listar los modelos",
+    },
+    output: {
+      loading: "La IA esta trabajando...",
+      downloadAudio: "Descargar audio",
+      downloadImage: "Descargar imagen",
+      copy: "Copiar",
+    },
+    basic: {
+      ideaLabel: "Tu idea principal",
+      ideaPlaceholder: "Quiero contar que...",
+      languageLabel: "Idioma",
+      toneLabel: "Tono",
+      speedLabel: "Velocidad",
+      speedDetailed: "Detallado",
+      speedFlash: "Flash",
+      platformLabel: "Plataformas",
+      literalLabel: "Forzar traduccion literal (sin tono ni plataformas)",
+      maxCharsLabel: "Maximo de caracteres",
+      buttonIdle: "Generar contenido",
+      buttonLoading: "Generando...",
+      outputs: "Resultados",
+      emptyState: "Aquí aparecerán los resultados generados",
+      errors: {
+        idea: "Describe tu idea principal.",
+        platforms: "Selecciona al menos una plataforma.",
+      },
+    },
+    intelligent: {
+      ideaLabel: "Describe tu necesidad",
+      ideaPlaceholder: "Necesito adaptar un anuncio...",
+      contextLabel: "Contexto / Destino",
+      contextPlaceholder: "Equipo de ventas, newsletter, etc.",
+      languageLabel: "Idioma de salida",
+      deepThinkingLabel: "Pensamiento profundo",
+      includeImageLabel: "Incluir imagen generada",
+      imagePromptLabel: "Prompt de imagen",
+      imagePromptPlaceholder: "Una ilustracion minimalista...",
+      buttonIdle: "Generar adaptaciones",
+      buttonLoading: "Interpretando...",
+      errors: {
+        idea: "Describe lo que necesitas.",
+        imagePrompt: "Escribe el prompt para la imagen.",
+      },
+    },
+    campaign: {
+      ideaLabel: "Idea central de la campaña",
+      ideaPlaceholder: "Ej: Lanzamiento express de...",
+      contextLabel: "Contexto / Destino",
+      contextPlaceholder: "Canales disponibles, presupuesto, etc.",
+      languageLabel: "Idioma de salida",
+      buttonIdle: "Generar campaña",
+      buttonLoading: "Construyendo campaña...",
+      errors: {
+        idea: "Describe la idea base de tu campaña.",
+      },
+    },
+    recycle: {
+      originalLabel: "Contenido original",
+      originalPlaceholder: "Pega el texto que quieres reciclar...",
+      contextLabel: "Contexto / Destino",
+      contextPlaceholder: "Donde se publicara, objetivo, etc.",
+      formatLabel: "Formato deseado",
+      languageLabel: "Idioma",
+      toneLabel: "Tono",
+      buttonIdle: "Reciclar contenido",
+      buttonLoading: "Reciclando...",
+      errors: {
+        original: "Pega el contenido original.",
+      },
+    },
+    chat: {
+      intro: "Conversa con AncloraAI para resolver dudas rapidas.",
+      placeholder: "Escribe tu mensaje...",
+      button: "Enviar",
+      typing: "Pensando...",
+    },
+    tts: {
+      textLabel: "Texto a convertir a voz",
+      textPlaceholder: "Hola, hoy lanzamos...",
+      languageLabel: "Idioma de la voz",
+      voiceLabel: "Selecciona la voz",
+      buttonIdle: "Generar voz",
+      buttonLoading: "Generando audio...",
+      errors: {
+        text: "Escribe el texto a convertir.",
+      },
+    },
+    live: {
+      intro: "Graba un fragmento corto y obten respuesta inmediata.",
+      buttonStart: "Hablar",
+      buttonStop: "Detener",
+      transcriptLabel: "Transcripcion",
+      errors: {
+        microphone: "No se pudo acceder al microfono.",
+      },
+    },
+    image: {
+      promptLabel: "Prompt de imagen",
+      promptPlaceholder: "Describe la escena que necesitas...",
+      buttonIdle: "Generar/Editar",
+      buttonLoading: "Procesando...",
+      errors: {
+        prompt: "Escribe un prompt o sube una imagen.",
+      },
+    },
+  },
+  en: {
+    title: "AncloraAdapt",
+    subtitle: "Adapt, plan and recycle content with open-source models.",
+    help: "Explore each mode, add context and test short prompts before sharing.",
+    helpTitle: "Quick tips",
+    helpTips: [
+      "Fill the context/destination field to steer the generations.",
+      "Use the local proxy (npm run dev) to avoid Hugging Face CORS issues.",
+      "The UI defaults to Spanish; switch to English with the language toggle anytime.",
+    ],
+    tabs: {
+      basic: "Basic",
+      intelligent: "Intelligent",
+      campaign: "Campaign",
+      recycle: "Repurpose",
+      chat: "Chat",
+      tts: "Voice",
+      live: "Live chat",
+      image: "Image",
+    },
+    toggles: {
+      themeLight: "Light mode",
+      themeDark: "Dark mode",
+      themeSystem: "Match system theme",
+      langEs: "Interface in Spanish",
+      langEn: "Interface in English",
+    },
+    modelSelector: {
+      label: "Text model",
+      current: "Current model",
+      refresh: "Refresh models",
+      loading: "Refreshing...",
+      error: "Could not list the models",
+    },
+    output: {
+      loading: "The AI is crafting your content...",
+      downloadAudio: "Download audio",
+      downloadImage: "Download image",
+      copy: "Copy",
+    },
+    basic: {
+      ideaLabel: "Your main idea",
+      ideaPlaceholder: "I want to announce...",
+      languageLabel: "Output language",
+      toneLabel: "Tone",
+      speedLabel: "Detail level",
+      speedDetailed: "Detailed",
+      speedFlash: "Flash",
+      platformLabel: "Platforms",
+      literalLabel: "Literal translation only (disable tone/platforms)",
+      maxCharsLabel: "Maximum characters",
+      buttonIdle: "Generate content",
+      buttonLoading: "Generating...",
+      outputs: "Results",
+      emptyState: "Generated results will appear here",
+      errors: {
+        idea: "Describe your main idea.",
+        platforms: "Select at least one platform.",
+      },
+    },
+    intelligent: {
+      ideaLabel: "Describe your need",
+      ideaPlaceholder: "I need to adapt an offer...",
+      contextLabel: "Context / Destination",
+      contextPlaceholder: "Sales team, newsletter, etc.",
+      languageLabel: "Output language",
+      deepThinkingLabel: "Deep thinking",
+      includeImageLabel: "Include generated image",
+      imagePromptLabel: "Image prompt",
+      imagePromptPlaceholder: "A minimalist illustration...",
+      buttonIdle: "Generate adaptations",
+      buttonLoading: "Interpreting...",
+      errors: {
+        idea: "Describe what you need.",
+        imagePrompt: "Provide the image prompt.",
+      },
+    },
+    campaign: {
+      ideaLabel: "Campaign idea",
+      ideaPlaceholder: "Ex: Express launch for...",
+      contextLabel: "Context / Destination",
+      contextPlaceholder: "Available channels, budget, etc.",
+      languageLabel: "Output language",
+      buttonIdle: "Generate campaign",
+      buttonLoading: "Building campaign...",
+      errors: {
+        idea: "Describe the core idea for the campaign.",
+      },
+    },
+    recycle: {
+      originalLabel: "Original content",
+      originalPlaceholder: "Paste the text you want to repurpose...",
+      contextLabel: "Context / Destination",
+      contextPlaceholder: "Where will it be published?",
+      formatLabel: "Desired format",
+      languageLabel: "Language",
+      toneLabel: "Tone",
+      buttonIdle: "Repurpose content",
+      buttonLoading: "Repurposing...",
+      errors: {
+        original: "Paste the original content.",
+      },
+    },
+    chat: {
+      intro: "Chat with AncloraAI for quick guidance.",
+      placeholder: "Type your message...",
+      button: "Send",
+      typing: "Typing...",
+    },
+    tts: {
+      textLabel: "Text to convert",
+      textPlaceholder: "Hello, today we launch...",
+      languageLabel: "Voice language",
+      voiceLabel: "Voice",
+      buttonIdle: "Generate voice",
+      buttonLoading: "Generating audio...",
+      errors: {
+        text: "Provide the text to convert.",
+      },
+    },
+    live: {
+      intro: "Record a short snippet and get an instant reply.",
+      buttonStart: "Start talking",
+      buttonStop: "Stop",
+      transcriptLabel: "Transcript",
+      errors: {
+        microphone: "Unable to access microphone.",
+      },
+    },
+    image: {
+      promptLabel: "Image prompt",
+      promptPlaceholder: "Describe the scene you need...",
+      buttonIdle: "Generate/Edit",
+      buttonLoading: "Processing...",
+      errors: {
+        prompt: "Write a prompt or upload an image.",
+      },
+    },
+  },
+};
+
+const getStoredTheme = (): ThemeMode => {
+  if (typeof window === "undefined") {
+    return "system";
+  }
+  const stored = window.localStorage.getItem("anclora.theme");
+  return stored === "light" || stored === "dark" || stored === "system"
+    ? stored
+    : "system";
+};
+
+const getStoredLanguage = (): InterfaceLanguage => {
+  if (typeof window === "undefined") {
+    return "es";
+  }
+  const stored = window.localStorage.getItem("anclora.lang");
+  return stored === "en" ? "en" : "es";
+};
+
+const getStoredTextModel = (): string => {
+  if (typeof window === "undefined") {
+    return DEFAULT_TEXT_MODEL_ID;
+  }
+  return (
+    window.localStorage.getItem("anclora.textModel") || DEFAULT_TEXT_MODEL_ID
+  );
+};
+
+const commonStyles: Record<string, React.CSSProperties> = {
+  container: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "stretch",
+    width: "100vw", // Ancho total del viewport
+    height: "100vh", // Alto fijo al 100% del viewport
+    maxWidth: "100%",
+    margin: "0",
+    padding: "12px",
+    boxSizing: "border-box",
+    gap: "12px",
+    overflow: "hidden", // ELIMINA el scroll de la página principal
+    backgroundColor: "var(--gris-fondo, #f6f7f9)",
+  },
+  header: {
+    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    flexShrink: 0, // Asegura que el header no se encoja
+  },
+  headerTop: {
+    textAlign: "center",
+  },
+  headerControls: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "8px",
+    alignItems: "center",
+    flexWrap: "wrap",
+    width: "100%",
+    boxSizing: "border-box",
+    minWidth: 0,
+  },
+  modelSelector: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+    flex: "1 1 auto",
+    minWidth: "160px",
+    maxWidth: "300px",
+  },
+  modelSelectorRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  helperText: {
+    fontSize: "12px",
+    color: "var(--texto-secundario, #4b5563)",
+  },
+  toggleGroup: {
+    display: "flex",
+    gap: "8px",
+    padding: "6px",
+    borderRadius: "999px",
+    backgroundColor: "var(--toggle-track, var(--gris-fondo, #f6f7f9))",
+    border: "1px solid var(--panel-border, #e0e0e0)",
+  },
+  toggleButton: {
+    border: "none",
+    background: "transparent",
+    padding: "8px 14px",
+    borderRadius: "999px",
+    fontWeight: 600,
+    color: "var(--toggle-inactive-text, var(--texto, #162032))",
+    opacity: 0.75,
+    cursor: "pointer",
+    transition:
+      "color 0.2s ease, opacity 0.2s ease, background-color 0.2s ease",
+  },
+  toggleButtonActive: {
+    backgroundColor: "var(--toggle-active-bg, var(--blanco, #FFFFFF))",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+    color: "var(--toggle-active-text, var(--azul-claro, #2EAFC4))",
+    opacity: 1,
+  },
+  title: {
+    fontFamily: "Libre Baskerville, serif",
+    fontSize: "clamp(1.8em, 5vw, 2.2em)",
+    margin: 0,
+    color: "var(--azul-profundo, #23436B)",
+    wordBreak: "break-word",
+  },
+  subtitle: {
+    fontFamily: "Inter, sans-serif",
+    fontSize: "1em",
+    margin: 0,
+    color: "var(--texto, #162032)",
+    opacity: 0.8,
+  },
+  mainContent: {
+    flex: 1, // Ocupa todo el espacio vertical restante
+    width: "100%",
+    backgroundColor: "var(--panel-bg, #FFFFFF)",
+    borderRadius: "18px",
+    padding: "16px",
+    boxShadow: "var(--panel-shadow, 0 10px 40px rgba(0,0,0,0.06))",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    boxSizing: "border-box",
+    overflow: "hidden", // Importante: contiene el scroll dentro del panel
+    minHeight: 0, // Necesario para que flexbox maneje el scroll interno
+  },
+  modeScrollArea: {
+    flex: 1, // Se expande para llenar el panel
+    minHeight: 0,
+    width: "100%",
+    height: "100%", // Fuerza altura completa
+    boxSizing: "border-box",
+    overflow: "auto", // Permite scroll cuando sea necesario
+    display: "flex",
+    flexDirection: "column",
+  },
+  tabNavigation: {
+    display: "flex",
+    flexWrap: "wrap",
+    borderBottom: "1px solid var(--panel-border, #e0e0e0)",
+    gap: "4px",
+    justifyContent: "center",
+    width: "100%",
+    boxSizing: "border-box",
+    overflow: "hidden",
+    flexShrink: 0,
+  },
+  tabButton: {
+    background: "transparent",
+    border: "none",
+    padding: "12px 10px",
+    fontWeight: 600,
+    cursor: "pointer",
+    color: "var(--texto, #162032)",
+    opacity: 0.7,
+    whiteSpace: "nowrap",
+    fontSize: "clamp(0.85em, 2vw, 1em)",
+  },
+  tabButtonActive: {
+    color: "var(--azul-claro, #2EAFC4)",
+    opacity: 1,
+  },
+  modeRoot: {
+    width: "100%",
+    height: "100%",
+    boxSizing: "border-box",
+  },
+  modeInputsColumn: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    paddingRight: "0",
+    minHeight: 0,
+    width: "100%",
+    boxSizing: "border-box",
+  },
+  modeOutputsColumn: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    minHeight: 0,
+  },
+  section: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    padding: "0",
+    width: "100%",
+    boxSizing: "border-box",
+  },
+  label: {
+    fontWeight: 600,
+    color: "var(--azul-profundo, #23436B)",
+  },
+  textarea: {
+    width: "100%",
+    minHeight: "80px", // Altura mínima reducida para pantallas pequeñas
+    borderRadius: "10px",
+    border: "1px solid var(--panel-border, #e0e0e0)",
+    padding: "14px",
+    fontSize: "1em",
+    resize: "none", // Evita que el usuario rompa el layout
+    backgroundColor: "var(--input-bg, #FFFFFF)",
+    color: "var(--texto, #162032)",
+    boxSizing: "border-box",
+  },
+  select: {
+    width: "100%",
+    borderRadius: "10px",
+    border: "1px solid var(--panel-border, #e0e0e0)",
+    padding: "10px",
+    backgroundColor: "var(--input-bg, #FFFFFF)",
+    color: "var(--texto, #162032)",
+  },
+  checkboxLabel: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    fontWeight: 600,
+    color: "var(--texto, #162032)",
+  },
+  configSection: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "16px",
+    padding: "0",
+    width: "100%",
+    boxSizing: "border-box",
+  },
+  configGroup: {
+    flex: "1 1 200px",
+    minWidth: 0,
+  },
+  checkboxRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "8px",
+  },
+  checkboxChip: {
+    padding: "6px 12px",
+    borderRadius: "16px",
+    backgroundColor: "var(--chip-bg, #ecf0f1)",
+    color: "var(--chip-text, #162032)",
+    border: "1px solid var(--panel-border, #e0e0e0)",
+    cursor: "pointer",
+  },
+  generateButton: {
+    padding: "14px 16px",
+    borderRadius: "12px",
+    border: "none",
+    backgroundImage:
+      "linear-gradient(90deg, var(--azul-claro, #2EAFC4), var(--ambar, #FFC979))",
+    fontWeight: 700,
+    color: "var(--button-contrast, #162032)",
+    cursor: "pointer",
+    margin: "0",
+    width: "100%",
+    boxSizing: "border-box",
+  },
+  errorMessage: {
+    backgroundColor: "var(--danger-bg, #fdecea)",
+    color: "var(--danger-text, #c0392b)",
+    padding: "12px",
+    borderRadius: "10px",
+    margin: "0",
+    width: "100%",
+    boxSizing: "border-box",
+  },
+  loadingMessage: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "10px",
+  },
+  spinner: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "50%",
+    border: "4px solid rgba(0,0,0,0.1)",
+    borderTop: "4px solid var(--azul-claro, #2EAFC4)",
+    animation: "spin 1s linear infinite",
+  },
+  outputSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+    height: "100%",
+    minHeight: 0,
+    overflowY: "auto",
+  },
+  outputGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+    gap: "16px",
+  },
+  outputCard: {
+    border: "1px solid var(--panel-border, #e0e0e0)",
+    borderRadius: "12px",
+    padding: "18px",
+    minHeight: "180px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    backgroundColor: "var(--panel-bg, #FFFFFF)",
+  },
+  copyButton: {
+    alignSelf: "flex-end",
+    border: "1px solid var(--azul-claro, #2EAFC4)",
+    borderRadius: "8px",
+    padding: "8px 12px",
+    backgroundColor: "var(--panel-bg, #FFFFFF)",
+    color: "var(--azul-claro, #2EAFC4)",
+    cursor: "pointer",
+  },
+  chatContainer: {
+    border: "1px solid var(--panel-border, #e0e0e0)",
+    borderRadius: "12px",
+    padding: "20px 18px",
+    minHeight: "0",
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    backgroundColor: "var(--panel-bg, #FFFFFF)",
+    width: "100%",
+    boxSizing: "border-box",
+    flex: 1,
+  },
+  chatMessage: {
+    borderRadius: "14px",
+    padding: "12px 14px",
+    maxWidth: "80%",
+    boxShadow: "0 6px 16px rgba(15, 23, 42, 0.1)",
+  },
+  userMessage: {
+    alignSelf: "flex-end",
+    backgroundColor: "var(--azul-claro, #2EAFC4)",
+    color: "var(--blanco, #FFFFFF)",
+    marginLeft: "40px",
+    marginRight: "4px",
+  },
+  aiMessage: {
+    alignSelf: "flex-start",
+    backgroundColor: "var(--chip-bg, #ecf0f1)",
+    color: "var(--chip-text, #162032)",
+    marginRight: "40px",
+    marginLeft: "4px",
+  },
+  chatInputWrapper: {
+    width: "100%",
+    padding: "0",
+    boxSizing: "border-box",
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  },
+  chatInputRow: {
+    display: "flex",
+    gap: "10px",
+    width: "100%",
+    alignItems: "stretch",
+  },
+  chatTextInput: {
+    flex: 1,
+    borderRadius: "10px",
+    border: "1px solid var(--panel-border, #e0e0e0)",
+    padding: "10px",
+    minHeight: "60px",
+    backgroundColor: "var(--input-bg, #FFFFFF)",
+    color: "var(--texto, #162032)",
+    minWidth: 0,
+    width: "100%",
+  },
+  chatCounters: {
+    width: "100%",
+    display: "flex",
+    justifyContent: "flex-end",
+    fontSize: "12px",
+    color: "var(--texto, #162032)",
+    opacity: 0.85,
+    paddingRight: "0",
+  },
+  helpButton: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "50%",
+    border: "1px solid var(--azul-claro, #2EAFC4)",
+    backgroundColor: "var(--panel-bg, #FFFFFF)",
+    color: "var(--azul-claro, #2EAFC4)",
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  helpOverlay: {
+    position: "fixed" as const,
+    inset: 0,
+    backgroundColor: "rgba(15,23,42,0.55)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: "20px",
+    zIndex: 1000,
+  },
+  helpModal: {
+    backgroundColor: "var(--panel-bg, #FFFFFF)",
+    borderRadius: "16px",
+    padding: "24px",
+    width: "min(520px, 90vw)",
+    boxShadow: "0 25px 65px rgba(15, 23, 42, 0.35)",
+    border: "1px solid var(--panel-border, #e0e0e0)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  },
+  helpModalHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "12px",
+  },
+  helpModalList: {
+    margin: 0,
+    paddingLeft: "18px",
+    color: "var(--texto, #162032)",
+  },
+  helpCloseButton: {
+    border: "none",
+    background: "transparent",
+    fontSize: "24px",
+    cursor: "pointer",
+    color: "var(--texto, #162032)",
+  },
+  helpIntro: {
+    margin: 0,
+    color: "var(--texto, #162032)",
+    opacity: 0.8,
+  },
+  inputCounter: {
+    alignSelf: "flex-end",
+    fontSize: "12px",
+    color: "var(--toggle-inactive-text, #667085)",
+    marginTop: "4px",
+    paddingRight: "0",
+  },
+  // === ESTILOS REORGANIZADOS PARA MODO BÁSICO (GRID DE 2 COLUMNAS) ===
+  twoFrameContainer: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "24px", // Aumentado el gap para separación visual clara
+    width: "100%",
+    height: "100%", // Ocupa el 100% de la altura disponible
+    minHeight: 0,
+    boxSizing: "border-box",
+    overflow: "hidden", // Evita scroll en el contenedor padre
+  },
+  twoFrameContainerMobile: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+    width: "100%",
+    height: "auto",
+    padding: "0",
+  },
+  inputFrame: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    paddingRight: "8px", // Espacio para evitar que el scroll tape contenido
+    height: "100%", // Fuerza altura completa
+    minHeight: 0,
+    overflowY: "auto", // Scroll independiente para inputs si es necesario
+    scrollBehavior: "smooth" as const,
+    boxSizing: "border-box",
+    width: "100%",
+  },
+  inputFrameMobile: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+    paddingRight: "0px",
+    minHeight: "auto",
+    overflowY: "visible",
+    boxSizing: "border-box",
+    width: "100%",
+  },
+  outputFrame: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    paddingLeft: "8px",
+    height: "100%", // Fuerza altura completa
+    minHeight: 0,
+    overflowY: "auto", // Scroll independiente para resultados
+    scrollBehavior: "smooth" as const,
+    boxSizing: "border-box",
+    width: "100%",
+    borderLeft: "1px solid var(--panel-border, #e0e0e0)", // Separador visual
+    padding: "0 0 0 24px", // Padding interno para separar del borde
+  },
+  outputFrameMobile: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+    paddingLeft: "0px",
+    minHeight: "auto",
+    overflowY: "visible",
+    boxSizing: "border-box",
+    width: "100%",
+  },
+  frameTitle: {
+    fontSize: "0.85em",
+    fontWeight: 700,
+    color: "var(--azul-profundo, #23436B)",
+    textTransform: "uppercase",
+    letterSpacing: "0.6px",
+    margin: "0 0 4px 0",
+    paddingBottom: "8px",
+    borderBottom: "2px solid var(--azul-claro, #2EAFC4)",
+    opacity: 0.9,
+    flexShrink: 0, // Asegura que el título no desaparezca
+  },
+  liveTranscript: {
+    border: "1px solid var(--panel-border, #e0e0e0)",
+    borderRadius: "12px",
+    padding: "12px",
+    minHeight: "120px",
+    backgroundColor: "var(--muted-surface, #f7f9fb)",
+    flex: 1,
+    overflowY: "auto",
+    width: "100%",
+    boxSizing: "border-box",
+  },
+  audioPlayer: {
+    width: "100%",
+    marginTop: "10px",
+  },
+};
+
+const ensureGlobalStyles = () => {
+  const existing = document.getElementById("anclora-global-styles");
+  if (existing) return;
+  const sheet = document.createElement("style");
+  sheet.id = "anclora-global-styles";
+  sheet.innerHTML = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
+  document.head.appendChild(sheet);
+};
+const OutputDisplay: React.FC<{
+  generatedOutputs: GeneratedOutput[] | null;
+  error: string | null;
+  isLoading: boolean;
+  onCopy: (text: string) => void;
+  audioUrl?: string | null;
+  imageUrl?: string | null;
+  interfaceLanguage: InterfaceLanguage;
+}> = ({
+  generatedOutputs,
+  error,
+  isLoading,
+  onCopy,
+  audioUrl,
+  imageUrl,
+  interfaceLanguage,
+}) => {
+  const copy = translations[interfaceLanguage].output;
+  return (
+    <section style={commonStyles.outputSection}>
+      {error && <div style={commonStyles.errorMessage}>{error}</div>}
+      {isLoading && (
+        <div style={commonStyles.loadingMessage}>
+          <div style={commonStyles.spinner}></div>
+          <span>{copy.loading}</span>
+        </div>
+      )}
+      {audioUrl && (
+        <div>
+          <audio
+            controls
+            style={commonStyles.audioPlayer}
+            src={audioUrl}
+          ></audio>
+          <a
+            href={audioUrl}
+            download="anclora_audio.wav"
+            style={commonStyles.copyButton}
+          >
+            {copy.downloadAudio}
+          </a>
+        </div>
+      )}
+      {imageUrl && (
+        <div>
+          <img
+            src={imageUrl}
+            alt="Imagen generada"
+            style={{ width: "100%", borderRadius: "12px" }}
+          />
+          <a
+            href={imageUrl}
+            download="anclora_image.png"
+            style={commonStyles.copyButton}
+          >
+            {copy.downloadImage}
+          </a>
+        </div>
+      )}
+      {generatedOutputs && generatedOutputs.length > 0 && (
+        <div style={commonStyles.outputGrid}>
+          {generatedOutputs.map((output, index) => {
+            const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+            React.useEffect(() => {
+              if (textareaRef.current) {
+                textareaRef.current.style.height = "auto";
+                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+              }
+            }, [output.content]);
+            return (
+              <div key={index} style={commonStyles.outputCard}>
+                <strong>{output.platform}</strong>
+                <textarea
+                  ref={textareaRef}
+                  readOnly
+                  value={output.content}
+                  style={{
+                    flex: 1,
+                    borderRadius: "8px",
+                    border: "1px solid var(--panel-border, #e0e0e0)",
+                    padding: "10px",
+                    backgroundColor: "var(--input-bg, #FFFFFF)",
+                    color: "var(--texto, #162032)",
+                    fontFamily: "inherit",
+                    fontSize: "inherit",
+                    lineHeight: "1.5",
+                    resize: "none",
+                    overflow: "hidden",
+                  }}
+                />
+                <button
+                  type="button"
+                  style={commonStyles.copyButton}
+                  onClick={() => onCopy(output.content)}
+                >
+                  {copy.copy}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+};
+
+const BasicMode: React.FC<CommonProps> = ({
+  isLoading,
+  error,
+  generatedOutputs,
+  onGenerate,
+  onCopy,
+  setError,
+  setIsLoading,
+  generatedImageUrl,
+  setGeneratedImageUrl,
+  interfaceLanguage,
+}) => {
+  const copy = translations[interfaceLanguage].basic;
+  const [idea, setIdea] = useState("");
+  const [language, setLanguage] = useState("es");
+  const [tone, setTone] = useState("detect");
+  const [platforms, setPlatforms] = useState<string[]>([
+    "LinkedIn",
+    "Instagram",
+  ]);
+  const [speed, setSpeed] = useState<"detailed" | "flash">("detailed");
+  const [literalTranslation, setLiteralTranslation] = useState(false);
+  const [maxChars, setMaxChars] = useState("");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
+  useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const togglePlatform = (value: string) => {
+    setPlatforms((prev) =>
+      prev.includes(value) ? prev.filter((p) => p !== value) : [...prev, value],
+    );
+  };
+
+  const handleGenerate = async () => {
+    if (!idea.trim()) {
+      setError(copy.errors.idea);
+      return;
+    }
+    if (!literalTranslation && platforms.length === 0) {
+      setError(copy.errors.platforms);
+      return;
+    }
+    const languageDisplay =
+      languages.find((l) => l.value === language)?.label || language;
+    const toneDisplay = tones.find((t) => t.value === tone)?.label || tone;
+    const speedDisplay =
+      speed === "detailed" ? copy.speedDetailed : copy.speedFlash;
+    const limitSuffix = maxChars ? ` Max chars: ${maxChars}.` : "";
+
+    let prompt: string;
+    if (literalTranslation) {
+      prompt = `Traductor literal marketing. JSON outputs: [{ "content": "traduccion" }]. Texto: "${idea}". Idioma: ${languageDisplay}.${limitSuffix}`;
+    } else {
+      prompt = `Estratega contenidos. JSON outputs: ${structuredOutputExample}. Idea: "${idea}". Idioma: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas: ${platforms.join(
+        ", ",
+      )}. Detalle: ${speedDisplay}.${limitSuffix}`;
+    }
+    await onGenerate(prompt);
+  };
+
+  return (
+    <div
+      style={
+        isMobile
+          ? commonStyles.twoFrameContainerMobile
+          : commonStyles.twoFrameContainer
+      }
+    >
+      {/* PANEL IZQUIERDO: Sin Scroll Vertical */}
+      <div
+        style={
+          isMobile
+            ? commonStyles.inputFrameMobile
+            : {
+                ...commonStyles.inputFrame,
+                padding: "4px 12px 4px 4px", // Padding para evitar corte de foco
+                overflowY: "hidden" as React.CSSProperties["overflowY"], // PROHIBIDO SCROLL AQUÍ
+              }
+        }
+      >
+        <h3 style={commonStyles.frameTitle}>{copy.ideaLabel}</h3>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            minHeight: "120px",
+            gap: "6px",
+          }}
+        >
+          <textarea
+            id="basic-idea"
+            style={{ ...commonStyles.textarea, height: "100%" }}
+            value={idea}
+            onChange={(e) => setIdea(e.target.value)}
+            placeholder={copy.ideaPlaceholder}
+          />
+          <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
+            {formatCounterText(idea, interfaceLanguage)}
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "10px",
+            }}
+          >
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
+                {copy.languageLabel}
+              </label>
+              <select
+                style={{ ...commonStyles.select, padding: "8px" }}
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as "es" | "en")}
+              >
+                {languages.map((lang) => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
+                {copy.toneLabel}
+              </label>
+              <select
+                style={{ ...commonStyles.select, padding: "8px" }}
+                value={tone}
+                onChange={(e) => setTone(e.target.value)}
+                disabled={literalTranslation}
+              >
+                {tones.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
+              {copy.platformLabel}
+            </label>
+            <div style={{ ...commonStyles.checkboxRow, gap: "6px" }}>
+              {["LinkedIn", "X", "Instagram", "WhatsApp", "Email"].map(
+                (option) => (
+                  <label
+                    key={option}
+                    style={{
+                      ...commonStyles.checkboxChip,
+                      padding: "4px 10px",
+                      fontSize: "0.85em",
+                      opacity: literalTranslation ? 0.5 : 1,
+                      cursor: literalTranslation ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={platforms.includes(option)}
+                      onChange={() => togglePlatform(option)}
+                      disabled={literalTranslation}
+                      style={{ marginRight: "4px" }}
+                    />
+                    {option}
+                  </label>
+                ),
+              )}
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <label
+              style={{ ...commonStyles.checkboxLabel, fontSize: "0.85em" }}
+            >
+              <input
+                type="checkbox"
+                checked={literalTranslation}
+                onChange={(e) => setLiteralTranslation(e.target.checked)}
+              />{" "}
+              {copy.literalLabel}
+            </label>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "0.85em", fontWeight: 600 }}>Max:</span>
+              <input
+                type="number"
+                min="0"
+                style={{
+                  ...commonStyles.select,
+                  width: "70px",
+                  padding: "4px 8px",
+                  fontSize: "0.9em",
+                }}
+                value={maxChars}
+                onChange={(e) => setMaxChars(e.target.value)}
+                placeholder="∞"
+                disabled={literalTranslation}
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            style={commonStyles.generateButton}
+            onClick={handleGenerate}
+            disabled={isLoading}
+          >
+            {isLoading ? copy.buttonLoading : copy.buttonIdle}
+          </button>
+        </div>
+      </div>
+
+      <div
+        style={
+          isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
+        }
+      >
+        <h3 style={commonStyles.frameTitle}>{copy.outputs || "Resultados"}</h3>
+        <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
+          <OutputDisplay
+            generatedOutputs={generatedOutputs}
+            error={error}
+            isLoading={isLoading}
+            onCopy={onCopy}
+            audioUrl={null}
+            imageUrl={generatedImageUrl}
+            interfaceLanguage={interfaceLanguage}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const IntelligentMode: React.FC<CommonProps> = ({
+  isLoading,
+  error,
+  generatedOutputs,
+  onGenerate,
+  onCopy,
+  setError,
+  setIsLoading,
+  generatedImageUrl,
+  setGeneratedImageUrl,
+  interfaceLanguage,
+}) => {
+  const copy = translations[interfaceLanguage].intelligent;
+  const [idea, setIdea] = useState("");
+  const [context, setContext] = useState("");
+  const [language, setLanguage] = useState(interfaceLanguage);
+  const [deepThinking, setDeepThinking] = useState(false);
+  const [includeImage, setIncludeImage] = useState(false);
+  const [imagePrompt, setImagePrompt] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
+  useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setImageFile(file);
+    setImagePreview(file ? URL.createObjectURL(file) : null);
+  };
+
+  const handleGenerate = async () => {
+    if (!idea.trim()) {
+      setError(copy.errors.idea);
+      return;
+    }
+    if (includeImage && !imagePrompt.trim()) {
+      setError(copy.errors.imagePrompt);
+      return;
+    }
+    setIsLoading(true);
+    setGeneratedImageUrl(null);
+    try {
+      const thinking = deepThinking
+        ? "Analiza paso a paso."
+        : "Responde directo.";
+      const languageDisplay =
+        languages.find((l) => l.value === language)?.label || language;
+      const prompt = `Rol: Estratega. Tarea: "${idea}". Contexto: "${
+        context || "General"
+      }". Idioma: ${languageDisplay}. ${thinking} Salida JSON: ${structuredOutputExample}`;
+
+      await onGenerate(prompt);
+
+      if (includeImage && imagePrompt.trim()) {
+        const base64 = imageFile ? await fileToBase64(imageFile) : undefined;
+        const imageUrl = await callImageModel(
+          `${imagePrompt}\nContexto: ${context}`,
+          base64,
+        );
+        setGeneratedImageUrl(imageUrl);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Estilos dinámicos según el estado del check
+  const containerStyle = isMobile
+    ? commonStyles.inputFrameMobile
+    : {
+        ...commonStyles.inputFrame,
+        // Solo permitimos scroll si hay imagen. Si no, hidden.
+        overflowY: (includeImage
+          ? "auto"
+          : "hidden") as React.CSSProperties["overflowY"],
+        overflowX: "hidden" as React.CSSProperties["overflowX"],
+        padding: "4px 12px 4px 4px",
+        display: "flex",
+        flexDirection: "column" as const,
+      };
+
+  return (
+    <div
+      style={
+        isMobile
+          ? commonStyles.twoFrameContainerMobile
+          : commonStyles.twoFrameContainer
+      }
+    >
+      {/* PANEL IZQUIERDO */}
+      <div style={containerStyle}>
+        <h3 style={commonStyles.frameTitle}>{copy.ideaLabel}</h3>
+
+        {/* Área 1: Idea */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            // Si hay imagen: NO usamos flex (flex: none) y forzamos altura fija (140px)
+            // Si NO hay imagen: usamos flex: 1.2 para que ocupe espacio proporcional
+            flex: includeImage ? "none" : 1.2,
+            height: includeImage ? "140px" : "auto",
+            minHeight: "100px",
+            marginBottom: "12px",
+          }}
+        >
+          <textarea
+            style={{ ...commonStyles.textarea, height: "100%", resize: "none" }}
+            value={idea}
+            onChange={(e) => setIdea(e.target.value)}
+            placeholder={copy.ideaPlaceholder}
+          />
+          <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
+            {formatCounterText(idea, interfaceLanguage)}
+          </div>
+        </div>
+
+        {/* Área 2: Contexto */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            // Misma lógica: flex: none + altura fija si check activo
+            flex: includeImage ? "none" : 1,
+            height: includeImage ? "100px" : "auto",
+            minHeight: "80px",
+            marginBottom: "12px",
+          }}
+        >
+          <label
+            style={{
+              ...commonStyles.label,
+              fontSize: "0.8em",
+              marginBottom: "2px",
+            }}
+          >
+            {copy.contextLabel}
+          </label>
+          <textarea
+            style={{ ...commonStyles.textarea, height: "100%", resize: "none" }}
+            value={context}
+            onChange={(e) => setContext(e.target.value)}
+            placeholder={copy.contextPlaceholder}
+          />
+        </div>
+
+        {/* Controles inferiores: flexShrink: 0 garantiza que NUNCA se aplasten */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            flexShrink: 0, // Crucial: impide que estos controles se encojan
+            marginTop: "auto",
+            paddingBottom: "2px",
+            width: "100%",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              width: "100%",
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <select
+                style={{
+                  ...commonStyles.select,
+                  padding: "6px 10px",
+                  fontSize: "0.9em",
+                }}
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as "es" | "en")}
+              >
+                {languages.map((lang) => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <label
+              style={{
+                ...commonStyles.checkboxChip,
+                fontSize: "0.8em",
+                padding: "6px 12px",
+                margin: 0,
+                whiteSpace: "nowrap",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={deepThinking}
+                onChange={(e) => setDeepThinking(e.target.checked)}
+                style={{ marginRight: "6px" }}
+              />
+              {copy.deepThinkingLabel}
+            </label>
+          </div>
+
+          <div
+            style={{
+              borderTop: "1px solid var(--panel-border)",
+              paddingTop: "8px",
+              width: "100%",
+            }}
+          >
+            <label
+              style={{
+                ...commonStyles.checkboxLabel,
+                fontSize: "0.85em",
+                marginBottom: includeImage ? "6px" : "0",
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={includeImage}
+                onChange={(e) => setIncludeImage(e.target.checked)}
+              />{" "}
+              {copy.includeImageLabel}
+            </label>
+
+            {includeImage && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                  paddingBottom: "4px",
+                  width: "100%",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "6px",
+                    alignItems: "center",
+                    width: "100%",
+                  }}
+                >
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    style={{
+                      fontSize: "0.75em",
+                      width: "100%",
+                      maxWidth: "100%",
+                    }}
+                  />
+                  {imagePreview && (
+                    <img
+                      src={imagePreview}
+                      alt="mini"
+                      style={{
+                        width: "30px",
+                        height: "30px",
+                        objectFit: "cover",
+                        borderRadius: "4px",
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                </div>
+                <input
+                  type="text"
+                  style={{
+                    ...commonStyles.select,
+                    padding: "6px",
+                    fontSize: "0.9em",
+                    width: "100%",
+                    boxSizing: "border-box",
+                  }}
+                  value={imagePrompt}
+                  onChange={(e) => setImagePrompt(e.target.value)}
+                  placeholder={copy.imagePromptPlaceholder}
+                />
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            style={{
+              ...commonStyles.generateButton,
+              padding: "12px",
+              width: "100%",
+            }}
+            onClick={handleGenerate}
+            disabled={isLoading}
+          >
+            {isLoading ? copy.buttonLoading : copy.buttonIdle}
+          </button>
+        </div>
+      </div>
+
+      {/* PANEL DERECHO */}
+      <div
+        style={
+          isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
+        }
+      >
+        <h3 style={commonStyles.frameTitle}>Resultados</h3>
+        <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
+          <OutputDisplay
+            generatedOutputs={generatedOutputs}
+            error={error}
+            isLoading={isLoading}
+            onCopy={onCopy}
+            audioUrl={null}
+            imageUrl={generatedImageUrl}
+            interfaceLanguage={interfaceLanguage}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CampaignMode: React.FC<CommonProps> = ({
+  isLoading,
+  error,
+  generatedOutputs,
+  onGenerate,
+  onCopy,
+  setError,
+  setIsLoading,
+  generatedImageUrl,
+  setGeneratedImageUrl,
+  interfaceLanguage,
+}) => {
+  const copy = translations[interfaceLanguage].campaign;
+  const [idea, setIdea] = useState("");
+  const [context, setContext] = useState("");
+  const campaignPlatforms = ["LinkedIn", "X", "Instagram", "Email"];
+  const [language, setLanguage] = useState("es");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
+  useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
+
+  const handleGenerate = async () => {
+    if (!idea.trim()) {
+      setError(copy.errors.idea);
+      return;
+    }
+    setIsLoading(true);
+    setGeneratedImageUrl(null);
+    try {
+      const languageDisplay =
+        languages.find((l) => l.value === language)?.label || language;
+      const prompt = `Rol: Planificador de campañas. Idea: "${idea}". Contexto: "${context}". Idioma: ${languageDisplay}. Canales: ${campaignPlatforms.join(
+        ", ",
+      )}. Salida JSON: ${structuredOutputExample}.`;
+      await onGenerate(prompt);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div
+      style={
+        isMobile
+          ? commonStyles.twoFrameContainerMobile
+          : commonStyles.twoFrameContainer
+      }
+    >
+      <div
+        style={
+          isMobile
+            ? commonStyles.inputFrameMobile
+            : {
+                ...commonStyles.inputFrame,
+                overflowY: "hidden" as const,
+                padding: "4px 12px 4px 4px",
+              }
+        }
+      >
+        <h3 style={commonStyles.frameTitle}>{copy.ideaLabel}</h3>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            gap: "12px",
+            minHeight: 0,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: 1,
+              minHeight: 0,
+            }}
+          >
+            <textarea
+              style={{
+                ...commonStyles.textarea,
+                height: "100%",
+                minHeight: "60px",
+                resize: "none",
+              }}
+              value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+              placeholder={copy.ideaPlaceholder}
+            />
+            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
+              {formatCounterText(idea, interfaceLanguage)}
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: 1,
+              minHeight: 0,
+            }}
+          >
+            <label
+              style={{
+                ...commonStyles.label,
+                fontSize: "0.85em",
+                marginBottom: "2px",
+              }}
+            >
+              {copy.contextLabel}
+            </label>
+            <textarea
+              style={{
+                ...commonStyles.textarea,
+                height: "100%",
+                minHeight: "60px",
+                resize: "none",
+              }}
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              placeholder={copy.contextPlaceholder}
+            />
+            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
+              {formatCounterText(context, interfaceLanguage)}
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            flexShrink: 0,
+            paddingTop: "8px",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
+              {copy.languageLabel}
+            </label>
+            <select
+              style={{ ...commonStyles.select, padding: "8px" }}
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as "es" | "en")}
+            >
+              {languages.map((lang) => (
+                <option key={lang.value} value={lang.value}>
+                  {lang.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            style={{ ...commonStyles.generateButton, padding: "12px" }}
+            onClick={handleGenerate}
+            disabled={isLoading}
+          >
+            {isLoading ? copy.buttonLoading : copy.buttonIdle}
+          </button>
+        </div>
+      </div>
+
+      <div
+        style={
+          isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
+        }
+      >
+        <h3 style={commonStyles.frameTitle}>Campaña</h3>
+        <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
+          <OutputDisplay
+            generatedOutputs={generatedOutputs}
+            error={error}
+            isLoading={isLoading}
+            onCopy={onCopy}
+            audioUrl={null}
+            imageUrl={generatedImageUrl}
+            interfaceLanguage={interfaceLanguage}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const RecycleMode: React.FC<CommonProps> = ({
+  isLoading,
+  error,
+  generatedOutputs,
+  onGenerate,
+  onCopy,
+  setError,
+  setIsLoading,
+  generatedImageUrl,
+  setGeneratedImageUrl,
+  interfaceLanguage,
+}) => {
+  const copy = translations[interfaceLanguage].recycle;
+  const [inputText, setInputText] = useState("");
+  const [context, setContext] = useState("");
+  const [language, setLanguage] = useState("es");
+  const [tone, setTone] = useState("detect");
+  const [format, setFormat] = useState("summary");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
+  useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
+
+  const handleGenerate = async () => {
+    if (!inputText.trim()) {
+      setError(copy.errors.original);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const languageDisplay =
+        languages.find((l) => l.value === language)?.label || language;
+      const toneDisplay = tones.find((t) => t.value === tone)?.label || tone;
+      const formatDisplay =
+        recycleOptions.find((opt) => opt.value === format)?.label || format;
+      const prompt = `Rol: Editor. Tarea: Reciclar texto. Formato: ${formatDisplay}. Tono: ${toneDisplay}. Contexto: ${context}. Texto original: "${inputText}". Salida JSON: ${structuredOutputExample}`;
+      await onGenerate(prompt);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div
+      style={
+        isMobile
+          ? commonStyles.twoFrameContainerMobile
+          : commonStyles.twoFrameContainer
+      }
+    >
+      <div
+        style={
+          isMobile
+            ? commonStyles.inputFrameMobile
+            : {
+                ...commonStyles.inputFrame,
+                overflowY: "hidden" as const,
+                padding: "4px 12px 4px 4px",
+              }
+        }
+      >
+        <h3 style={commonStyles.frameTitle}>{copy.originalLabel}</h3>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            gap: "8px",
+            minHeight: 0,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: 1.5,
+              minHeight: 0,
+            }}
+          >
+            <textarea
+              style={{
+                ...commonStyles.textarea,
+                height: "100%",
+                minHeight: "60px",
+                resize: "none",
+              }}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder={copy.originalPlaceholder}
+            />
+            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
+              {formatCounterText(inputText, interfaceLanguage)}
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: 1,
+              minHeight: 0,
+            }}
+          >
+            <label
+              style={{
+                ...commonStyles.label,
+                fontSize: "0.85em",
+                marginBottom: "2px",
+              }}
+            >
+              {copy.contextLabel}
+            </label>
+            <textarea
+              style={{
+                ...commonStyles.textarea,
+                height: "100%",
+                minHeight: "50px",
+                resize: "none",
+              }}
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              placeholder={copy.contextPlaceholder}
+            />
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            flexShrink: 0,
+            paddingTop: "8px",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "8px",
+            }}
+          >
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "2px" }}
+            >
+              <label style={{ ...commonStyles.label, fontSize: "0.75em" }}>
+                {copy.formatLabel}
+              </label>
+              <select
+                style={{
+                  ...commonStyles.select,
+                  padding: "6px",
+                  fontSize: "0.85em",
+                }}
+                value={format}
+                onChange={(e) => setFormat(e.target.value)}
+              >
+                {recycleOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "2px" }}
+            >
+              <label style={{ ...commonStyles.label, fontSize: "0.75em" }}>
+                {copy.toneLabel}
+              </label>
+              <select
+                style={{
+                  ...commonStyles.select,
+                  padding: "6px",
+                  fontSize: "0.85em",
+                }}
+                value={tone}
+                onChange={(e) => setTone(e.target.value)}
+              >
+                {tones.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                gap: "2px",
+              }}
+            >
+              <label style={{ ...commonStyles.label, fontSize: "0.75em" }}>
+                {copy.languageLabel}
+              </label>
+              <select
+                style={{
+                  ...commonStyles.select,
+                  padding: "6px",
+                  fontSize: "0.85em",
+                }}
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as "es" | "en")}
+              >
+                {languages.map((l) => (
+                  <option key={l.value} value={l.value}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              style={{
+                ...commonStyles.generateButton,
+                flex: 1.5,
+                padding: "8px",
+                fontSize: "0.95em",
+                height: "36px",
+              }}
+              onClick={handleGenerate}
+              disabled={isLoading}
+            >
+              {isLoading ? copy.buttonLoading : copy.buttonIdle}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={
+          isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
+        }
+      >
+        <h3 style={commonStyles.frameTitle}>Resultado</h3>
+        <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
+          <OutputDisplay
+            generatedOutputs={generatedOutputs}
+            error={error}
+            isLoading={isLoading}
+            onCopy={onCopy}
+            audioUrl={null}
+            imageUrl={generatedImageUrl}
+            interfaceLanguage={interfaceLanguage}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  text: string;
+}
+
+const ChatMode: React.FC<{
+  interfaceLanguage: InterfaceLanguage;
+  onCopy: (text: string) => void;
+  textModelId: string;
+}> = ({ interfaceLanguage, onCopy, textModelId }) => {
+  const copy = translations[interfaceLanguage].chat;
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [current, setCurrent] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const sendMessage = async () => {
+    if (!current.trim()) return;
+    const newMessage: ChatMessage = { role: "user", text: current };
+    const updated = [...messages, newMessage];
+    setMessages(updated);
+    setCurrent("");
+    setIsLoading(true);
+    try {
+      const history = updated
+        .map(
+          (msg) =>
+            `${msg.role === "user" ? "Usuario" : "Asistente"}: ${msg.text}`,
+        )
+        .join("\\n");
+      const prompt = `Eres AncloraAI, enfocado en adaptacion de contenido. Idioma preferido: ${interfaceLanguage.toUpperCase()}. Conversacion: ${history}. Responde de forma breve.`;
+      const raw = await callTextModel(prompt, textModelId);
+      const reply = raw.trim();
+      const assistantMessage: ChatMessage = { role: "assistant", text: reply };
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (err) {
+      const errorMessage: ChatMessage = {
+        role: "assistant",
+        text: "Hubo un error al consultar el modelo.",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <section style={commonStyles.section}>
+      <p>{copy.intro}</p>
+      <div style={commonStyles.chatContainer}>
+        {messages.map((msg, index) => (
+          <div
+            key={index}
+            style={{
+              ...commonStyles.chatMessage,
+              ...(msg.role === "user"
+                ? commonStyles.userMessage
+                : commonStyles.aiMessage),
+            }}
+          >
+            {msg.text}
+            {msg.role === "assistant" && (
+              <button
+                style={commonStyles.copyButton}
+                onClick={() => onCopy(msg.text)}
+              >
+                {translations[interfaceLanguage].output.copy}
+              </button>
+            )}
+          </div>
+        ))}
+        {isLoading && (
+          <div
+            style={{ ...commonStyles.chatMessage, ...commonStyles.aiMessage }}
+          >
+            {copy.typing}
+          </div>
+        )}
+      </div>
+      <div style={commonStyles.chatInputRow}>
+        <textarea
+          style={commonStyles.chatTextInput}
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage();
+            }
+          }}
+          placeholder={copy.placeholder}
+        />
+        <button
+          type="button"
+          style={commonStyles.generateButton}
+          onClick={sendMessage}
+          disabled={isLoading}
+        >
+          {copy.button}
+        </button>
+      </div>
+      <div style={commonStyles.chatCounters}>
+        <span>{formatCounterText(current, interfaceLanguage)}</span>
+      </div>
+    </section>
+  );
+};
+
+const TTSMode: React.FC<{
+  interfaceLanguage: InterfaceLanguage;
+  textModelId: string;
+}> = ({ interfaceLanguage, textModelId }) => {
+  const copy = translations[interfaceLanguage].tts;
+  const [textToSpeak, setTextToSpeak] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState("es");
+  const [selectedVoiceName, setSelectedVoiceName] = useState("es_male_0");
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const voices = ttsLanguageVoiceMap[selectedLanguage];
+    if (voices && voices.length) {
+      setSelectedVoiceName(voices[0].value);
+    }
+  }, [selectedLanguage]);
+
+  const handleGenerate = async () => {
+    if (!textToSpeak.trim()) {
+      setError(copy.errors.text);
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    setAudioUrl(null);
+    try {
+      const translationPrompt = `Traduce el siguiente texto al idioma de la voz (${selectedLanguage}) y responde solo con el texto traducido: "${textToSpeak}".`;
+      const translated = (
+        await callTextModel(translationPrompt, textModelId)
+      ).trim();
+      const audio = await callTextToSpeech(
+        translated || textToSpeak,
+        selectedVoiceName,
+      );
+      setAudioUrl(audio);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <section style={commonStyles.section}>
+      <label style={commonStyles.label}>{copy.textLabel}</label>
+      <textarea
+        style={commonStyles.textarea}
+        value={textToSpeak}
+        onChange={(e) => setTextToSpeak(e.target.value)}
+        placeholder={copy.textPlaceholder}
+      />
+      <div style={commonStyles.inputCounter}>
+        {formatCounterText(textToSpeak, interfaceLanguage)}
+      </div>
+      <div style={commonStyles.configSection}>
+        <div style={commonStyles.configGroup}>
+          <label style={commonStyles.label}>{copy.languageLabel}</label>
+          <select
+            style={commonStyles.select}
+            value={selectedLanguage}
+            onChange={(e) => setSelectedLanguage(e.target.value)}
+          >
+            {ttsLanguageOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div style={commonStyles.configGroup}>
+          <label style={commonStyles.label}>{copy.voiceLabel}</label>
+          <select
+            style={commonStyles.select}
+            value={selectedVoiceName}
+            onChange={(e) => setSelectedVoiceName(e.target.value)}
+          >
+            {(ttsLanguageVoiceMap[selectedLanguage] || []).map((voice) => (
+              <option key={voice.value} value={voice.value}>
+                {voice.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <button
+        type="button"
+        style={commonStyles.generateButton}
+        onClick={handleGenerate}
+        disabled={isLoading}
+      >
+        {isLoading ? copy.buttonLoading : copy.buttonIdle}
+      </button>
+      {error && <div style={commonStyles.errorMessage}>{error}</div>}
+      {audioUrl && (
+        <div>
+          <audio
+            controls
+            style={commonStyles.audioPlayer}
+            src={audioUrl}
+          ></audio>
+          <a
+            href={audioUrl}
+            download="anclora_tts.wav"
+            style={commonStyles.copyButton}
+          >
+            {translations[interfaceLanguage].output.downloadAudio}
+          </a>
+        </div>
+      )}
+    </section>
+  );
+};
+
+const LiveChatMode: React.FC<{
+  interfaceLanguage: InterfaceLanguage;
+  textModelId: string;
+}> = ({ interfaceLanguage, textModelId }) => {
+  const copy = translations[interfaceLanguage].live;
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcript, setTranscript] = useState<ChatMessage[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      chunksRef.current = [];
+      recorder.ondataavailable = (evt) => chunksRef.current.push(evt.data);
+      recorder.onstop = async () => {
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        await handleConversation(blob);
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+      setError(null);
+    } catch (err) {
+      setError(copy.errors.microphone);
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setIsRecording(false);
+  };
+
+  const handleConversation = async (audioBlob: Blob) => {
+    try {
+      const userText = await callSpeechToText(audioBlob);
+      const userMessage: ChatMessage = { role: "user", text: userText };
+      setTranscript((prev) => [...prev, userMessage]);
+      const prompt = `Convierte el siguiente texto del usuario en una respuesta breve y accionable enfocada en marketing: "${userText}".`;
+      const reply = (await callTextModel(prompt, textModelId)).trim();
+      const assistantMessage: ChatMessage = { role: "assistant", text: reply };
+      setTranscript((prev) => [...prev, assistantMessage]);
+      const audioResponse = await callTextToSpeech(reply, "es_male_0");
+      setAudioUrl(audioResponse);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    }
+  };
+
+  return (
+    <section style={commonStyles.section}>
+      <p>{copy.intro}</p>
+      <button
+        type="button"
+        style={commonStyles.generateButton}
+        onClick={isRecording ? stopRecording : startRecording}
+      >
+        {isRecording ? copy.buttonStop : copy.buttonStart}
+      </button>
+      {error && <div style={commonStyles.errorMessage}>{error}</div>}
+      <div style={commonStyles.liveTranscript}>
+        {transcript.map((msg, index) => (
+          <p key={index}>
+            <strong>{msg.role === "user" ? "Tu" : "AncloraAI"}:</strong>{" "}
+            {msg.text}
+          </p>
+        ))}
+        {transcript.length === 0 && <p>{copy.transcriptLabel}</p>}
+      </div>
+      {audioUrl && (
+        <div>
+          <audio
+            src={audioUrl}
+            controls
+            style={commonStyles.audioPlayer}
+          ></audio>
+          <a
+            href={audioUrl}
+            download="anclora_live.wav"
+            style={commonStyles.copyButton}
+          >
+            {translations[interfaceLanguage].output.downloadAudio}
+          </a>
+        </div>
+      )}
+    </section>
+  );
+};
+
+const ImageEditMode: React.FC<{ interfaceLanguage: InterfaceLanguage }> = ({
+  interfaceLanguage,
+}) => {
+  const copy = translations[interfaceLanguage].image;
+  const [file, setFile] = useState<File | null>(null);
+  const [prompt, setPrompt] = useState("");
+  const [preview, setPreview] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const image = event.target.files?.[0] || null;
+    setFile(image);
+    setPreview(image ? URL.createObjectURL(image) : null);
+  };
+
+  const handleGenerate = async () => {
+    if (!prompt.trim() && !file) {
+      setError(copy.errors.prompt);
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    setImageUrl(null);
+    try {
+      const base64 = file ? await fileToBase64(file) : undefined;
+      const url = await callImageModel(prompt || "Nueva composicion", base64);
+      setImageUrl(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <section style={commonStyles.section}>
+      <label style={commonStyles.label}>{copy.promptLabel}</label>
+      <textarea
+        style={commonStyles.textarea}
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        placeholder={copy.promptPlaceholder}
+      />
+      <div style={commonStyles.inputCounter}>
+        {formatCounterText(prompt, interfaceLanguage)}
+      </div>
+      <input type="file" accept="image/*" onChange={handleFileChange} />
+      {preview && (
+        <img
+          src={preview}
+          alt="preview"
+          style={{ width: "100%", borderRadius: "12px" }}
+        />
+      )}
+      <button
+        type="button"
+        style={commonStyles.generateButton}
+        onClick={handleGenerate}
+        disabled={isLoading}
+      >
+        {isLoading ? copy.buttonLoading : copy.buttonIdle}
+      </button>
+      {error && <div style={commonStyles.errorMessage}>{error}</div>}
+      {imageUrl && (
+        <div>
+          <img
+            src={imageUrl}
+            alt="Resultado"
+            style={{ width: "100%", borderRadius: "12px" }}
+          />
+          <a
+            href={imageUrl}
+            download="anclora_image.png"
+            style={commonStyles.copyButton}
+          >
+            {translations[interfaceLanguage].output.downloadImage}
+          </a>
+        </div>
+      )}
+    </section>
+  );
+};

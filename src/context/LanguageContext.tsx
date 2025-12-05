@@ -39,6 +39,12 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({
     localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
   }, [language]);
 
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = language;
+    }
+  }, [language]);
+
   const setLanguage = (newLanguage: InterfaceLanguage) => {
     setLanguageState(newLanguage);
   };
