@@ -1,3 +1,5 @@
+import type React from "react";
+
 /**
  * src/types/index.ts
  *
@@ -85,6 +87,12 @@ export interface ImageResponse {
 }
 
 // ==========================================
+// MODE PROP TYPES
+// ==========================================
+
+// ModeCommonProps eliminado tras consolidar InteractionContext
+
+// ==========================================
 // HARDWARE / SYSTEM TYPES
 // ==========================================
 
@@ -113,12 +121,12 @@ export interface SystemCapabilities extends HardwareInfo {
 
 export type AppMode =
   | "basic"
-  | "smart"
+  | "intelligent"
   | "campaign"
   | "recycle"
   | "chat"
-  | "voice"
-  | "livechat"
+  | "tts"
+  | "live"
   | "image";
 
 export interface InteractionContextType {
@@ -148,6 +156,8 @@ export interface InteractionContextType {
   setSelectedFile: (file: File | null) => void;
   audioBlob: Blob | null;
   setAudioBlob: (blob: Blob | null) => void;
+  imageUrl: string | null;
+  setImageUrl: (url: string | null) => void;
 }
 
 export interface ThemeContextType {

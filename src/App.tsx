@@ -1,3972 +1,439 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import BasicMode from "@/components/modes/BasicMode";
+import IntelligentMode from "@/components/modes/IntelligentMode";
+import CampaignMode from "@/components/modes/CampaignMode";
+import RecycleMode from "@/components/modes/RecycleMode";
+import ChatMode from "@/components/modes/ChatMode";
+import TTSMode from "@/components/modes/TTSMode";
+import LiveChatMode from "@/components/modes/LiveChatMode";
+import ImageEditMode from "@/components/modes/ImageEditMode";
+import MainLayout from "@/components/layout/MainLayout";
 import {
-  Search,
-  MessageSquareText,
-  RefreshCw,
-  Sparkles,
-  HelpCircle,
-  Sun,
-  Moon,
-  Languages,
-} from "lucide-react";
-
-// ==========================================
-// 1. TIPOS Y UTILIDADES (Incrustados)
-// ==========================================
-
-export type ThemeMode = "light" | "dark" | "system";
-export type InterfaceLanguage = "es" | "en";
-
-export interface BlobLike {
-  data: string;
-  mimeType: string;
-}
-
-export interface GeneratedOutput {
-  platform: string;
-  content: string;
-}
-
-type AutoModelContext = {
-  mode?: string;
-  preferSpeed?: boolean;
-  preferReasoning?: boolean;
-  preferChat?: boolean;
-};
-
-const AUTO_TEXT_MODEL_ID = "auto";
-
-const fileToBase64 = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      if (typeof result === "string") {
-        const commaIndex = result.indexOf(",");
-        resolve(commaIndex !== -1 ? result.slice(commaIndex + 1) : result);
-      } else {
-        reject(new Error("No se pudo leer el archivo."));
-      }
-    };
-    reader.onerror = () => {
-      reject(reader.error || new Error("Error al leer el archivo."));
-    };
-    reader.readAsDataURL(file);
-  });
-
-// ==========================================
-// 2. LÓGICA DE API (Incrustada)
-// ==========================================
-
-const env = import.meta.env;
-const OLLAMA_BASE_URL = (
-  env.VITE_OLLAMA_BASE_URL || "http://localhost:11434"
-).trim();
-const TEXT_MODEL_ID = (env.VITE_TEXT_MODEL_ID || "llama2").trim();
-const IMAGE_MODEL_ID = (env.VITE_IMAGE_MODEL_ID || "").trim();
-const IMAGE_ENDPOINT = (
-  env.VITE_IMAGE_MODEL_ENDPOINT || "http://localhost:9090/image"
-).trim();
-const TTS_MODEL_ID = (env.VITE_TTS_MODEL_ID || "").trim();
-const TTS_ENDPOINT = (env.VITE_TTS_ENDPOINT || "").trim();
-const STT_MODEL_ID = (env.VITE_STT_MODEL_ID || "").trim();
-const STT_ENDPOINT = (env.VITE_STT_ENDPOINT || "").trim();
-const API_KEY = (
-  env.VITE_MODEL_API_KEY ||
-  env.HF_API_KEY ||
-  env.API_KEY ||
-  ""
-).trim();
-
-const DEFAULT_TEXT_MODEL_ID = TEXT_MODEL_ID;
-
-// Aumentamos el timeout a 5 minutos para dar tiempo a la generación de imágenes local
-const defaultTimeoutMs = 300_000;
-
-// CORRECCIÓN AQUÍ: <T,> evita que TSX lo confunda con un tag HTML
-const withTimeout = async <T,>(
-  promise: Promise<T>,
-  timeoutMs = defaultTimeoutMs
-) => {
-  let timer: ReturnType<typeof setTimeout>;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      reject(new Error("El modelo tardó demasiado en responder (timeout)."));
-    }, timeoutMs);
-  });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer!));
-};
-
-const ensureEndpoint = (value: string, message: string) => {
-  if (!value) {
-    throw new Error(message);
-  }
-  return value;
-};
-
-const jsonHeaders = () => ({
-  "Content-Type": "application/json",
-  ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}),
-});
-
-const audioHeaders = (mimeType?: string) => ({
-  ...(mimeType ? { "Content-Type": mimeType } : {}),
-  ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}),
-});
-
-const callTextModel = async (
-  prompt: string,
-  modelId?: string
-): Promise<string> => {
-  const targetModelId = (modelId || TEXT_MODEL_ID).trim();
-
-  ensureEndpoint(
-    targetModelId,
-    "Define VITE_TEXT_MODEL_ID en tu .env.local (ej: llama2, mistral, neural-chat)"
-  );
-
-  try {
-    const response = await withTimeout(
-      fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-        method: "POST",
-        headers: jsonHeaders(),
-        body: JSON.stringify({
-          model: targetModelId,
-          prompt,
-          stream: false,
-          temperature: 0.4,
-        }),
-      })
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Error de Ollama (${response.status}): ${
-          errorText || response.statusText
-        }`
-      );
-    }
-
-    const payload = await response.json();
-    return payload?.response ?? JSON.stringify(payload);
-  } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
-  }
-};
-
-const listAvailableTextModels = async (): Promise<string[]> => {
-  try {
-    const response = await withTimeout(
-      fetch(`${OLLAMA_BASE_URL}/api/tags`, {
-        method: "GET",
-        headers: jsonHeaders(),
-      }),
-      15_000
-    );
-
-    if (!response.ok) return [];
-
-    const payload = await response.json();
-    const models = Array.isArray(payload?.models) ? payload.models : [];
-    return models
-      .map((item: any) => item?.name)
-      .filter((name: any): name is string => Boolean(name));
-  } catch (e) {
-    return [];
-  }
-};
-
-const findModelByTokens = (models: string[], tokens: string[]) => {
-  const normalized = models.map((model) => model.trim().toLowerCase());
-  for (const token of tokens) {
-    const index = normalized.findIndex((name) => name.includes(token));
-    if (index !== -1) return models[index];
-  }
-  return null;
-};
-
-const resolveTextModelId = (
-  requestedModelId: string,
-  availableModels: string[],
-  context?: AutoModelContext
-) => {
-  const desired = (requestedModelId || "").trim();
-  const pool = Array.from(
-    new Set(
-      [...availableModels, TEXT_MODEL_ID, DEFAULT_TEXT_MODEL_ID].filter(
-        (model) => model && model !== AUTO_TEXT_MODEL_ID
-      )
-    )
-  );
-
-  if (desired && desired !== AUTO_TEXT_MODEL_ID) {
-    return desired;
-  }
-
-  if (pool.length === 0) return DEFAULT_TEXT_MODEL_ID;
-
-  const preferChat =
-    context?.preferChat || context?.mode === "chat" || context?.mode === "live";
-  const preferReasoning =
-    context?.preferReasoning ||
-    context?.mode === "intelligent" ||
-    context?.mode === "campaign" ||
-    context?.mode === "recycle";
-  const preferSpeed =
-    context?.preferSpeed || context?.mode === "tts" || context?.mode === "basic";
-
-  const priorityTokens = [
-    ...(preferChat ? ["chat", "instruct", "neural-chat"] : []),
-    ...(preferReasoning
-      ? ["mistral", "llama3", "llama 3", "mixtral", "llama2", "command"]
-      : []),
-    ...(preferSpeed ? ["orca", "phi", "tiny", "mini", "small"] : []),
-    "mistral",
-    "llama3",
-    "llama 3",
-    "llama2",
-    "mixtral",
-    "neural-chat",
-    "orca",
-    "gemma",
-    "qwen",
-  ];
-
-  const match = findModelByTokens(pool, priorityTokens);
-  return match || pool[0];
-};
-
-const callImageModel = async (
-  prompt: string,
-  base64Image?: string
-): Promise<string> => {
-  const endpoint = ensureEndpoint(
-    IMAGE_ENDPOINT,
-    "Configura VITE_IMAGE_MODEL_ENDPOINT o ejecuta `npm run image:bridge` para un backend local de imagen"
-  );
-
-  try {
-    const response = await withTimeout(
-      fetch(endpoint, {
-        method: "POST",
-        headers: jsonHeaders(),
-        body: JSON.stringify({
-          model: IMAGE_MODEL_ID || undefined,
-          prompt,
-          image: base64Image,
-        }),
-      })
-    );
-
-    if (!response.ok) {
-      const detail = await response.text();
-      let message = detail;
-      try {
-        const json = JSON.parse(detail);
-        if (json.error) message = json.error;
-      } catch (e) {}
-
-      throw new Error(
-        `Fallo en imagen (${response.status}): ${
-          message || response.statusText
-        }`
-      );
-    }
-
-    const buffer = await response.arrayBuffer();
-    return URL.createObjectURL(new Blob([buffer], { type: "image/png" }));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("fetch")) {
-      throw new Error(
-        `No se pudo conectar con el generador de imágenes en ${endpoint}. Asegúrate de ejecutar 'npm run image:bridge'.`
-      );
-    }
-    throw error instanceof Error ? error : new Error(String(error));
-  }
-};
-
-const callTextToSpeech = async (
-  text: string,
-  voicePreset: string
-): Promise<string> => {
-  const endpoint = ensureEndpoint(
-    TTS_ENDPOINT,
-    "Define VITE_TTS_ENDPOINT para usar tu servicio local de TTS"
-  );
-
-  console.log(`🎙️ TTS Request: "${text.substring(0, 50)}..." (${text.length} chars), preset: ${voicePreset}`);
-
-  const response = await withTimeout(
-    fetch(endpoint, {
-      method: "POST",
-      headers: jsonHeaders(),
-      body: JSON.stringify({
-        model: TTS_MODEL_ID || undefined,
-        inputs: text,
-        parameters: { voice_preset: voicePreset },
-      }),
-    })
-  );
-
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || `Fallo en TTS (${response.status})`);
-  }
-
-  const buffer = await response.arrayBuffer();
-  console.log(`✓ TTS Response: ${buffer.byteLength} bytes received`);
-
-  if (buffer.byteLength === 0) {
-    throw new Error("Servidor TTS devolvió audio vacío. Verifica que el servidor está corriendo correctamente.");
-  }
-
-  const blob = new Blob([buffer], { type: "audio/wav" });
-  const url = URL.createObjectURL(blob);
-  console.log(`✓ Audio blob created: ${url}`);
-  return url;
-};
-
-const callSpeechToText = async (audioBlob: Blob): Promise<string> => {
-  const endpoint = ensureEndpoint(
-    STT_ENDPOINT,
-    "Define VITE_STT_ENDPOINT para usar tu servicio local de STT"
-  );
-
-  const response = await withTimeout(
-    fetch(endpoint, {
-      method: "POST",
-      headers: audioHeaders(audioBlob.type || "audio/wav"),
-      body: audioBlob,
-    })
-  );
-
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || `Fallo en STT (${response.status})`);
-  }
-
-  const payload = await response.json();
-  return payload?.text?.trim?.() ?? payload?.transcript ?? "";
-};
-
-const speakWithBrowserTts = (text: string, language: string) =>
-  new Promise<void>((resolve, reject) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      reject(new Error("Speech synthesis not available in this browser."));
-      return;
-    }
-
-    const voices = window.speechSynthesis.getVoices();
-    const normalizedLang = language.toLowerCase();
-    const preferredVoice =
-      voices.find((voice) =>
-        voice.lang?.toLowerCase().startsWith(normalizedLang)
-      ) ||
-      voices.find((voice) => voice.lang?.toLowerCase().startsWith("en")) ||
-      null;
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
-      utterance.lang = preferredVoice.lang;
-    } else {
-      utterance.lang = language;
-    }
-
-    utterance.onend = () => resolve();
-    utterance.onerror = () =>
-      reject(new Error("No se pudo reproducir la voz del navegador."));
-
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  });
-
-// ==========================================
-// 3. ESTILOS GLOBALES Y UTILIDADES
-// ==========================================
-
-const ensureGlobalStyles = () => {
-  const existing = document.getElementById("anclora-global-styles");
-  if (existing) return;
-
-  const style = document.createElement("style");
-  style.id = "anclora-global-styles";
-  style.textContent = `
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-  `;
-  document.head.appendChild(style);
-};
-
-// ==========================================
-// 4. COMPONENTES UI Y LÓGICA DE APP
-// ==========================================
+  callTextModel,
+  listAvailableTextModels,
+  callImageModel,
+  callTextToSpeech,
+  callSpeechToText,
+  DEFAULT_TEXT_MODEL_ID,
+} from "@/api/models";
+import { translations } from "@/constants/translations";
+import {
+  LANGUAGE_LABELS,
+  LANGUAGE_CODE_MAP,
+} from "@/constants/options";
+import { structuredOutputExample } from "@/constants/prompts";
+import {
+  AUTO_TEXT_MODEL_ID,
+  type AutoModelContext,
+  type GeneratedOutput,
+  type AppMode,
+} from "@/types";
+import { useLanguage } from "@/context/LanguageContext";
+import { useInteraction } from "@/context/InteractionContext";
+import { STT_ENDPOINT, TTS_ENDPOINT } from "@/config";
 
 const extractJsonPayload = (raw: string) => {
-  const first = raw.indexOf("{");
-  const last = raw.lastIndexOf("}");
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
 
-  if (first !== -1 && last !== -1 && last > first) {
-    let jsonString = raw.slice(first, last + 1);
-
-    try {
-      JSON.parse(jsonString);
-      return jsonString;
-    } catch (e) {
-      jsonString = jsonString
-        .replace(/[\u2018\u2019]/g, "'")
-        .replace(/[\u201C\u201D]/g, '"');
-      jsonString = jsonString
-        .replace(/:\s*True\b/g, ": true")
-        .replace(/:\s*False\b/g, ": false")
-        .replace(/:\s*None\b/g, ": null");
-      jsonString = jsonString.replace(/'([^']+)'\s*:/g, '"$1":');
-      jsonString = jsonString.replace(
-        /([{,]\s*)([a-zA-Z0-9_]+)\s*:/g,
-        '$1"$2":'
-      );
-      jsonString = jsonString.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
-      jsonString = jsonString.replace(/[\u0000-\u001F]+/g, "");
-      return jsonString;
-    }
+  if (start === -1 || end === -1 || end <= start) {
+    return raw;
   }
-  return raw;
-};
 
-const structuredOutputExample = `{
-  "outputs": [
-    { "platform": "LinkedIn", "content": "Version profesional" },
-    { "platform": "Instagram", "content": "Copys breves y visuales" }
-  ]
-}`;
-
-const formatCounterText = (value: string, language: InterfaceLanguage) => {
-  const chars = value.length;
-  const tokens = chars === 0 ? 0 : Math.max(1, Math.round(chars / 4));
-  const charLabel = language === "es" ? "caracteres" : "characters";
-  const tokenLabel =
-    language === "es" ? "tokens estimados" : "estimated tokens";
-  return `${chars} ${charLabel} · ~${tokens} ${tokenLabel}`;
-};
-
-interface CommonProps {
-  isLoading: boolean;
-  error: string | null;
-  generatedOutputs: GeneratedOutput[] | null;
-  generatedImageUrl: string | null;
-  onGenerate: (prompt: string, context?: AutoModelContext) => Promise<void>;
-  onCopy: (text: string) => void;
-  setError: React.Dispatch<React.SetStateAction<string | null>>;
-  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  setGeneratedImageUrl: React.Dispatch<React.SetStateAction<string | null>>;
-  interfaceLanguage: InterfaceLanguage;
-  selectedTextModel: string;
-}
-
-const languages = [
-  { value: "detect", label: "Detectar automático" },
-  { value: "es", label: "Español" },
-  { value: "en", label: "English" },
-  { value: "fr", label: "Francés" },
-  { value: "de", label: "Deutsch" },
-  { value: "pt", label: "Portugués" },
-  { value: "it", label: "Italiano" },
-  { value: "zh", label: "Chino" },
-  { value: "ja", label: "Japonés" },
-  { value: "ru", label: "Ruso" },
-];
-
-const tones = [
-  { value: "detect", label: "Detectar automático" },
-  { value: "Profesional", label: "Profesional" },
-  { value: "Amistoso", label: "Amistoso" },
-  { value: "Formal", label: "Formal" },
-  { value: "Casual", label: "Casual" },
-  { value: "Motivador", label: "Motivador" },
-  { value: "Emocional", label: "Emocional" },
-  { value: "Directo", label: "Directo" },
-  { value: "Creativo", label: "Creativo" },
-];
-
-const recycleOptions = [
-  { value: "summary", label: "Resumen conciso" },
-  { value: "x_thread", label: "Hilo para X" },
-  { value: "instagram_caption", label: "Caption para Instagram" },
-  { value: "title_hook", label: "Titulo y gancho" },
-  { value: "key_points", label: "Lista de puntos clave" },
-  { value: "email_launch", label: "Email de lanzamiento" },
-  { value: "press_release", label: "Nota de prensa" },
-];
-
-// Mapear códigos de idioma a prefijos para buscar en voces del servidor
-const LANGUAGE_CODE_MAP: Record<string, string[]> = {
-  es: ["es-ES", "es"],
-  en: ["en-US", "en"],
-  fr: ["fr-FR", "fr"],
-  de: ["de-DE", "de"],
-  pt: ["pt-BR", "pt-PT", "pt"],
-  it: ["it-IT", "it"],
-  zh: ["zh-CN", "zh"],
-  ja: ["ja-JP", "ja"],
-  ru: ["ru-RU", "ru"],
-  ar: ["ar-SA", "ar"],
-};
-
-const LANGUAGE_LABELS: Record<string, string> = {
-  es: "Español",
-  en: "English",
-  fr: "Français",
-  de: "Deutsch",
-  pt: "Portugués",
-  it: "Italiano",
-  zh: "中文",
-  ja: "日本語",
-  ru: "Русский",
-  ar: "العربية",
-};
-
-// Estado global para voces del servidor
-let cachedTtsVoices: Array<{ id: string; name: string; languages: string[] }> = [];
-let ttsLanguageVoiceMap: Record<string, { value: string; label: string }[]> = {};
-let ttsLanguageOptions: Array<{ value: string; label: string }> = [];
-
-// Función para cargar voces del servidor TTS
-const loadTtsVoices = async () => {
-  if (cachedTtsVoices.length > 0) {
-    return; // Ya están cargadas
-  }
+  let jsonSnippet = raw.slice(start, end + 1);
 
   try {
-    if (!TTS_ENDPOINT) {
-      console.warn("⚠️ TTS_ENDPOINT no configurado, usando voces por defecto");
-      return;
-    }
-
-    const response = await fetch(TTS_ENDPOINT.replace("/tts", "/voices"));
-    if (!response.ok) {
-      console.error("❌ No se pudieron cargar voces del servidor TTS");
-      return;
-    }
-
-    const data = await response.json();
-    cachedTtsVoices = data.voices || [];
-
-    // Mapear voces reales a idiomas
-    ttsLanguageVoiceMap = {};
-    const mappedLanguages = new Set<string>();
-
-    cachedTtsVoices.forEach((voice) => {
-      // Buscar en qué idioma encaja esta voz
-      Object.entries(LANGUAGE_CODE_MAP).forEach(([langCode, patterns]) => {
-        const voiceLangs = voice.languages || [];
-        const matches = patterns.some((pattern) =>
-          voiceLangs.some((vl) => vl.toLowerCase().startsWith(pattern.toLowerCase()))
-        );
-
-        if (matches) {
-          if (!ttsLanguageVoiceMap[langCode]) {
-            ttsLanguageVoiceMap[langCode] = [];
-          }
-          ttsLanguageVoiceMap[langCode].push({
-            value: voice.id,
-            label: voice.name,
-          });
-          mappedLanguages.add(langCode);
-        }
-      });
-    });
-
-    // Crear lista de opciones de idioma solo con idiomas que tienen voces
-    ttsLanguageOptions = Array.from(mappedLanguages)
-      .sort()
-      .map((langCode) => ({
-        value: langCode,
-        label: LANGUAGE_LABELS[langCode] || langCode,
-      }));
-
-    console.log(`✓ Voces TTS cargadas: ${cachedTtsVoices.length} voces, ${ttsLanguageOptions.length} idiomas`);
-    console.log("Idiomas disponibles:", ttsLanguageOptions.map((o) => o.label).join(", "));
-  } catch (error) {
-    console.error("Error al cargar voces TTS:", error);
+    JSON.parse(jsonSnippet);
+    return jsonSnippet;
+  } catch {
+    jsonSnippet = jsonSnippet
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/:\s*True\b/g, ": true")
+      .replace(/:\s*False\b/g, ": false")
+      .replace(/:\s*None\b/g, ": null")
+      .replace(/'([^']+)'\s*:/g, '"$1":')
+      .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+      .replace(/,\s*}/g, "}")
+      .replace(/,\s*]/g, "]");
+    return jsonSnippet;
   }
 };
 
-// Cargar voces al iniciar la app
-loadTtsVoices();
-
-const themeIconProps: React.SVGProps<SVGSVGElement> = {
-  width: 20,
-  height: 20,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.5,
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
-};
-
-const renderThemeIcon = (mode: ThemeMode): React.ReactElement => {
-  switch (mode) {
-    case "light":
-      return (
-        <svg {...themeIconProps} aria-hidden="true">
-          <circle cx="12" cy="12" r="4" />
-          <line x1="12" y1="3" x2="12" y2="5" />
-          <line x1="12" y1="19" x2="12" y2="21" />
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-          <line x1="3" y1="12" x2="5" y2="12" />
-          <line x1="19" y1="12" x2="21" y2="12" />
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-        </svg>
-      );
-    case "dark":
-      return (
-        <svg {...themeIconProps} aria-hidden="true">
-          <path d="M21 12.79A9 9 0 0 1 11.21 3 7 7 0 1 0 21 12.79z" />
-        </svg>
-      );
-    default:
-      return (
-        <svg {...themeIconProps} aria-hidden="true">
-          <rect x="3" y="4" width="18" height="12" rx="2" />
-          <line x1="8" y1="20" x2="16" y2="20" />
-          <line x1="12" y1="16" x2="12" y2="20" />
-        </svg>
-      );
-  }
-};
-
-const translations: Record<
-  InterfaceLanguage,
-  {
-    title: string;
-    subtitle: string;
-    help: string;
-    helpTitle: string;
-    helpTips: string[];
-    tabs: {
-      basic: string;
-      intelligent: string;
-      campaign: string;
-      recycle: string;
-      chat: string;
-      tts: string;
-      live: string;
-      image: string;
-    };
-    toggles: {
-      themeLight: string;
-      themeDark: string;
-      themeSystem: string;
-      langEs: string;
-      langEn: string;
-    };
-    modelSelector: {
-      label: string;
-      current: string;
-      refresh: string;
-      loading: string;
-      error: string;
-      reset: string;
-    };
-    output: {
-      loading: string;
-      downloadAudio: string;
-      downloadImage: string;
-      copy: string;
-    };
-    basic: {
-      ideaLabel: string;
-      ideaPlaceholder: string;
-      languageLabel: string;
-      toneLabel: string;
-      speedLabel: string;
-      speedDetailed: string;
-      speedFlash: string;
-      platformLabel: string;
-      literalLabel: string;
-      maxCharsLabel: string;
-      buttonIdle: string;
-      buttonLoading: string;
-      outputs: string;
-      emptyState: string;
-      errors: { idea: string; platforms: string };
-    };
-    intelligent: {
-      ideaLabel: string;
-      ideaPlaceholder: string;
-      contextLabel: string;
-      contextPlaceholder: string;
-      languageLabel: string;
-      deepThinkingLabel: string;
-      includeImageLabel: string;
-      imagePromptLabel: string;
-      imagePromptPlaceholder: string;
-      buttonIdle: string;
-      buttonLoading: string;
-      errors: { idea: string; imagePrompt: string };
-    };
-    campaign: {
-      ideaLabel: string;
-      ideaPlaceholder: string;
-      contextLabel: string;
-      contextPlaceholder: string;
-      languageLabel: string;
-      buttonIdle: string;
-      buttonLoading: string;
-      errors: { idea: string };
-    };
-    recycle: {
-      originalLabel: string;
-      originalPlaceholder: string;
-      contextLabel: string;
-      contextPlaceholder: string;
-      formatLabel: string;
-      languageLabel: string;
-      toneLabel: string;
-      buttonIdle: string;
-      buttonLoading: string;
-      errors: { original: string };
-    };
-    chat: {
-      intro: string;
-      placeholder: string;
-      button: string;
-      typing: string;
-    };
-    tts: {
-      textLabel: string;
-      textPlaceholder: string;
-      languageLabel: string;
-      voiceLabel: string;
-      buttonIdle: string;
-      buttonLoading: string;
-      noticeFallback: string;
-      errors: { text: string; unavailable: string };
-    };
-    live: {
-      intro: string;
-      buttonStart: string;
-      buttonStop: string;
-      transcriptLabel: string;
-      errors: { microphone: string; sttUnavailable: string };
-    };
-    image: {
-      promptLabel: string;
-      promptPlaceholder: string;
-      buttonIdle: string;
-      buttonLoading: string;
-      errors: { prompt: string };
-    };
-  }
-> = {
-  es: {
-    title: "AncloraAdapt",
-    subtitle: "Tu asistente de contenidos con IA local",
-    help: "Explora cada modo, agrega contexto y prueba prompts cortos antes de compartirlos.",
-    helpTitle: "Guia rapida",
-    helpTips: [
-      "Completa el contexto/destino en cada modo para resultados mas precisos.",
-      "Activa el proxy local (npm run dev) para evitar errores CORS con Hugging Face.",
-      "Recuerda que la interfaz arranca en español; cambia a ingles con el toggle de idioma.",
-    ],
-    tabs: {
-      basic: "Basico",
-      intelligent: "Inteligente",
-      campaign: "Campaña",
-      recycle: "Reciclar",
-      chat: "Chat",
-      tts: "Voz",
-      live: "Live chat",
-      image: "Imagen",
-    },
-    toggles: {
-      themeLight: "Modo claro",
-      themeDark: "Modo oscuro",
-      themeSystem: "Seguir el modo del sistema",
-      langEs: "Interfaz en espanol",
-      langEn: "Interfaz en ingles",
-    },
-    modelSelector: {
-      label: "Modelo de texto",
-      current: "Modelo en uso",
-      auto: "Automático (elige por ti)",
-      refresh: "Actualizar modelos",
-      loading: "Actualizando...",
-      reset: "Reiniciar pantalla (mantiene el modo actual)",
-      error: "No se pudo listar los modelos",
-    },
-    output: {
-      loading: "La IA esta trabajando...",
-      downloadAudio: "Descargar audio",
-      downloadImage: "Descargar imagen",
-      copy: "Copiar",
-    },
-    basic: {
-      ideaLabel: "Tu idea principal",
-      ideaPlaceholder: "Quiero contar que...",
-      languageLabel: "Idioma",
-      toneLabel: "Tono",
-      speedLabel: "Velocidad",
-      speedDetailed: "Detallado",
-      speedFlash: "Flash",
-      platformLabel: "Plataformas",
-      literalLabel: "Forzar traduccion literal (sin tono ni plataformas)",
-      maxCharsLabel: "Maximo de caracteres",
-      buttonIdle: "Generar contenido",
-      buttonLoading: "Generando...",
-      outputs: "Resultados",
-      emptyState: "Aquí aparecerán los resultados generados",
-      errors: {
-        idea: "Describe tu idea principal.",
-        platforms: "Selecciona al menos una plataforma.",
-      },
-    },
-    intelligent: {
-      ideaLabel: "Describe tu necesidad",
-      ideaPlaceholder: "Necesito adaptar un anuncio...",
-      contextLabel: "Contexto / Destino",
-      contextPlaceholder: "Equipo de ventas, newsletter, etc.",
-      languageLabel: "Idioma de salida",
-      deepThinkingLabel: "Pensamiento profundo",
-      includeImageLabel: "Incluir imagen generada",
-      imagePromptLabel: "Prompt de imagen",
-      imagePromptPlaceholder: "Una ilustracion minimalista...",
-      buttonIdle: "Generar adaptaciones",
-      buttonLoading: "Interpretando...",
-      errors: {
-        idea: "Describe lo que necesitas.",
-        imagePrompt: "Escribe el prompt para la imagen.",
-      },
-    },
-    campaign: {
-      ideaLabel: "Idea central de la campaña",
-      ideaPlaceholder: "Ej: Lanzamiento express de...",
-      contextLabel: "Contexto / Destino",
-      contextPlaceholder: "Canales disponibles, presupuesto, etc.",
-      languageLabel: "Idioma de salida",
-      buttonIdle: "Generar campaña",
-      buttonLoading: "Construyendo campaña...",
-      errors: {
-        idea: "Describe la idea base de tu campaña.",
-      },
-    },
-    recycle: {
-      originalLabel: "Contenido original",
-      originalPlaceholder: "Pega el texto que quieres reciclar...",
-      contextLabel: "Contexto / Destino",
-      contextPlaceholder: "Donde se publicara, objetivo, etc.",
-      formatLabel: "Formato deseado",
-      languageLabel: "Idioma",
-      toneLabel: "Tono",
-      buttonIdle: "Reciclar contenido",
-      buttonLoading: "Reciclando...",
-      errors: {
-        original: "Pega el contenido original.",
-      },
-    },
-    chat: {
-      intro: "Conversa con AncloraAI para resolver dudas rapidas.",
-      placeholder: "Escribe tu mensaje...",
-      button: "Enviar",
-      typing: "Pensando...",
-    },
-    tts: {
-      textLabel: "Texto a convertir a voz",
-      textPlaceholder: "Hola, hoy lanzamos...",
-      languageLabel: "Idioma de la voz",
-      voiceLabel: "Selecciona la voz",
-      buttonIdle: "Generar voz",
-      buttonLoading: "Generando audio...",
-      noticeFallback:
-        "Reproduccion con la voz del navegador (sin archivo descargable).",
-      errors: {
-        text: "Escribe el texto a convertir.",
-        unavailable:
-          "Configura VITE_TTS_ENDPOINT o usa un navegador con voz (speechSynthesis).",
-      },
-    },
-    live: {
-      intro: "Graba un fragmento corto y obten respuesta inmediata.",
-      buttonStart: "Hablar",
-      buttonStop: "Detener",
-      transcriptLabel: "Transcripcion",
-      errors: {
-        microphone: "No se pudo acceder al microfono.",
-        sttUnavailable:
-          "Live Chat necesita VITE_STT_ENDPOINT. Configura el endpoint o usa el modo Chat mientras tanto.",
-      },
-    },
-    image: {
-      promptLabel: "Prompt de imagen",
-      promptPlaceholder: "Describe la escena que necesitas...",
-      buttonIdle: "Generar/Editar",
-      buttonLoading: "Procesando...",
-      errors: {
-        prompt: "Escribe un prompt o sube una imagen.",
-      },
-    },
-  },
-  en: {
-    title: "AncloraAdapt",
-    subtitle: "Your local AI content assistant",
-    help: "Explore each mode, add context and test short prompts before sharing.",
-    helpTitle: "Quick tips",
-    helpTips: [
-      "Fill the context/destination field to steer the generations.",
-      "Use the local proxy (npm run dev) to avoid Hugging Face CORS issues.",
-      "The UI defaults to Spanish; switch to English with the language toggle anytime.",
-    ],
-    tabs: {
-      basic: "Basic",
-      intelligent: "Intelligent",
-      campaign: "Campaign",
-      recycle: "Repurpose",
-      chat: "Chat",
-      tts: "Voice",
-      live: "Live chat",
-      image: "Image",
-    },
-    toggles: {
-      themeLight: "Light mode",
-      themeDark: "Dark mode",
-      themeSystem: "Match system theme",
-      langEs: "Interface in Spanish",
-      langEn: "Interface in English",
-    },
-    modelSelector: {
-      label: "Text model",
-      current: "Current model",
-      auto: "Auto (best fit)",
-      refresh: "Refresh models",
-      loading: "Refreshing...",
-      reset: "Reset screen (keeps current mode)",
-      error: "Could not list the models",
-    },
-    output: {
-      loading: "The AI is crafting your content...",
-      downloadAudio: "Download audio",
-      downloadImage: "Download image",
-      copy: "Copy",
-    },
-    basic: {
-      ideaLabel: "Your main idea",
-      ideaPlaceholder: "I want to announce...",
-      languageLabel: "Output language",
-      toneLabel: "Tone",
-      speedLabel: "Detail level",
-      speedDetailed: "Detailed",
-      speedFlash: "Flash",
-      platformLabel: "Platforms",
-      literalLabel: "Literal translation only (disable tone/platforms)",
-      maxCharsLabel: "Maximum characters",
-      buttonIdle: "Generate content",
-      buttonLoading: "Generating...",
-      outputs: "Results",
-      emptyState: "Generated results will appear here",
-      errors: {
-        idea: "Describe your main idea.",
-        platforms: "Select at least one platform.",
-      },
-    },
-    intelligent: {
-      ideaLabel: "Describe your need",
-      ideaPlaceholder: "I need to adapt an offer...",
-      contextLabel: "Context / Destination",
-      contextPlaceholder: "Sales team, newsletter, etc.",
-      languageLabel: "Output language",
-      deepThinkingLabel: "Deep thinking",
-      includeImageLabel: "Include generated image",
-      imagePromptLabel: "Image prompt",
-      imagePromptPlaceholder: "A minimalist illustration...",
-      buttonIdle: "Generate adaptations",
-      buttonLoading: "Interpreting...",
-      errors: {
-        idea: "Describe what you need.",
-        imagePrompt: "Provide the image prompt.",
-      },
-    },
-    campaign: {
-      ideaLabel: "Campaign idea",
-      ideaPlaceholder: "Ex: Express launch for...",
-      contextLabel: "Context / Destination",
-      contextPlaceholder: "Available channels, budget, etc.",
-      languageLabel: "Output language",
-      buttonIdle: "Generate campaign",
-      buttonLoading: "Building campaign...",
-      errors: {
-        idea: "Describe the core idea for the campaign.",
-      },
-    },
-    recycle: {
-      originalLabel: "Original content",
-      originalPlaceholder: "Paste the text you want to repurpose...",
-      contextLabel: "Context / Destination",
-      contextPlaceholder: "Where will it be published?",
-      formatLabel: "Desired format",
-      languageLabel: "Language",
-      toneLabel: "Tone",
-      buttonIdle: "Repurpose content",
-      buttonLoading: "Repurposing...",
-      errors: {
-        original: "Paste the original content.",
-      },
-    },
-    chat: {
-      intro: "Chat with AncloraAI for quick guidance.",
-      placeholder: "Type your message...",
-      button: "Send",
-      typing: "Typing...",
-    },
-    tts: {
-      textLabel: "Text to convert",
-      textPlaceholder: "Hello, today we launch...",
-      languageLabel: "Voice language",
-      voiceLabel: "Select voice",
-      buttonIdle: "Generate voice",
-      buttonLoading: "Generating audio...",
-      noticeFallback:
-        "Played with the browser voice (no downloadable file available).",
-      errors: {
-        text: "Provide the text to convert.",
-        unavailable:
-          "Set VITE_TTS_ENDPOINT or use a browser that supports speechSynthesis.",
-      },
-    },
-    live: {
-      intro: "Record a short snippet and get an instant reply.",
-      buttonStart: "Start talking",
-      buttonStop: "Stop",
-      transcriptLabel: "Transcript",
-      errors: {
-        microphone: "Unable to access microphone.",
-        sttUnavailable:
-          "Live Chat needs VITE_STT_ENDPOINT. Configure it or use Chat mode meanwhile.",
-      },
-    },
-    image: {
-      promptLabel: "Image prompt",
-      promptPlaceholder: "Describe the scene you need...",
-      buttonIdle: "Generate/Edit",
-      buttonLoading: "Processing...",
-      errors: {
-        prompt: "Write a prompt or upload an image.",
-      },
-    },
-  },
-};
-
-const getStoredTheme = (): ThemeMode => {
-  if (typeof window === "undefined") {
-    return "system";
-  }
-  const stored = window.localStorage.getItem("anclora.theme");
-  return stored === "light" || stored === "dark" || stored === "system"
-    ? stored
-    : "system";
-};
-
-const getStoredLanguage = (): InterfaceLanguage => {
-  if (typeof window === "undefined") {
-    return "es";
-  }
-  const stored = window.localStorage.getItem("anclora.lang");
-  return stored === "en" ? "en" : "es";
-};
-
-const getStoredTextModel = (): string => {
-  if (typeof window === "undefined") {
-    return DEFAULT_TEXT_MODEL_ID;
-  }
+const isGeneratedOutput = (value: unknown): value is GeneratedOutput => {
   return (
-    window.localStorage.getItem("anclora.textModel") || DEFAULT_TEXT_MODEL_ID
+    Boolean(value) &&
+    typeof (value as GeneratedOutput).platform === "string" &&
+    typeof (value as GeneratedOutput).content === "string"
   );
 };
 
-const commonStyles: Record<string, React.CSSProperties> = {
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "stretch",
-    width: "100vw",
-    height: "100vh",
-    maxWidth: "100%",
-    margin: "0",
-    padding: "12px",
-    boxSizing: "border-box",
-    gap: "12px",
-    overflow: "hidden",
-    backgroundColor: "var(--gris-fondo, #f6f7f9)",
-  },
-  header: {
-    width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    flexShrink: 0,
-  },
-  headerTopRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    width: "100%",
-  },
-  headerLeftGroup: {
-    display: "flex",
-    alignItems: "center",
-  },
-  headerRightGroup: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  titleGroup: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    textAlign: "center",
-    flex: 1,
-    padding: "0 10px",
-  },
-  title: {
-    fontFamily: "Libre Baskerville, serif",
-    fontSize: "clamp(1.5em, 4vw, 2em)",
-    margin: 0,
-    color: "var(--azul-profundo, #23436B)",
-    fontWeight: 700,
-  },
-  subtitle: {
-    fontFamily: "Inter, sans-serif",
-    fontSize: "clamp(0.85em, 1.5vw, 1em)",
-    margin: 0,
-    color: "var(--texto, #162032)",
-    opacity: 0.8,
-  },
-  settingsBar: {
-    display: "flex",
-    gap: "16px",
-    alignItems: "center",
-    backgroundColor: "var(--panel-bg, #FFFFFF)",
-    padding: "8px 16px",
-    borderRadius: "12px",
-    border: "1px solid var(--panel-border, #e0e0e0)",
-    flexWrap: "wrap",
-  },
-  settingsGroup: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
-  settingsLabel: {
-    fontSize: "0.85em",
-    fontWeight: 600,
-    color: "var(--texto-secundario, #4b5563)",
-  },
-  resetButton: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "8px 12px",
-    borderRadius: "10px",
-    border: "1px solid var(--panel-border, #e0e0e0)",
-    backgroundColor: "var(--muted-surface, #F3F4F6)",
-    color: "var(--texto, #162032)",
-    cursor: "pointer",
-    fontWeight: 600,
-  },
-  toggleButton: {
-    border: "none",
-    background: "transparent",
-    padding: "8px 14px",
-    borderRadius: "999px",
-    fontWeight: 600,
-    color: "var(--toggle-inactive-text, var(--texto, #162032))",
-    opacity: 0.75,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "all 0.2s ease",
-  },
-  toggleButtonActive: {
-    backgroundColor: "var(--toggle-active-bg, var(--blanco, #FFFFFF))",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-    color: "var(--toggle-active-text, var(--azul-claro, #2EAFC4))",
-    opacity: 1,
-  },
-  helpButton: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    border: "1px solid var(--panel-border, #e0e0e0)",
-    backgroundColor: "var(--panel-bg, #FFFFFF)",
-    color: "var(--texto, #162032)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    fontWeight: 700,
-  },
-  mainContent: {
-    flex: 1,
-    width: "100%",
-    backgroundColor: "var(--panel-bg, #FFFFFF)",
-    borderRadius: "18px",
-    padding: "16px",
-    boxShadow: "var(--panel-shadow, 0 10px 40px rgba(0,0,0,0.06))",
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    boxSizing: "border-box",
-    overflow: "hidden",
-    minHeight: 0,
-  },
-  modeScrollArea: {
-    flex: 1,
-    minHeight: 0,
-    width: "100%",
-    height: "100%",
-    boxSizing: "border-box",
-    overflow: "hidden",
-    display: "flex",
-    flexDirection: "column",
-  },
-  tabNavigation: {
-    display: "flex",
-    flexWrap: "wrap",
-    borderBottom: "1px solid var(--panel-border, #e0e0e0)",
-    gap: "4px",
-    justifyContent: "center",
-    width: "100%",
-    boxSizing: "border-box",
-    overflow: "hidden",
-    flexShrink: 0,
-    marginBottom: "12px",
-  },
-  tabButton: {
-    background: "transparent",
-    border: "none",
-    padding: "12px 10px",
-    fontWeight: 600,
-    cursor: "pointer",
-    color: "var(--texto, #162032)",
-    opacity: 0.7,
-    whiteSpace: "nowrap",
-    fontSize: "clamp(0.85em, 2vw, 1em)",
-  },
-  tabButtonActive: {
-    color: "var(--azul-claro, #2EAFC4)",
-    opacity: 1,
-  },
-  twoFrameContainer: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "24px",
-    width: "100%",
-    height: "100%",
-    minHeight: 0,
-    boxSizing: "border-box",
-    overflow: "hidden",
-  },
-  twoFrameContainerMobile: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-    width: "100%",
-    height: "auto",
-    padding: "0",
-  },
-  inputFrame: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    paddingRight: "8px",
-    height: "100%",
-    minHeight: 0,
-    overflowY: "auto",
-    scrollBehavior: "smooth" as const,
-    boxSizing: "border-box",
-    width: "100%",
-  },
-  inputFrameMobile: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-    paddingRight: "0px",
-    minHeight: "auto",
-    overflowY: "visible",
-    boxSizing: "border-box",
-    width: "100%",
-  },
-  outputFrame: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    paddingLeft: "8px",
-    height: "100%",
-    minHeight: 0,
-    overflowY: "auto",
-    scrollBehavior: "smooth" as const,
-    boxSizing: "border-box",
-    width: "100%",
-    borderLeft: "1px solid var(--panel-border, #e0e0e0)",
-    padding: "0 0 0 24px",
-  },
-  outputFrameMobile: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-    paddingLeft: "0px",
-    minHeight: "auto",
-    overflowY: "visible",
-    boxSizing: "border-box",
-    width: "100%",
-  },
-  frameTitle: {
-    fontSize: "0.85em",
-    fontWeight: 700,
-    color: "var(--azul-profundo, #23436B)",
-    textTransform: "uppercase",
-    letterSpacing: "0.6px",
-    margin: "0 0 4px 0",
-    paddingBottom: "8px",
-    borderBottom: "2px solid var(--azul-claro, #2EAFC4)",
-    opacity: 0.9,
-    flexShrink: 0,
-  },
-  section: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    padding: "0",
-    width: "100%",
-    boxSizing: "border-box",
-  },
-  label: {
-    fontWeight: 600,
-    color: "var(--azul-profundo, #23436B)",
-  },
-  textarea: {
-    width: "100%",
-    minHeight: "80px",
-    borderRadius: "10px",
-    border: "1px solid var(--panel-border, #e0e0e0)",
-    padding: "14px",
-    fontSize: "1em",
-    resize: "none",
-    backgroundColor: "var(--input-bg, #FFFFFF)",
-    color: "var(--texto, #162032)",
-    boxSizing: "border-box",
-  },
-  select: {
-    width: "100%",
-    borderRadius: "10px",
-    border: "1px solid var(--panel-border, #e0e0e0)",
-    padding: "10px",
-    backgroundColor: "var(--input-bg, #FFFFFF)",
-    color: "var(--texto, #162032)",
-  },
-  checkboxLabel: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    fontWeight: 600,
-    color: "var(--texto, #162032)",
-  },
-  configSection: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "16px",
-    padding: "0",
-    width: "100%",
-    boxSizing: "border-box",
-  },
-  configGroup: {
-    flex: "1 1 200px",
-    minWidth: 0,
-  },
-  checkboxRow: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "8px",
-  },
-  checkboxChip: {
-    padding: "6px 12px",
-    borderRadius: "16px",
-    backgroundColor: "var(--chip-bg, #ecf0f1)",
-    color: "var(--chip-text, #162032)",
-    border: "1px solid var(--panel-border, #e0e0e0)",
-    cursor: "pointer",
-  },
-  generateButton: {
-    padding: "14px 16px",
-    borderRadius: "12px",
-    border: "none",
-    backgroundImage:
-      "linear-gradient(90deg, var(--azul-claro, #2EAFC4), var(--ambar, #FFC979))",
-    fontWeight: 700,
-    color: "var(--button-contrast, #162032)",
-    cursor: "pointer",
-    margin: "0",
-    width: "100%",
-    boxSizing: "border-box",
-  },
-  errorMessage: {
-    backgroundColor: "var(--danger-bg, #fdecea)",
-    color: "var(--danger-text, #c0392b)",
-    padding: "12px",
-    borderRadius: "10px",
-    margin: "0",
-    width: "100%",
-    boxSizing: "border-box",
-  },
-  loadingMessage: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "10px",
-  },
-  spinner: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    border: "4px solid rgba(0,0,0,0.1)",
-    borderTop: "4px solid var(--azul-claro, #2EAFC4)",
-    animation: "spin 1s linear infinite",
-  },
-  outputSection: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-    height: "100%",
-    minHeight: 0,
-    overflowY: "auto",
-  },
-  outputGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-    gap: "16px",
-  },
-  outputCard: {
-    border: "1px solid var(--panel-border, #e0e0e0)",
-    borderRadius: "12px",
-    padding: "18px",
-    minHeight: "180px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    backgroundColor: "var(--panel-bg, #FFFFFF)",
-  },
-  copyButton: {
-    alignSelf: "flex-end",
-    border: "1px solid var(--azul-claro, #2EAFC4)",
-    borderRadius: "8px",
-    padding: "8px 12px",
-    backgroundColor: "var(--panel-bg, #FFFFFF)",
-    color: "var(--azul-claro, #2EAFC4)",
-    cursor: "pointer",
-  },
-  chatContainer: {
-    border: "1px solid var(--panel-border, #e0e0e0)",
-    borderRadius: "12px",
-    padding: "20px 18px",
-    minHeight: "0",
-    overflowY: "auto",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-    backgroundColor: "var(--panel-bg, #FFFFFF)",
-    width: "100%",
-    boxSizing: "border-box",
-    flex: 1,
-  },
-  chatMessage: {
-    borderRadius: "14px",
-    padding: "12px 14px",
-    maxWidth: "80%",
-    boxShadow: "0 6px 16px rgba(15, 23, 42, 0.1)",
-  },
-  userMessage: {
-    alignSelf: "flex-end",
-    backgroundColor: "var(--azul-claro, #2EAFC4)",
-    color: "var(--blanco, #FFFFFF)",
-    marginLeft: "40px",
-    marginRight: "4px",
-  },
-  aiMessage: {
-    alignSelf: "flex-start",
-    backgroundColor: "var(--chip-bg, #ecf0f1)",
-    color: "var(--chip-text, #162032)",
-    marginRight: "40px",
-    marginLeft: "4px",
-  },
-  chatInputWrapper: {
-    width: "100%",
-    padding: "0",
-    boxSizing: "border-box",
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-  chatInputRow: {
-    display: "flex",
-    gap: "10px",
-    width: "100%",
-    alignItems: "stretch",
-  },
-  chatTextInput: {
-    flex: 1,
-    borderRadius: "10px",
-    border: "1px solid var(--panel-border, #e0e0e0)",
-    padding: "10px",
-    minHeight: "60px",
-    backgroundColor: "var(--input-bg, #FFFFFF)",
-    color: "var(--texto, #162032)",
-    minWidth: 0,
-    width: "100%",
-  },
-  chatCounters: {
-    width: "100%",
-    display: "flex",
-    justifyContent: "flex-end",
-    fontSize: "12px",
-    color: "var(--texto, #162032)",
-    opacity: 0.85,
-    paddingRight: "0",
-  },
-  helpOverlay: {
-    position: "fixed" as const,
-    inset: 0,
-    backgroundColor: "rgba(15,23,42,0.55)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: "20px",
-    zIndex: 1000,
-  },
-  helpModal: {
-    backgroundColor: "var(--panel-bg, #FFFFFF)",
-    borderRadius: "16px",
-    padding: "24px",
-    width: "min(520px, 90vw)",
-    boxShadow: "0 25px 65px rgba(15, 23, 42, 0.35)",
-    border: "1px solid var(--panel-border, #e0e0e0)",
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-  },
-  helpModalHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "12px",
-  },
-  helpModalList: {
-    margin: 0,
-    paddingLeft: "18px",
-    color: "var(--texto, #162032)",
-  },
-  helpCloseButton: {
-    border: "none",
-    background: "transparent",
-    fontSize: "24px",
-    cursor: "pointer",
-    color: "var(--texto, #162032)",
-  },
-  helpIntro: {
-    margin: 0,
-    color: "var(--texto, #162032)",
-    opacity: 0.8,
-  },
-  inputCounter: {
-    alignSelf: "flex-end",
-    fontSize: "12px",
-    color: "var(--toggle-inactive-text, #667085)",
-    marginTop: "4px",
-    paddingRight: "0",
-  },
-  liveTranscript: {
-    border: "1px solid var(--panel-border, #e0e0e0)",
-    borderRadius: "12px",
-    padding: "12px",
-    minHeight: "120px",
-    backgroundColor: "var(--muted-surface, #f7f9fb)",
-    flex: 1,
-    overflowY: "auto",
-    width: "100%",
-    boxSizing: "border-box",
-  },
-  audioPlayer: {
-    width: "100%",
-    marginTop: "10px",
-  },
-};
-
-const OutputDisplay: React.FC<{
-  generatedOutputs: GeneratedOutput[] | null;
-  error: string | null;
-  isLoading: boolean;
-  onCopy: (text: string) => void;
-  audioUrl?: string | null;
-  imageUrl?: string | null;
-  interfaceLanguage: InterfaceLanguage;
-}> = ({
-  generatedOutputs,
-  error,
-  isLoading,
-  onCopy,
-  audioUrl,
-  imageUrl,
-  interfaceLanguage,
-}) => {
-  const copy = translations[interfaceLanguage].output;
-  return (
-    <section style={commonStyles.outputSection}>
-      {error && <div style={commonStyles.errorMessage}>{error}</div>}
-      {isLoading && (
-        <div style={commonStyles.loadingMessage}>
-          <div style={commonStyles.spinner}></div>
-          <span>{copy.loading}</span>
-        </div>
-      )}
-      {audioUrl && (
-        <div>
-          <audio
-            controls
-            style={commonStyles.audioPlayer}
-            src={audioUrl}
-          ></audio>
-          <a
-            href={audioUrl}
-            download="anclora_audio.wav"
-            style={commonStyles.copyButton}
-          >
-            {copy.downloadAudio}
-          </a>
-        </div>
-      )}
-      {imageUrl && (
-        <div>
-          <img
-            src={imageUrl}
-            alt="Imagen generada"
-            style={{ width: "100%", borderRadius: "12px" }}
-          />
-          <a
-            href={imageUrl}
-            download="anclora_image.png"
-            style={commonStyles.copyButton}
-          >
-            {copy.downloadImage}
-          </a>
-        </div>
-      )}
-      {generatedOutputs && generatedOutputs.length > 0 && (
-        <div style={commonStyles.outputGrid}>
-          {generatedOutputs.map((output, index) => {
-            const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-            React.useEffect(() => {
-              if (textareaRef.current) {
-                textareaRef.current.style.height = "auto";
-                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-              }
-            }, [output.content]);
-            return (
-              <div key={index} style={commonStyles.outputCard}>
-                <strong>{output.platform}</strong>
-                <textarea
-                  ref={textareaRef}
-                  readOnly
-                  value={output.content}
-                  style={{
-                    flex: 1,
-                    borderRadius: "8px",
-                    border: "1px solid var(--panel-border, #e0e0e0)",
-                    padding: "10px",
-                    backgroundColor: "var(--input-bg, #FFFFFF)",
-                    color: "var(--texto, #162032)",
-                    fontFamily: "inherit",
-                    fontSize: "inherit",
-                    lineHeight: "1.5",
-                    resize: "none",
-                    overflow: "hidden",
-                  }}
-                />
-                <button
-                  type="button"
-                  style={commonStyles.copyButton}
-                  onClick={() => onCopy(output.content)}
-                >
-                  {copy.copy}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </section>
-  );
-};
-const BasicMode: React.FC<CommonProps> = ({
-  isLoading,
-  error,
-  generatedOutputs,
-  onGenerate,
-  onCopy,
-  setError,
-  setIsLoading,
-  generatedImageUrl,
-  setGeneratedImageUrl,
-  interfaceLanguage,
-}) => {
-  const copy = translations[interfaceLanguage].basic;
-  const [idea, setIdea] = useState("");
-  const [language, setLanguage] = useState("es");
-  const [tone, setTone] = useState("detect");
-  const [platforms, setPlatforms] = useState<string[]>([
-    "LinkedIn",
-    "Instagram",
-  ]);
-  const [speed, setSpeed] = useState<"detailed" | "flash">("detailed");
-  const [literalTranslation, setLiteralTranslation] = useState(false);
-  const [maxChars, setMaxChars] = useState("");
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-
-  useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
-  useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const togglePlatform = (value: string) => {
-    setPlatforms((prev) =>
-      prev.includes(value) ? prev.filter((p) => p !== value) : [...prev, value]
+const normalizeOutputs = (payload: unknown): GeneratedOutput[] => {
+  if (!payload) return [];
+  if (Array.isArray(payload)) {
+    return payload.filter(isGeneratedOutput);
+  }
+  if (
+    typeof payload === "object" &&
+    Array.isArray((payload as { outputs?: unknown[] }).outputs)
+  ) {
+    return ((payload as { outputs: unknown[] }).outputs || []).filter(
+      isGeneratedOutput
     );
-  };
-
-  const handleGenerate = async () => {
-    if (!idea.trim()) {
-      setError(copy.errors.idea);
-      return;
+  }
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    (payload as GeneratedOutput).platform &&
+    (payload as GeneratedOutput).content
+  ) {
+    return [(payload as GeneratedOutput)];
+  }
+  if (typeof payload === "object" && payload) {
+    const firstArrayKey = Object.keys(payload).find((key) =>
+      Array.isArray((payload as Record<string, unknown[]>)[key])
+    );
+    if (firstArrayKey) {
+      const arr = (payload as Record<string, unknown[]>)[firstArrayKey];
+      return arr.filter(isGeneratedOutput);
     }
-    if (!literalTranslation && platforms.length === 0) {
-      setError(copy.errors.platforms);
-      return;
-    }
-    const languageDisplay =
-      languages.find((l) => l.value === language)?.label || language;
-    const toneDisplay = tones.find((t) => t.value === tone)?.label || tone;
-    const speedDisplay =
-      speed === "detailed" ? copy.speedDetailed : copy.speedFlash;
-    const parsedLimit = Number.parseInt(maxChars, 10);
-    const charLimit = Number.isNaN(parsedLimit) ? null : parsedLimit;
-    const limitSuffix =
-      charLimit && charLimit > 0
-        ? ` Limita la respuesta a un maximo de ${charLimit} caracteres.`
-        : "";
-    let prompt: string;
-    if (literalTranslation) {
-      prompt = `Actua como traductor literal especializado en marketing. Devuelve UNICAMENTE la traduccion en formato JSON bajo la clave "outputs" con UN UNICO elemento SIN plataforma: { "outputs": [{ "content": "traduccion aqui" }] }. Texto original: "${idea}". Idioma de destino: ${languageDisplay}.${limitSuffix}`;
-    } else {
-      prompt = `Eres un estratega de contenidos. Genera una lista JSON bajo la clave "outputs" siguiendo ${structuredOutputExample}. Idea: "${idea}". Idioma solicitado: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas: ${platforms.join(
-        ", "
-      )}. Nivel de detalle: ${speedDisplay}.${limitSuffix}`;
-    }
-    await onGenerate(prompt, {
-      mode: "basic",
-      preferSpeed: speed === "flash",
-      preferReasoning: speed === "detailed" && !literalTranslation,
-    });
-  };
-
-  return (
-    <div
-      style={
-        isMobile
-          ? commonStyles.twoFrameContainerMobile
-          : commonStyles.twoFrameContainer
-      }
-    >
-      {/* PANEL IZQUIERDO: Sin Scroll Vertical */}
-      <div
-        style={
-          isMobile
-            ? commonStyles.inputFrameMobile
-            : {
-                ...commonStyles.inputFrame,
-                padding: "4px 12px 4px 4px", // Padding para evitar corte de foco
-                overflowY: "hidden", // PROHIBIDO SCROLL AQUÍ
-              }
-        }
-      >
-        <h3 style={commonStyles.frameTitle}>{copy.ideaLabel}</h3>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            flex: 1,
-            minHeight: "120px",
-            gap: "6px",
-          }}
-        >
-          <textarea
-            id="basic-idea"
-            style={{ ...commonStyles.textarea, height: "100%" }}
-            value={idea}
-            onChange={(e) => setIdea(e.target.value)}
-            placeholder={copy.ideaPlaceholder}
-          />
-          <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
-            {formatCounterText(idea, interfaceLanguage)}
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            flexShrink: 0,
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "10px",
-            }}
-          >
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-            >
-              <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
-                {copy.languageLabel}
-              </label>
-              <select
-                style={{ ...commonStyles.select, padding: "8px" }}
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as "es" | "en")}
-              >
-                {languages.map((lang) => (
-                  <option key={lang.value} value={lang.value}>
-                    {lang.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-            >
-              <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
-                {copy.toneLabel}
-              </label>
-              <select
-                style={{ ...commonStyles.select, padding: "8px" }}
-                value={tone}
-                onChange={(e) => setTone(e.target.value)}
-                disabled={literalTranslation}
-              >
-                {tones.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
-              {copy.platformLabel}
-            </label>
-            <div style={{ ...commonStyles.checkboxRow, gap: "6px" }}>
-              {["LinkedIn", "X", "Instagram", "WhatsApp", "Email"].map(
-                (option) => (
-                  <label
-                    key={option}
-                    style={{
-                      ...commonStyles.checkboxChip,
-                      padding: "4px 10px",
-                      fontSize: "0.85em",
-                      opacity: literalTranslation ? 0.5 : 1,
-                      cursor: literalTranslation ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={platforms.includes(option)}
-                      onChange={() => togglePlatform(option)}
-                      disabled={literalTranslation}
-                      style={{ marginRight: "4px" }}
-                    />
-                    {option}
-                  </label>
-                )
-              )}
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <label
-              style={{ ...commonStyles.checkboxLabel, fontSize: "0.85em" }}
-            >
-              <input
-                type="checkbox"
-                checked={literalTranslation}
-                onChange={(e) => setLiteralTranslation(e.target.checked)}
-              />{" "}
-              {copy.literalLabel}
-            </label>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "0.85em", fontWeight: 600 }}>Max:</span>
-              <input
-                type="number"
-                min="0"
-                style={{
-                  ...commonStyles.select,
-                  width: "70px",
-                  padding: "4px 8px",
-                  fontSize: "0.9em",
-                }}
-                value={maxChars}
-                onChange={(e) => setMaxChars(e.target.value)}
-                placeholder="0"
-                disabled={literalTranslation}
-              />
-            </div>
-          </div>
-
-          <button
-            type="button"
-            style={commonStyles.generateButton}
-            onClick={handleGenerate}
-            disabled={isLoading}
-          >
-            {isLoading ? copy.buttonLoading : copy.buttonIdle}
-          </button>
-        </div>
-      </div>
-
-      <div
-        style={
-          isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
-        }
-      >
-        <h3 style={commonStyles.frameTitle}>{copy.outputs || "Resultados"}</h3>
-        <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
-          <OutputDisplay
-            generatedOutputs={generatedOutputs}
-            error={error}
-            isLoading={isLoading}
-            onCopy={onCopy}
-            audioUrl={null}
-            imageUrl={generatedImageUrl}
-            interfaceLanguage={interfaceLanguage}
-          />
-        </div>
-      </div>
-    </div>
-  );
+  }
+  return [];
 };
 
-const IntelligentMode: React.FC<CommonProps> = ({
-  isLoading,
-  error,
-  generatedOutputs,
-  onGenerate,
-  onCopy,
-  setError,
-  setIsLoading,
-  generatedImageUrl,
-  setGeneratedImageUrl,
-  interfaceLanguage,
-}) => {
-  const copy = translations[interfaceLanguage].intelligent;
-  const [idea, setIdea] = useState("");
-  const [context, setContext] = useState("");
-  const [language, setLanguage] = useState(interfaceLanguage);
-  const [deepThinking, setDeepThinking] = useState(false);
-  const [includeImage, setIncludeImage] = useState(false);
-  const [imagePrompt, setImagePrompt] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+const speakWithBrowserTts = async (text: string, language: string) => {
+  if (typeof window === "undefined" || !window.speechSynthesis) {
+    throw new Error("speechSynthesis no está disponible en este navegador.");
+  }
 
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
-  useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null;
-    setImageFile(file);
-    setImagePreview(file ? URL.createObjectURL(file) : null);
-  };
-
-  const handleGenerate = async () => {
-    if (!idea.trim()) {
-      setError(copy.errors.idea);
-      return;
-    }
-    if (includeImage && !imagePrompt.trim()) {
-      setError(copy.errors.imagePrompt);
-      return;
-    }
-    setIsLoading(true);
-    setGeneratedImageUrl(null);
-    try {
-      const thinking = deepThinking
-        ? "Analiza paso a paso."
-        : "Responde directo.";
-      const languageDisplay =
-        languages.find((l) => l.value === language)?.label || language;
-      const prompt = `Rol: Estratega. Tarea: "${idea}". Contexto: "${
-        context || "General"
-      }". Idioma: ${languageDisplay}. ${thinking} Salida JSON: ${structuredOutputExample}`;
-
-      await onGenerate(prompt, {
-        mode: "intelligent",
-        preferReasoning: true,
-        preferSpeed: !deepThinking,
-      });
-
-      if (includeImage && imagePrompt.trim()) {
-        const base64 = imageFile ? await fileToBase64(imageFile) : undefined;
-        const imageUrl = await callImageModel(
-          `${imagePrompt}\nContexto: ${context}`,
-          base64
-        );
-        setGeneratedImageUrl(imageUrl);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div
-      style={
-        isMobile
-          ? commonStyles.twoFrameContainerMobile
-          : commonStyles.twoFrameContainer
-      }
-    >
-      {/* PANEL IZQUIERDO */}
-      <div
-        style={
-          isMobile
-            ? commonStyles.inputFrameMobile
-            : {
-                ...commonStyles.inputFrame,
-                // LÓGICA CRÍTICA: Scroll "auto" si hay imagen, "hidden" si no.
-                overflowY: includeImage ? "auto" : "hidden",
-                overflowX: "hidden",
-                padding: "4px 12px 4px 4px",
-                display: "flex",
-                flexDirection: "column",
-              }
-        }
-      >
-        <h3 style={commonStyles.frameTitle}>{copy.ideaLabel}</h3>
-
-        {/* Área 1: Idea */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            // CORRECCIÓN: Si hay imagen, altura FIJA y NO se encoge. Si no, flexible.
-            flex: includeImage ? "0 0 auto" : "1 1 auto",
-            height: includeImage ? "140px" : "auto", // Altura forzada para provocar scroll
-            minHeight: "100px",
-            marginBottom: "12px",
-            flexShrink: 0, // Prohibido encogerse
-          }}
-        >
-          <textarea
-            style={{ ...commonStyles.textarea, height: "100%", resize: "none" }}
-            value={idea}
-            onChange={(e) => setIdea(e.target.value)}
-            placeholder={copy.ideaPlaceholder}
-          />
-          <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
-            {formatCounterText(idea, interfaceLanguage)}
-          </div>
-        </div>
-
-        {/* Área 2: Contexto */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            // CORRECCIÓN: Misma lógica, altura fija si hay imagen activada.
-            flex: includeImage ? "0 0 auto" : "1 1 auto",
-            height: includeImage ? "100px" : "auto", // Altura forzada para provocar scroll
-            minHeight: "80px",
-            marginBottom: "12px",
-            flexShrink: 0, // Prohibido encogerse
-          }}
-        >
-          <label
-            style={{
-              ...commonStyles.label,
-              fontSize: "0.8em",
-              marginBottom: "2px",
-            }}
-          >
-            {copy.contextLabel}
-          </label>
-          <textarea
-            style={{ ...commonStyles.textarea, height: "100%", resize: "none" }}
-            value={context}
-            onChange={(e) => setContext(e.target.value)}
-            placeholder={copy.contextPlaceholder}
-          />
-        </div>
-
-        {/* Controles inferiores - Siempre abajo, nunca solapados */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-            flexShrink: 0,
-            marginTop: "auto",
-            paddingBottom: "2px",
-            width: "100%",
-            backgroundColor: "var(--panel-bg)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              width: "100%",
-            }}
-          >
-            <div style={{ flex: 1 }}>
-              <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
-                {copy.languageLabel}
-              </label>
-              <select
-                style={{
-                  ...commonStyles.select,
-                  padding: "6px 10px",
-                  fontSize: "0.9em",
-                }}
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as "es" | "en")}
-              >
-                {languages.map((lang) => (
-                  <option key={lang.value} value={lang.value}>
-                    {lang.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <label
-              style={{
-                ...commonStyles.checkboxChip,
-                fontSize: "0.8em",
-                padding: "6px 12px",
-                margin: "18px 0 0 0",
-                whiteSpace: "nowrap",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={deepThinking}
-                onChange={(e) => setDeepThinking(e.target.checked)}
-                style={{ marginRight: "6px" }}
-              />
-              {copy.deepThinkingLabel}
-            </label>
-          </div>
-
-          <div
-            style={{
-              borderTop: "1px solid var(--panel-border)",
-              paddingTop: "8px",
-              width: "100%",
-            }}
-          >
-            <label
-              style={{
-                ...commonStyles.checkboxLabel,
-                fontSize: "0.85em",
-                marginBottom: includeImage ? "6px" : "0",
-                cursor: "pointer",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={includeImage}
-                onChange={(e) => setIncludeImage(e.target.checked)}
-              />{" "}
-              {copy.includeImageLabel}
-            </label>
-
-            {includeImage && (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "6px",
-                  paddingBottom: "4px",
-                  width: "100%",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "6px",
-                    alignItems: "center",
-                    width: "100%",
-                  }}
-                >
-                  <input
-                    type="file"
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    style={{
-                      fontSize: "0.75em",
-                      width: "100%",
-                      maxWidth: "100%",
-                    }}
-                  />
-                  {imagePreview && (
-                    <img
-                      src={imagePreview}
-                      alt="mini"
-                      style={{
-                        width: "30px",
-                        height: "30px",
-                        objectFit: "cover",
-                        borderRadius: "4px",
-                        flexShrink: 0,
-                      }}
-                    />
-                  )}
-                </div>
-                <input
-                  type="text"
-                  style={{
-                    ...commonStyles.select,
-                    padding: "6px",
-                    fontSize: "0.9em",
-                    width: "100%",
-                    boxSizing: "border-box",
-                  }}
-                  value={imagePrompt}
-                  onChange={(e) => setImagePrompt(e.target.value)}
-                  placeholder={copy.imagePromptPlaceholder}
-                />
-              </div>
-            )}
-          </div>
-
-          <button
-            type="button"
-            style={{
-              ...commonStyles.generateButton,
-              padding: "12px",
-              width: "100%",
-            }}
-            onClick={handleGenerate}
-            disabled={isLoading}
-          >
-            {isLoading ? copy.buttonLoading : copy.buttonIdle}
-          </button>
-        </div>
-      </div>
-
-      {/* PANEL DERECHO */}
-      <div
-        style={
-          isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
-        }
-      >
-        <h3 style={commonStyles.frameTitle}>Resultados</h3>
-        <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
-          <OutputDisplay
-            generatedOutputs={generatedOutputs}
-            error={error}
-            isLoading={isLoading}
-            onCopy={onCopy}
-            audioUrl={null}
-            imageUrl={generatedImageUrl}
-            interfaceLanguage={interfaceLanguage}
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const CampaignMode: React.FC<CommonProps> = ({
-  isLoading,
-  error,
-  generatedOutputs,
-  onGenerate,
-  onCopy,
-  setError,
-  setIsLoading,
-  generatedImageUrl,
-  setGeneratedImageUrl,
-  interfaceLanguage,
-}) => {
-  const copy = translations[interfaceLanguage].campaign;
-  const [idea, setIdea] = useState("");
-  const [context, setContext] = useState("");
-  const campaignPlatforms = ["LinkedIn", "X", "Instagram", "Email"];
-  const [language, setLanguage] = useState("es");
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
-  useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
-
-  const handleGenerate = async () => {
-    if (!idea.trim()) {
-      setError(copy.errors.idea);
-      return;
-    }
-    setIsLoading(true);
-    setGeneratedImageUrl(null);
-    try {
-      const selectedLanguage =
-        languages.find((lang) => lang.value === language) ?? {
-          value: language,
-          label: language,
-        };
-      const languageDisplay =
-        selectedLanguage.value === "detect"
-          ? `${selectedLanguage.label} (auto)`
-          : `${selectedLanguage.label} (${selectedLanguage.value})`;
-      const languageReminder =
-        interfaceLanguage === "es"
-          ? `Redacta todos los contenidos solo en ${selectedLanguage.label}, sin mezclar idiomas.`
-          : `Write every content block strictly in ${selectedLanguage.label} and do not mix languages.`;
-      const prompt = `Rol: Planificador de campanas. Idea: "${idea}". Contexto: "${
-        context || "No especificado"
-      }". Idioma: ${languageDisplay}. ${languageReminder} Plataformas: ${campaignPlatforms.join(
-        ", "
-      )}. Sigue el esquema ${structuredOutputExample}.`;
-      await onGenerate(prompt, {
-        mode: "campaign",
-        preferReasoning: true,
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Error desconocido";
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div
-      style={
-        isMobile
-          ? commonStyles.twoFrameContainerMobile
-          : commonStyles.twoFrameContainer
-      }
-    >
-      {/* PANEL IZQUIERDO: Sin Scroll Vertical */}
-      <div
-        style={
-          isMobile
-            ? commonStyles.inputFrameMobile
-            : {
-                ...commonStyles.inputFrame,
-                padding: "4px 12px 4px 4px", // Padding para evitar corte de foco
-                overflowY: "hidden", // PROHIBIDO SCROLL AQUÍ
-              }
-        }
-      >
-        <h3 style={commonStyles.frameTitle}>{copy.ideaLabel}</h3>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            flex: 1,
-            gap: "12px",
-            minHeight: 0,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              flex: 1,
-              minHeight: 0,
-            }}
-          >
-            <textarea
-              style={{
-                ...commonStyles.textarea,
-                height: "100%",
-                minHeight: "60px",
-                resize: "none",
-              }}
-              value={idea}
-              onChange={(e) => setIdea(e.target.value)}
-              placeholder={copy.ideaPlaceholder}
-            />
-            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
-              {formatCounterText(idea, interfaceLanguage)}
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              flex: 1,
-              minHeight: 0,
-            }}
-          >
-            <label
-              style={{
-                ...commonStyles.label,
-                fontSize: "0.85em",
-                marginBottom: "2px",
-              }}
-            >
-              {copy.contextLabel}
-            </label>
-            <textarea
-              style={{
-                ...commonStyles.textarea,
-                height: "100%",
-                minHeight: "60px",
-                resize: "none",
-              }}
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-              placeholder={copy.contextPlaceholder}
-            />
-            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
-              {formatCounterText(context, interfaceLanguage)}
-            </div>
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-            flexShrink: 0,
-            paddingTop: "8px",
-          }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-            <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
-              {copy.languageLabel}
-            </label>
-            <select
-              style={{ ...commonStyles.select, padding: "8px" }}
-              value={language}
-              onChange={(e) => setLanguage(e.target.value as "es" | "en")}
-            >
-              {languages.map((lang) => (
-                <option key={lang.value} value={lang.value}>
-                  {lang.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            type="button"
-            style={{ ...commonStyles.generateButton, padding: "12px" }}
-            onClick={handleGenerate}
-            disabled={isLoading}
-          >
-            {isLoading ? copy.buttonLoading : copy.buttonIdle}
-          </button>
-        </div>
-      </div>
-
-      <div
-        style={
-          isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
-        }
-      >
-        <h3 style={commonStyles.frameTitle}>Campaña</h3>
-        <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
-          <OutputDisplay
-            generatedOutputs={generatedOutputs}
-            error={error}
-            isLoading={isLoading}
-            onCopy={onCopy}
-            audioUrl={null}
-            imageUrl={generatedImageUrl}
-            interfaceLanguage={interfaceLanguage}
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const RecycleMode: React.FC<CommonProps> = ({
-  isLoading,
-  error,
-  generatedOutputs,
-  onGenerate,
-  onCopy,
-  setError,
-  setIsLoading,
-  generatedImageUrl,
-  setGeneratedImageUrl,
-  interfaceLanguage,
-}) => {
-  const copy = translations[interfaceLanguage].recycle;
-  const [inputText, setInputText] = useState("");
-  const [context, setContext] = useState("");
-  const [language, setLanguage] = useState("es");
-  const [tone, setTone] = useState("detect");
-  const [format, setFormat] = useState("summary");
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  useEffect(() => setGeneratedImageUrl(null), [setGeneratedImageUrl]);
-  useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
-
-  const handleGenerate = async () => {
-    if (!inputText.trim()) {
-      setError(copy.errors.original);
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const languageDisplay =
-        languages.find((l) => l.value === language)?.label || language;
-      const toneDisplay = tones.find((t) => t.value === tone)?.label || tone;
-      const formatDisplay =
-        recycleOptions.find((opt) => opt.value === format)?.label || format;
-      const prompt = `Actua como editor. Formato: ${formatDisplay}. Idioma: ${languageDisplay}. Tono: ${toneDisplay}. Contexto: ${
-        context || "No especificado"
-      }. Convierte el siguiente texto manteniendo la coherencia y responde usando ${structuredOutputExample}. Texto: "${inputText}".`;
-      await onGenerate(prompt, {
-        mode: "recycle",
-        preferReasoning: true,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div
-      style={
-        isMobile
-          ? commonStyles.twoFrameContainerMobile
-          : commonStyles.twoFrameContainer
-      }
-    >
-      {/* PANEL IZQUIERDO: Sin Scroll Vertical */}
-      <div
-        style={
-          isMobile
-            ? commonStyles.inputFrameMobile
-            : {
-                ...commonStyles.inputFrame,
-                padding: "4px 12px 4px 4px", // Padding para evitar corte de foco
-                overflowY: "hidden", // PROHIBIDO SCROLL AQUÍ
-              }
-        }
-      >
-        <h3 style={commonStyles.frameTitle}>{copy.originalLabel}</h3>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            flex: 1,
-            gap: "8px",
-            minHeight: 0,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              flex: 1.5,
-              minHeight: 0,
-            }}
-          >
-            <textarea
-              style={{
-                ...commonStyles.textarea,
-                height: "100%",
-                minHeight: "60px",
-                resize: "none",
-              }}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder={copy.originalPlaceholder}
-            />
-            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
-              {formatCounterText(inputText, interfaceLanguage)}
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              flex: 1,
-              minHeight: 0,
-            }}
-          >
-            <label
-              style={{
-                ...commonStyles.label,
-                fontSize: "0.85em",
-                marginBottom: "2px",
-              }}
-            >
-              {copy.contextLabel}
-            </label>
-            <textarea
-              style={{
-                ...commonStyles.textarea,
-                height: "100%",
-                minHeight: "50px",
-                resize: "none",
-              }}
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-              placeholder={copy.contextPlaceholder}
-            />
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-            flexShrink: 0,
-            paddingTop: "8px",
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "8px",
-            }}
-          >
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "2px" }}
-            >
-              <label style={{ ...commonStyles.label, fontSize: "0.75em" }}>
-                {copy.formatLabel}
-              </label>
-              <select
-                style={{
-                  ...commonStyles.select,
-                  padding: "6px",
-                  fontSize: "0.85em",
-                }}
-                value={format}
-                onChange={(e) => setFormat(e.target.value)}
-              >
-                {recycleOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "2px" }}
-            >
-              <label style={{ ...commonStyles.label, fontSize: "0.75em" }}>
-                {copy.toneLabel}
-              </label>
-              <select
-                style={{
-                  ...commonStyles.select,
-                  padding: "6px",
-                  fontSize: "0.85em",
-                }}
-                value={tone}
-                onChange={(e) => setTone(e.target.value)}
-              >
-                {tones.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                gap: "2px",
-              }}
-            >
-              <label style={{ ...commonStyles.label, fontSize: "0.75em" }}>
-                {copy.languageLabel}
-              </label>
-              <select
-                style={{
-                  ...commonStyles.select,
-                  padding: "6px",
-                  fontSize: "0.85em",
-                }}
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as "es" | "en")}
-              >
-                {languages.map((l) => (
-                  <option key={l.value} value={l.value}>
-                    {l.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              type="button"
-              style={{
-                ...commonStyles.generateButton,
-                flex: 1.5,
-                padding: "8px",
-                fontSize: "0.95em",
-                height: "36px",
-              }}
-              onClick={handleGenerate}
-              disabled={isLoading}
-            >
-              {isLoading ? copy.buttonLoading : copy.buttonIdle}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div
-        style={
-          isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
-        }
-      >
-        <h3 style={commonStyles.frameTitle}>Resultado</h3>
-        <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
-          <OutputDisplay
-            generatedOutputs={generatedOutputs}
-            error={error}
-            isLoading={isLoading}
-            onCopy={onCopy}
-            audioUrl={null}
-            imageUrl={generatedImageUrl}
-            interfaceLanguage={interfaceLanguage}
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-interface ChatMessage {
-  role: "user" | "assistant";
-  text: string;
-}
-
-const ChatMode: React.FC<{
-  interfaceLanguage: InterfaceLanguage;
-  onCopy: (text: string) => void;
-  resolveTextModelId: (context?: AutoModelContext) => string;
-}> = ({ interfaceLanguage, onCopy, resolveTextModelId }) => {
-  const copy = translations[interfaceLanguage].chat;
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [current, setCurrent] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  const sendMessage = async () => {
-    if (!current.trim()) return;
-    const newMessage: ChatMessage = { role: "user", text: current };
-    const updated = [...messages, newMessage];
-    setMessages(updated);
-    setCurrent("");
-    setIsLoading(true);
-    try {
-      const history = updated
-        .map(
-          (msg) =>
-            `${msg.role === "user" ? "Usuario" : "Asistente"}: ${msg.text}`
-        )
-        .join("\\n");
-      const prompt = `Eres AncloraAI, enfocado en adaptacion de contenido. Idioma preferido: ${interfaceLanguage.toUpperCase()}. Conversacion: ${history}. Responde de forma breve.`;
-      const modelIdToUse = resolveTextModelId({
-        mode: "chat",
-        preferChat: true,
-        preferSpeed: true,
-      });
-      const raw = await callTextModel(prompt, modelIdToUse);
-      const reply = raw.trim();
-      const assistantMessage: ChatMessage = { role: "assistant", text: reply };
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
-      const errorMessage: ChatMessage = {
-        role: "assistant",
-        text: "Hubo un error al consultar el modelo.",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <section style={commonStyles.section}>
-      <p>{copy.intro}</p>
-      <div style={commonStyles.chatContainer}>
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            style={{
-              ...commonStyles.chatMessage,
-              ...(msg.role === "user"
-                ? commonStyles.userMessage
-                : commonStyles.aiMessage),
-            }}
-          >
-            {msg.text}
-            {msg.role === "assistant" && (
-              <button
-                style={commonStyles.copyButton}
-                onClick={() => onCopy(msg.text)}
-              >
-                {translations[interfaceLanguage].output.copy}
-              </button>
-            )}
-          </div>
-        ))}
-        {isLoading && (
-          <div
-            style={{ ...commonStyles.chatMessage, ...commonStyles.aiMessage }}
-          >
-            {copy.typing}
-          </div>
-        )}
-      </div>
-      <div style={commonStyles.chatInputRow}>
-        <textarea
-          style={commonStyles.chatTextInput}
-          value={current}
-          onChange={(e) => setCurrent(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              sendMessage();
-            }
-          }}
-          placeholder={copy.placeholder}
-        />
-        <button
-          type="button"
-          style={commonStyles.generateButton}
-          onClick={sendMessage}
-          disabled={isLoading}
-        >
-          {copy.button}
-        </button>
-      </div>
-      <div style={commonStyles.chatCounters}>
-        <span>{formatCounterText(current, interfaceLanguage)}</span>
-      </div>
-    </section>
-  );
-};
-
-const TTSMode: React.FC<{
-  interfaceLanguage: InterfaceLanguage;
-  resolveTextModelId: (context?: AutoModelContext) => string;
-}> = ({ interfaceLanguage, resolveTextModelId }) => {
-  const copy = translations[interfaceLanguage].tts;
-  const [textToSpeak, setTextToSpeak] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState<string>("");
-  const [selectedVoiceName, setSelectedVoiceName] = useState("");
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-  const browserTtsSupported =
-    typeof window !== "undefined" && "speechSynthesis" in window;
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // Inicializar idioma cuando se cargan las voces
-  useEffect(() => {
-    if (!selectedLanguage && ttsLanguageOptions.length > 0) {
-      // Preferir español si está disponible, si no usar el primer idioma disponible
-      const preferredLang = ttsLanguageOptions.find((o) => o.value === "es")?.value
-        || ttsLanguageOptions[0]?.value;
-      setSelectedLanguage(preferredLang);
-    }
-  }, [selectedLanguage]);
-
-  useEffect(() => {
-    const voices = ttsLanguageVoiceMap[selectedLanguage];
-    if (voices && voices.length) {
-      setSelectedVoiceName(voices[0].value);
-    }
-  }, [selectedLanguage]);
-
-  const handleGenerate = async () => {
-    if (!textToSpeak.trim()) {
-      setError(copy.errors.text);
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    setAudioUrl(null);
-    try {
-      // Usar el texto directamente sin traducción
-      // El usuario ya ha escrito exactamente lo que quiere que se hable
-      const targetText = textToSpeak.trim();
-
-      if (!TTS_ENDPOINT) {
-        if (!browserTtsSupported) {
-          setError(copy.errors.unavailable);
-        } else {
-          await speakWithBrowserTts(targetText, selectedLanguage);
-          setError(copy.noticeFallback);
-        }
-        return;
-      }
-
-      const audio = await callTextToSpeech(targetText, selectedVoiceName);
-      setAudioUrl(audio);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div
-      style={
-        isMobile
-          ? commonStyles.twoFrameContainerMobile
-          : commonStyles.twoFrameContainer
-      }
-    >
-      {/* PANEL IZQUIERDO: Sin Scroll Vertical, con Padding */}
-      <div
-        style={
-          isMobile
-            ? commonStyles.inputFrameMobile
-            : {
-                ...commonStyles.inputFrame,
-                padding: "4px 12px 4px 4px", // Padding para evitar corte de foco
-                overflowY: "hidden", // PROHIBIDO SCROLL AQUÍ
-              }
-        }
-      >
-        <h3 style={commonStyles.frameTitle}>{copy.textLabel}</h3>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            flex: 1,
-            minHeight: "120px",
-            gap: "6px",
-          }}
-        >
-          <textarea
-            style={{
-              ...commonStyles.textarea,
-              height: "100%",
-              minHeight: "60px",
-              resize: "none",
-            }}
-            value={textToSpeak}
-            onChange={(e) => setTextToSpeak(e.target.value)}
-            placeholder={copy.textPlaceholder}
-          />
-          <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
-            {formatCounterText(textToSpeak, interfaceLanguage)}
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-            flexShrink: 0,
-            paddingTop: "8px",
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "8px",
-            }}
-          >
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "2px" }}
-            >
-              <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
-                {copy.languageLabel}
-              </label>
-              <select
-                style={{ ...commonStyles.select, padding: "8px" }}
-                value={selectedLanguage}
-                onChange={(e) => setSelectedLanguage(e.target.value)}
-              >
-                {ttsLanguageOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "2px" }}
-            >
-              <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
-                {copy.voiceLabel}
-              </label>
-              <select
-                style={{ ...commonStyles.select, padding: "8px" }}
-                value={selectedVoiceName}
-                onChange={(e) => setSelectedVoiceName(e.target.value)}
-              >
-                {(ttsLanguageVoiceMap[selectedLanguage] || []).map((voice) => (
-                  <option key={voice.value} value={voice.value}>
-                    {voice.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <button
-            type="button"
-            style={{ ...commonStyles.generateButton, padding: "12px" }}
-            onClick={handleGenerate}
-            disabled={isLoading}
-          >
-            {isLoading ? copy.buttonLoading : copy.buttonIdle}
-          </button>
-        </div>
-      </div>
-
-      {/* PANEL DERECHO */}
-      <div
-        style={
-          isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
-        }
-      >
-        <h3 style={commonStyles.frameTitle}>Audio Resultante</h3>
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          {error && <div style={commonStyles.errorMessage}>{error}</div>}
-          {isLoading && (
-            <div style={commonStyles.loadingMessage}>
-              <div style={commonStyles.spinner}></div>
-              <span>{copy.buttonLoading}</span>
-            </div>
-          )}
-          {audioUrl && (
-            <div
-              style={{
-                width: "100%",
-                display: "flex",
-                flexDirection: "column",
-                gap: "16px",
-              }}
-            >
-              <audio controls style={{ width: "100%" }} src={audioUrl}></audio>
-              <a
-                href={audioUrl}
-                download="anclora_tts.wav"
-                style={{
-                  ...commonStyles.copyButton,
-                  alignSelf: "center",
-                  textDecoration: "none",
-                }}
-              >
-                {translations[interfaceLanguage].output.downloadAudio}
-              </a>
-            </div>
-          )}
-          {!isLoading && !audioUrl && !error && (
-            <p style={{ opacity: 0.5 }}>Aquí aparecerá el audio generado</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const LiveChatMode: React.FC<{
-  interfaceLanguage: InterfaceLanguage;
-  resolveTextModelId: (context?: AutoModelContext) => string;
-}> = ({ interfaceLanguage, resolveTextModelId }) => {
-  const copy = translations[interfaceLanguage].live;
-  const hasSttEndpoint = Boolean(STT_ENDPOINT);
-  const [isRecording, setIsRecording] = useState(false);
-  const [transcript, setTranscript] = useState<ChatMessage[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-
-  const startRecording = async () => {
-    if (!hasSttEndpoint) {
-      setError(copy.errors.sttUnavailable);
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      chunksRef.current = [];
-      recorder.ondataavailable = (evt) => chunksRef.current.push(evt.data);
-      recorder.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        await handleConversation(blob);
-      };
-      recorder.start();
-      mediaRecorderRef.current = recorder;
-      setIsRecording(true);
-      setError(null);
-    } catch (err) {
-      setError(copy.errors.microphone);
-    }
-  };
-
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    setIsRecording(false);
-  };
-
-  const handleConversation = async (audioBlob: Blob) => {
-    if (!hasSttEndpoint) {
-      setError(copy.errors.sttUnavailable);
-      return;
-    }
-    try {
-      const userText = await callSpeechToText(audioBlob);
-      const userMessage: ChatMessage = { role: "user", text: userText };
-      setTranscript((prev) => [...prev, userMessage]);
-      const prompt = `Convierte el siguiente texto del usuario en una respuesta breve y accionable enfocada en marketing: "${userText}".`;
-      const modelIdToUse = resolveTextModelId({
-        mode: "live",
-        preferChat: true,
-        preferSpeed: true,
-      });
-      const reply = (await callTextModel(prompt, modelIdToUse)).trim();
-      const assistantMessage: ChatMessage = { role: "assistant", text: reply };
-      setTranscript((prev) => [...prev, assistantMessage]);
-      const audioResponse = await callTextToSpeech(reply, "es_male_0");
-      setAudioUrl(audioResponse);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
-    }
-  };
-
-  return (
-    <section style={commonStyles.section}>
-      <p>{copy.intro}</p>
-      <button
-        type="button"
-        style={commonStyles.generateButton}
-        onClick={isRecording ? stopRecording : startRecording}
-        disabled={!hasSttEndpoint}
-      >
-        {isRecording ? copy.buttonStop : copy.buttonStart}
-      </button>
-      {!hasSttEndpoint && (
-        <p style={{ marginTop: "8px", opacity: 0.8 }}>
-          {copy.errors.sttUnavailable}
-        </p>
-      )}
-      {error && <div style={commonStyles.errorMessage}>{error}</div>}
-      <div style={commonStyles.liveTranscript}>
-        {transcript.map((msg, index) => (
-          <p key={index}>
-            <strong>{msg.role === "user" ? "Tu" : "AncloraAI"}:</strong>{" "}
-            {msg.text}
-          </p>
-        ))}
-        {transcript.length === 0 && <p>{copy.transcriptLabel}</p>}
-      </div>
-      {audioUrl && (
-        <div>
-          <audio
-            src={audioUrl}
-            controls
-            style={commonStyles.audioPlayer}
-          ></audio>
-          <a
-            href={audioUrl}
-            download="anclora_live.wav"
-            style={commonStyles.copyButton}
-          >
-            {translations[interfaceLanguage].output.downloadAudio}
-          </a>
-        </div>
-      )}
-    </section>
-  );
-};
-
-const ImageEditMode: React.FC<{ interfaceLanguage: InterfaceLanguage }> = ({
-  interfaceLanguage,
-}) => {
-  const copy = translations[interfaceLanguage].image;
-  const [file, setFile] = useState<File | null>(null);
-  const [prompt, setPrompt] = useState("");
-  const [preview, setPreview] = useState<string | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const image = event.target.files?.[0] || null;
-    setFile(image);
-    setPreview(image ? URL.createObjectURL(image) : null);
-  };
-
-  const handleGenerate = async () => {
-    if (!prompt.trim() && !file) {
-      setError(copy.errors.prompt);
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    setImageUrl(null);
-    try {
-      const base64 = file ? await fileToBase64(file) : undefined;
-      const url = await callImageModel(prompt || "Nueva composicion", base64);
-      setImageUrl(url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div
-      style={
-        isMobile
-          ? commonStyles.twoFrameContainerMobile
-          : commonStyles.twoFrameContainer
-      }
-    >
-      {/* PANEL IZQUIERDO: Sin Scroll Vertical, con Padding */}
-      <div
-        style={
-          isMobile
-            ? commonStyles.inputFrameMobile
-            : {
-                ...commonStyles.inputFrame,
-                padding: "4px 12px 4px 4px", // Padding para evitar corte de foco
-                overflowY: "hidden", // PROHIBIDO SCROLL AQUÍ
-              }
-        }
-      >
-        <h3 style={commonStyles.frameTitle}>{copy.promptLabel}</h3>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            flex: 1,
-            gap: "12px",
-            minHeight: 0,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              flex: 1,
-              minHeight: 0,
-            }}
-          >
-            <textarea
-              style={{
-                ...commonStyles.textarea,
-                height: "100%",
-                minHeight: "100px",
-                resize: "none",
-              }}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder={copy.promptPlaceholder}
-            />
-            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
-              {formatCounterText(prompt, interfaceLanguage)}
-            </div>
-          </div>
-
-          {/* Upload Preview */}
-          {preview && (
-            <div
-              style={{
-                flex: 0.5,
-                minHeight: "60px",
-                display: "flex",
-                justifyContent: "center",
-                backgroundColor: "#f0f0f0",
-                borderRadius: "8px",
-                overflow: "hidden",
-              }}
-            >
-              <img
-                src={preview}
-                alt="preview"
-                style={{ height: "100%", objectFit: "contain" }}
-              />
-            </div>
-          )}
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-            flexShrink: 0,
-            paddingTop: "8px",
-          }}
-        >
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            style={{ fontSize: "0.9em", width: "100%" }}
-          />
-          <button
-            type="button"
-            style={{ ...commonStyles.generateButton, padding: "12px" }}
-            onClick={handleGenerate}
-            disabled={isLoading}
-          >
-            {isLoading ? copy.buttonLoading : copy.buttonIdle}
-          </button>
-        </div>
-      </div>
-
-      {/* PANEL DERECHO */}
-      <div
-        style={
-          isMobile ? commonStyles.outputFrameMobile : commonStyles.outputFrame
-        }
-      >
-        <h3 style={commonStyles.frameTitle}>Imagen Generada</h3>
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          {error && <div style={commonStyles.errorMessage}>{error}</div>}
-          {isLoading && (
-            <div style={commonStyles.loadingMessage}>
-              <div style={commonStyles.spinner}></div>
-              <span>{copy.buttonLoading}</span>
-            </div>
-          )}
-          {imageUrl && (
-            <div
-              style={{
-                width: "100%",
-                display: "flex",
-                flexDirection: "column",
-                gap: "16px",
-              }}
-            >
-              <img
-                src={imageUrl}
-                alt="Resultado"
-                style={{ width: "100%", borderRadius: "12px" }}
-              />
-              <a
-                href={imageUrl}
-                download="anclora_image.png"
-                style={{
-                  ...commonStyles.copyButton,
-                  alignSelf: "center",
-                  textDecoration: "none",
-                }}
-              >
-                {translations[interfaceLanguage].output.downloadImage}
-              </a>
-            </div>
-          )}
-          {!isLoading && !imageUrl && !error && (
-            <p style={{ opacity: 0.5 }}>Aquí aparecerá la imagen resultante</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  return new Promise<void>((resolve, reject) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = language === "es" ? "es-ES" : `${language}-US`;
+    utterance.onend = () => resolve();
+    utterance.onerror = (event) =>
+      reject(
+        event.error
+          ? new Error(String(event.error))
+          : new Error("speechSynthesis falló")
+      );
+    window.speechSynthesis.speak(utterance);
+  });
 };
 
 const App: React.FC = () => {
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() => getStoredTheme());
-  const [interfaceLanguage, setInterfaceLanguage] = useState<InterfaceLanguage>(
-    () => getStoredLanguage()
-  );
-  const [textModelId, setTextModelId] = useState<string>(() =>
-    getStoredTextModel()
-  );
+  const { language } = useLanguage();
+  const {
+    activeMode,
+    setActiveMode,
+    addOutput,
+    clearOutputs,
+    isLoading,
+    setIsLoading,
+    error,
+    setError,
+    selectedModel,
+    setSelectedModel,
+    imageUrl,
+    setImageUrl,
+  } = useInteraction();
+
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isFetchingModels, setIsFetchingModels] = useState(false);
-  const [modelError, setModelError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("basic");
-  const [generatedOutputs, setGeneratedOutputs] = useState<
-    GeneratedOutput[] | null
-  >(null);
-  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [resetCounter, setResetCounter] = useState(0);
-  const copy = translations[interfaceLanguage];
-  const toggleCopy = copy.toggles;
-  const modelCopy = copy.modelSelector;
-  const modelOptions = Array.from(
-    new Set([AUTO_TEXT_MODEL_ID, textModelId, ...availableModels].filter(Boolean))
+
+  const copy = translations[language];
+
+  const tabs: { id: AppMode; label: string }[] = useMemo(
+    () => [
+      { id: "basic", label: copy.tabs.basic },
+      { id: "intelligent", label: copy.tabs.intelligent },
+      { id: "campaign", label: copy.tabs.campaign },
+      { id: "recycle", label: copy.tabs.recycle },
+      { id: "chat", label: copy.tabs.chat },
+      { id: "tts", label: copy.tabs.tts },
+      { id: "live", label: copy.tabs.live },
+      { id: "image", label: copy.tabs.image },
+    ],
+    [copy.tabs]
   );
 
-  // Constante para el nombre del modelo de imagen
-  const imageModelName = "Stable Diffusion (Local)";
-
-  useEffect(() => {
-    ensureGlobalStyles();
-  }, []);
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    const root = document.documentElement;
-    const applyTheme = (mode: ThemeMode) => {
-      root.setAttribute("data-theme", mode);
-    };
-    let media: MediaQueryList | null = null;
-    const mediaListener = (event: MediaQueryListEvent) => {
-      applyTheme(event.matches ? "dark" : "light");
-    };
-
-    if (themeMode === "system") {
-      media = window.matchMedia("(prefers-color-scheme: dark)");
-      applyTheme(media.matches ? "dark" : "light");
-      if (media.addEventListener) {
-        media.addEventListener("change", mediaListener);
-      } else {
-        media.addListener(mediaListener);
-      }
-    } else {
-      applyTheme(themeMode);
-    }
-
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("anclora.theme", themeMode);
-    }
-
-    return () => {
-      if (media) {
-        if (media.removeEventListener) {
-          media.removeEventListener("change", mediaListener);
-        } else {
-          media.removeListener(mediaListener);
-        }
-      }
-    };
-  }, [themeMode]);
-
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      document.documentElement.lang = interfaceLanguage;
-    }
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("anclora.lang", interfaceLanguage);
-    }
-  }, [interfaceLanguage]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("anclora.textModel", textModelId);
-    }
-  }, [textModelId]);
+  const modelOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [
+            AUTO_TEXT_MODEL_ID,
+            selectedModel,
+            ...availableModels,
+            DEFAULT_TEXT_MODEL_ID,
+          ].filter(Boolean)
+        )
+      ),
+    [availableModels, selectedModel]
+  );
 
   const refreshAvailableModels = useCallback(async () => {
     setIsFetchingModels(true);
-    setModelError(null);
     try {
       const models = await listAvailableTextModels();
       setAvailableModels(models);
       if (
+        selectedModel !== AUTO_TEXT_MODEL_ID &&
         models.length > 0 &&
-        textModelId !== AUTO_TEXT_MODEL_ID &&
-        !models.includes(textModelId)
+        !models.includes(selectedModel)
       ) {
-        setTextModelId(models[0]);
+        setSelectedModel(models[0]);
       }
     } catch (err) {
-      setModelError(err instanceof Error ? err.message : "Error desconocido");
+      console.warn("No se pudo listar los modelos disponibles.", err);
     } finally {
       setIsFetchingModels(false);
     }
-  }, [textModelId]);
+  }, [selectedModel, setSelectedModel]);
 
   useEffect(() => {
     void refreshAvailableModels();
   }, [refreshAvailableModels]);
 
-  const selectTextModelForTask = useCallback(
+  const resolveTextModelId = useCallback(
     (context?: AutoModelContext) => {
+      if (selectedModel && selectedModel !== AUTO_TEXT_MODEL_ID) {
+        return selectedModel;
+      }
+
       const pool = Array.from(
         new Set(
-          [
-            textModelId,
-            ...availableModels,
-            TEXT_MODEL_ID,
-            DEFAULT_TEXT_MODEL_ID,
-          ].filter((model) => model && model !== AUTO_TEXT_MODEL_ID)
+          [DEFAULT_TEXT_MODEL_ID, ...availableModels].filter(Boolean)
         )
       );
-      return resolveTextModelId(textModelId, pool, context);
+
+      if (!pool.length) {
+        return DEFAULT_TEXT_MODEL_ID;
+      }
+
+      const normalized = pool.map((name) => name.toLowerCase());
+      const findByKeywords = (keywords: string[]) => {
+        const index = normalized.findIndex((model) =>
+          keywords.some((keyword) => model.includes(keyword))
+        );
+        return index >= 0 ? pool[index] : null;
+      };
+
+      if (context?.preferChat || context?.preferSpeed) {
+        const speedy = findByKeywords(["phi", "mini", "chat", "orca"]);
+        if (speedy) return speedy;
+      }
+
+      if (context?.preferReasoning) {
+        const reasoning = findByKeywords(["qwen", "mistral", "llama"]);
+        if (reasoning) return reasoning;
+      }
+
+      return pool[0] || DEFAULT_TEXT_MODEL_ID;
     },
-    [availableModels, textModelId]
+    [availableModels, selectedModel]
   );
 
-  const generateContentApiCall = useCallback(
+  const handleGenerate = useCallback(
     async (prompt: string, context?: AutoModelContext) => {
       setIsLoading(true);
       setError(null);
-      setGeneratedOutputs(null);
-      setGeneratedImageUrl(null);
+      setImageUrl(null);
+      clearOutputs();
       try {
-        const enforcedPrompt = `${prompt}
-Recuerda responder unicamente con JSON y seguir este ejemplo: ${structuredOutputExample}`;
-        const modelIdToUse = selectTextModelForTask({
-          mode: "basic",
-          ...context,
-        });
-        const raw = await callTextModel(enforcedPrompt, modelIdToUse);
-        const jsonString = extractJsonPayload(raw);
-        const parsed = JSON.parse(jsonString);
-        // Manejar casos donde el modelo devuelve un solo objeto en lugar de un array dentro de "outputs"
-        let outputs = [];
-        if (Array.isArray(parsed.outputs)) {
-          outputs = parsed.outputs;
-        } else if (Array.isArray(parsed)) {
-          outputs = parsed; // A veces devuelve el array directamente
-        } else if (parsed.platform && parsed.content) {
-          outputs = [parsed]; // Devolvió un solo objeto
-        } else {
-          // Fallback: intentar buscar cualquier array en el objeto
-          const keys = Object.keys(parsed);
-          for (const k of keys) {
-            if (Array.isArray(parsed[k])) {
-              outputs = parsed[k];
-              break;
-            }
-          }
+        const enforcedPrompt = `${prompt}\nResponde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutputExample}`;
+        const modelIdToUse = resolveTextModelId(context);
+        const rawResponse = await callTextModel(enforcedPrompt, modelIdToUse);
+        const parsed = JSON.parse(extractJsonPayload(rawResponse));
+        const normalized = normalizeOutputs(parsed);
+
+        if (!normalized.length) {
+          setError(
+            language === "es"
+              ? "El modelo no devolvió el formato esperado."
+              : "Model did not return the expected format."
+          );
+          return;
         }
 
-        if (outputs.length > 0) {
-          setGeneratedOutputs(outputs);
-        } else {
-          console.error("JSON Parseado:", parsed);
-          setError("El modelo no devolvio el formato esperado.");
-        }
+        normalized.forEach(addOutput);
       } catch (err) {
-        console.error(err);
         setError(err instanceof Error ? err.message : "Error desconocido");
       } finally {
         setIsLoading(false);
       }
     },
-    [selectTextModelForTask]
+    [
+      addOutput,
+      clearOutputs,
+      language,
+      resolveTextModelId,
+      setError,
+      setImageUrl,
+      setIsLoading,
+    ]
   );
 
-  const copyToClipboard = (text: string) => {
-    void navigator.clipboard.writeText(text);
-  };
+  const handleCopy = useCallback((text: string) => {
+    if (navigator?.clipboard) {
+      void navigator.clipboard.writeText(text);
+    }
+  }, []);
 
-  const handleScreenReset = () => {
-    setGeneratedOutputs(null);
-    setGeneratedImageUrl(null);
+  const handleReset = useCallback(() => {
+    clearOutputs();
+    setImageUrl(null);
     setError(null);
     setIsLoading(false);
-    setIsHelpOpen(false);
     setResetCounter((prev) => prev + 1);
+  }, [clearOutputs, setError, setImageUrl, setIsLoading]);
+
+  const handleTabChange = useCallback(
+    (mode: AppMode) => {
+      if (mode === activeMode) return;
+      setActiveMode(mode);
+      handleReset();
+    },
+    [activeMode, handleReset, setActiveMode]
+  );
+
+  const renderActiveMode = () => {
+    const keySuffix = `${activeMode}-${resetCounter}`;
+
+    switch (activeMode) {
+      case "basic":
+        return (
+          <BasicMode
+            key={keySuffix}
+            copy={copy.basic}
+            outputCopy={copy.output}
+            interfaceLanguage={language}
+            onGenerate={handleGenerate}
+            onCopy={handleCopy}
+          />
+        );
+      case "intelligent":
+        return (
+          <IntelligentMode
+            key={keySuffix}
+            copy={copy.intelligent}
+            outputCopy={copy.output}
+            interfaceLanguage={language}
+            onGenerate={handleGenerate}
+            onCopy={handleCopy}
+            onGenerateImage={callImageModel}
+          />
+        );
+      case "campaign":
+        return (
+          <CampaignMode
+            key={keySuffix}
+            copy={copy.campaign}
+            outputCopy={copy.output}
+            interfaceLanguage={language}
+            onGenerate={handleGenerate}
+            onCopy={handleCopy}
+          />
+        );
+      case "recycle":
+        return (
+          <RecycleMode
+            key={keySuffix}
+            copy={copy.recycle}
+            outputCopy={copy.output}
+            interfaceLanguage={language}
+            onGenerate={handleGenerate}
+            onCopy={handleCopy}
+          />
+        );
+      case "chat":
+        return (
+          <ChatMode
+            key={keySuffix}
+            interfaceLanguage={language}
+            copy={copy.chat}
+            outputCopy={copy.output}
+            onCopy={handleCopy}
+            resolveTextModelId={resolveTextModelId}
+            callTextModel={callTextModel}
+          />
+        );
+      case "tts":
+        return (
+          <TTSMode
+            key={keySuffix}
+            interfaceLanguage={language}
+            copy={copy.tts}
+            outputCopy={copy.output}
+            callTextToSpeech={callTextToSpeech}
+            speakWithBrowserTts={speakWithBrowserTts}
+            ttsEndpoint={TTS_ENDPOINT}
+            languageCodeMap={LANGUAGE_CODE_MAP}
+            languageLabels={LANGUAGE_LABELS}
+          />
+        );
+      case "live":
+        return (
+          <LiveChatMode
+            key={keySuffix}
+            interfaceLanguage={language}
+            copy={copy.live}
+            outputCopy={copy.output}
+            resolveTextModelId={resolveTextModelId}
+            callSpeechToText={callSpeechToText}
+            callTextModel={callTextModel}
+            callTextToSpeech={callTextToSpeech}
+            hasSttEndpoint={Boolean(STT_ENDPOINT)}
+            defaultVoicePreset="es_male_0"
+          />
+        );
+      case "image":
+        return (
+          <ImageEditMode
+            key={keySuffix}
+            interfaceLanguage={language}
+            copy={copy.image}
+            onGenerateImage={callImageModel}
+          />
+        );
+      default:
+        return null;
+    }
   };
 
-  const handleHelp = () => {
-    setIsHelpOpen(true);
+  const helpConfig = {
+    isOpen: isHelpOpen,
+    title: copy.helpTitle,
+    description: copy.help,
+    tips: copy.helpTips,
+    openLabel:
+      language === "es" ? "Abrir ayuda rápida" : "Open quick tips",
+    closeLabel: language === "es" ? "Cerrar ayuda" : "Close help",
+    onOpen: () => setIsHelpOpen(true),
+    onClose: () => setIsHelpOpen(false),
   };
-  const closeHelp = () => {
-    setIsHelpOpen(false);
-  };
-
-  const commonProps: CommonProps = {
-    isLoading,
-    error,
-    generatedOutputs,
-    generatedImageUrl,
-    onGenerate: generateContentApiCall,
-    onCopy: copyToClipboard,
-    setError,
-    setIsLoading,
-    setGeneratedImageUrl,
-    interfaceLanguage,
-    selectedTextModel: textModelId,
-  };
-
-  const tabsOrder: { id: string; label: string }[] = [
-    { id: "basic", label: copy.tabs.basic },
-    { id: "intelligent", label: copy.tabs.intelligent },
-    { id: "campaign", label: copy.tabs.campaign },
-    { id: "recycle", label: copy.tabs.recycle },
-    { id: "chat", label: copy.tabs.chat },
-    { id: "tts", label: copy.tabs.tts },
-    { id: "live", label: copy.tabs.live },
-    { id: "image", label: copy.tabs.image },
-  ];
-  const themeLabels: Record<ThemeMode, string> = {
-    light: toggleCopy.themeLight,
-    dark: toggleCopy.themeDark,
-    system: toggleCopy.themeSystem,
-  };
-  const languageLabels: Record<InterfaceLanguage, string> = {
-    es: toggleCopy.langEs,
-    en: toggleCopy.langEn,
-  };
-  const helpLabel =
-    interfaceLanguage === "es" ? "Abrir ayuda rapida" : "Open quick tips";
-  const helpCloseLabel =
-    interfaceLanguage === "es" ? "Cerrar ayuda" : "Close help";
 
   return (
-    <div style={commonStyles.container}>
-      <header style={commonStyles.header}>
-        {/* --- FILA SUPERIOR (NUEVO DISEÑO) --- */}
-        <div style={commonStyles.headerTopRow}>
-          {/* GRUPO IZQUIERDA: TEMA */}
-          <div style={commonStyles.headerLeftGroup}>
-            <button
-              type="button"
-              onClick={() => {
-                // Ciclo simple: light -> dark -> system
-                const next =
-                  themeMode === "light"
-                    ? "dark"
-                    : themeMode === "dark"
-                    ? "system"
-                    : "light";
-                setThemeMode(next);
-              }}
-              style={{
-                ...commonStyles.toggleButton,
-                border: "1px solid var(--panel-border)",
-                padding: "8px",
-              }}
-              title={`Tema actual: ${themeMode}`}
-            >
-              {renderThemeIcon(themeMode)}
-            </button>
-          </div>
-
-          {/* GRUPO CENTRO: TÍTULO (Más espacio) */}
-          <div style={commonStyles.titleGroup}>
-            <h1 style={commonStyles.title}>{copy.title}</h1>
-            <p style={commonStyles.subtitle}>{copy.subtitle}</p>
-          </div>
-
-          {/* GRUPO DERECHA: IDIOMA Y AYUDA */}
-          <div style={commonStyles.headerRightGroup}>
-            <button
-              type="button"
-              onClick={() =>
-                setInterfaceLanguage((prev) => (prev === "es" ? "en" : "es"))
-              }
-              style={{
-                ...commonStyles.toggleButton,
-                border: "1px solid var(--panel-border)",
-                padding: "6px 12px",
-                gap: "6px",
-              }}
-              title="Cambiar idioma / Switch language"
-            >
-              <span style={{ fontSize: "0.9em", fontWeight: 700 }}>
-                {interfaceLanguage.toUpperCase()}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleHelp}
-              style={commonStyles.helpButton}
-              title={helpLabel}
-            >
-              ?
-            </button>
-          </div>
-        </div>
-
-        {/* --- NUEVA BARRA DE CONFIGURACIÓN DE MODELOS --- */}
-        <div style={commonStyles.settingsBar}>
-          {/* Selector de Modelo de Texto */}
-          <div style={commonStyles.settingsGroup}>
-            <span style={commonStyles.settingsLabel}>Modelo Texto:</span>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <select
-                id="text-model-select"
-                value={textModelId}
-                onChange={(e) => setTextModelId(e.target.value)}
-                style={{
-                  ...commonStyles.select,
-                  padding: "6px 10px",
-                  fontSize: "0.9em",
-                  minWidth: "150px",
-                  width: "auto",
-                }}
-              >
-                {modelOptions.map((model) => {
-                  const label =
-                    model === AUTO_TEXT_MODEL_ID
-                      ? modelCopy.auto || "Auto"
-                      : model;
-                  return (
-                    <option key={model} value={model}>
-                      {label}
-                    </option>
-                  );
-                })}
-              </select>
-              <button
-                type="button"
-                style={{ ...commonStyles.copyButton, padding: "6px 10px" }}
-                onClick={() => void refreshAvailableModels()}
-                disabled={isFetchingModels}
-                title="Refrescar lista de modelos"
-              >
-                {isFetchingModels ? "..." : "↻"}
-              </button>
-            </div>
-          </div>
-
-          {/* Selector de Modelo de Imagen (Informativo por ahora) */}
-          <div style={commonStyles.settingsGroup}>
-            <span style={commonStyles.settingsLabel}>Modelo Imagen:</span>
-            <select
-              disabled // Deshabilitado porque depende del backend local
-              style={{
-                ...commonStyles.select,
-                padding: "6px 10px",
-                fontSize: "0.9em",
-                minWidth: "180px",
-                width: "auto",
-                opacity: 0.7,
-                cursor: "not-allowed",
-                backgroundColor: "var(--muted-surface)",
-              }}
-            >
-              <option>{imageModelName}</option>
-            </select>
-          </div>
-
-          <div style={{ ...commonStyles.settingsGroup, marginLeft: "auto" }}>
-            <button
-              type="button"
-              style={commonStyles.resetButton}
-              onClick={handleScreenReset}
-              title={modelCopy.reset}
-              aria-label={modelCopy.reset}
-            >
-              <RefreshCw size={18} />
-              <span style={{ fontWeight: 700 }}>
-                {interfaceLanguage === "es" ? "Reiniciar" : "Reset"}
-              </span>
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main style={commonStyles.mainContent}>
-        <nav style={commonStyles.tabNavigation}>
-          {tabsOrder.map((tab) => (
-            <button
-              key={tab.id}
-              style={{
-                ...commonStyles.tabButton,
-                ...(activeTab === tab.id && commonStyles.tabButtonActive),
-              }}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setGeneratedOutputs(null);
-                setGeneratedImageUrl(null);
-                setError(null);
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-
-        <div style={commonStyles.modeScrollArea}>
-          {activeTab === "basic" && (
-            <BasicMode key={`basic-${resetCounter}`} {...commonProps} />
-          )}
-          {activeTab === "intelligent" && (
-            <IntelligentMode
-              key={`intelligent-${resetCounter}`}
-              {...commonProps}
-            />
-          )}
-          {activeTab === "campaign" && (
-            <CampaignMode
-              key={`campaign-${resetCounter}`}
-              {...commonProps}
-            />
-          )}
-          {activeTab === "recycle" && (
-            <RecycleMode key={`recycle-${resetCounter}`} {...commonProps} />
-          )}
-          {activeTab === "chat" && (
-            <ChatMode
-              key={`chat-${resetCounter}`}
-              interfaceLanguage={interfaceLanguage}
-              onCopy={copyToClipboard}
-              resolveTextModelId={selectTextModelForTask}
-            />
-          )}
-          {activeTab === "tts" && (
-            <TTSMode
-              key={`tts-${resetCounter}`}
-              interfaceLanguage={interfaceLanguage}
-              resolveTextModelId={selectTextModelForTask}
-            />
-          )}
-          {activeTab === "live" && (
-            <LiveChatMode
-              key={`live-${resetCounter}`}
-              interfaceLanguage={interfaceLanguage}
-              resolveTextModelId={selectTextModelForTask}
-            />
-          )}
-          {activeTab === "image" && (
-            <ImageEditMode
-              key={`image-${resetCounter}`}
-              interfaceLanguage={interfaceLanguage}
-            />
-          )}
-        </div>
-      </main>
-      {isHelpOpen && (
-        <div
-          style={commonStyles.helpOverlay}
-          role="presentation"
-          onClick={closeHelp}
-        >
-          <div
-            style={commonStyles.helpModal}
-            role="dialog"
-            aria-modal="true"
-            aria-label={copy.helpTitle}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div style={commonStyles.helpModalHeader}>
-              <h2 style={{ margin: 0 }}>{copy.helpTitle}</h2>
-              <button
-                type="button"
-                style={commonStyles.helpCloseButton}
-                onClick={closeHelp}
-                aria-label={helpCloseLabel}
-                title={helpCloseLabel}
-              >
-                ×
-              </button>
-            </div>
-            <p style={commonStyles.helpIntro}>{copy.help}</p>
-            <ul style={commonStyles.helpModalList}>
-              {copy.helpTips.map((tip, index) => (
-                <li key={index}>{tip}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-    </div>
+    <MainLayout
+      tabs={tabs}
+      modelOptions={modelOptions}
+      modelCopy={copy.modelSelector}
+      textModelId={selectedModel}
+      onTextModelChange={setSelectedModel}
+      onRefreshModels={refreshAvailableModels}
+      isRefreshingModels={isFetchingModels}
+      onTabChange={handleTabChange}
+      onReset={handleReset}
+      help={helpConfig}
+    >
+      {renderActiveMode()}
+    </MainLayout>
   );
 };
 

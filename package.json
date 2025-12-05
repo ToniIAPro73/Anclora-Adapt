@@ -8,6 +8,7 @@
     "dev:landing": "python -m http.server 4174 --directory landing",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest",
     "check:health": "node scripts/check-endpoints.js",
     "image:bridge": "node scripts/image-bridge.js",
     "tts:server": "python scripts/tts_server.py"
@@ -19,11 +20,15 @@
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.0.1",
     "@types/node": "^22.14.0",
     "@types/react": "^19.2.6",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.0",
+    "jsdom": "^25.0.1",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "vitest": "^4.0.15"
   }
 }

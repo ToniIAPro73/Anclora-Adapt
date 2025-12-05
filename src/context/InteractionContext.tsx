@@ -7,16 +7,25 @@
  * FASE 1.1 - Refactorización de Frontend
  */
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import type {
   InteractionContextType,
   AppMode,
   GeneratedOutput,
 } from "@/types";
+import { DEFAULT_TEXT_MODEL_ID } from "@/config";
 
 const InteractionContext = createContext<InteractionContextType | undefined>(
   undefined
 );
+
+const TEXT_MODEL_STORAGE_KEY = "anclora.textModel";
 
 export interface InteractionProviderProps {
   children: ReactNode;
@@ -39,11 +48,26 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Model Selection
-  const [selectedModel, setSelectedModel] = useState<string>("llama2");
+  const [selectedModel, setSelectedModelState] = useState<string>(() => {
+    if (typeof window === "undefined") {
+      return DEFAULT_TEXT_MODEL_ID;
+    }
+    return (
+      window.localStorage.getItem(TEXT_MODEL_STORAGE_KEY) ||
+      DEFAULT_TEXT_MODEL_ID
+    );
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(TEXT_MODEL_STORAGE_KEY, selectedModel);
+    }
+  }, [selectedModel]);
 
   // Media (for image/voice modes)
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   // Helper functions
   const addOutput = (output: GeneratedOutput) => {
@@ -74,13 +98,16 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
 
     // Model Selection
     selectedModel,
-    setSelectedModel,
+    setSelectedModel: setSelectedModelState,
 
     // Media
     selectedFile,
     setSelectedFile,
     audioBlob,
     setAudioBlob,
+
+    imageUrl,
+    setImageUrl,
   };
 
   return (
