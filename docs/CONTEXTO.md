@@ -1,197 +1,105 @@
 # CONTEXTO DE CAMBIOS Y ESTADO
 
-## Problema Original (Noviembre 2025)
-
-### Qué se Intentó Resolver
-
-**Error inicial**: `404 Not Found` al llamar a `/api/hf-text` (proxy hacia Hugging Face Router)
-- Endpoint usado: `https://router.huggingface.co/hf-inference/models/openai-community/gpt2`
-- El router de HF estaba devolviendo 404 para múltiples modelos
-- La causa raíz: Hugging Face descontinuó el endpoint legacy `api-inference.huggingface.co` y los modelos en el router no estaban disponibles
-
-### Intentos de Solución Fallidos
-
-1. **Cambiar de modelo LLM**: Probamos `mistralai/Mistral-7B-Instruct-v0.1`, `google/flan-t5-base`, `openai-community/gpt2` → Todos devolvían 404 del router
-2. **Cambiar endpoint**: De `router.huggingface.co` a `api-inference.huggingface.co` → Error: "API is no longer supported, use router instead"
-3. **Agregar headers al proxy de Vite**: No solucionó el problema de disponibilidad de modelos
-4. **Together AI API**: Era una solución paga (aunque con free tier) → No cumplía requisito de "100% gratis open source"
+Documento vivo con el histórico de decisiones y el estado actual del proyecto.
 
 ---
 
-## Solución Final: Ollama (Open Source Local)
+## Resumen 2025-Q4
 
-### Por qué Ollama
-
-✅ **Completamente gratis** - Open source (AGPL), sin costo alguno
-✅ **Cero 404s** - Los modelos corren localmente, siempre disponibles
-✅ **Cero rate limits** - Infraestructura propia, sin restricciones
-✅ **Cero CORS** - Local, no viaja por internet
-✅ **Modelos probados** - Llama 2, Mistral, Neural Chat funcionan perfectamente
-
-### Cambios Realizados
-
-#### `index.tsx` (líneas 4-12)
-```typescript
-// ANTES: Configuración de Hugging Face Router
-const HF_BASE_URL = "https://router.huggingface.co/hf-inference";
-const TEXT_MODEL_ID = "openai-community/gpt2";
-
-// AHORA: Configuración de Ollama (Local)
-const OLLAMA_BASE_URL = "http://localhost:11434";
-const TEXT_MODEL_ID = "llama2"; // Local, nunca da 404
-```
-
-#### `callTextModel()` (líneas 73-98)
-```typescript
-// ANTES: Usaba buildCandidateUrls + fetchWithFallback (complejo)
-const response = await fetchWithFallback(
-  buildCandidateUrls(TEXT_MODEL_ID, TEXT_ENDPOINT),
-  { /* headers con Bearer token, formato HF */ }
-);
-
-// AHORA: API simple de Ollama, sin auth
-const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-  method: "POST",
-  body: JSON.stringify({
-    model: TEXT_MODEL_ID,
-    prompt: prompt,
-    stream: false,
-    temperature: 0.4,
-  }),
-});
-```
-
-#### `.env.local`
-```bash
-# ANTES:
-HF_API_KEY=hf_...
-VITE_HF_BASE_URL=https://router.huggingface.co/hf-inference
-VITE_USE_PROXY=true
-VITE_TEXT_MODEL_ID=google/flan-t5-base
-
-# AHORA:
-VITE_OLLAMA_BASE_URL=http://localhost:11434
-VITE_TEXT_MODEL_ID=llama2
-```
+- **Backend textual** migrado definitivamente a Ollama local (Llama2/Mistral/Qwen) para evitar 404 de Hugging Face.
+- **Refactor Front** en curso: la SPA quedó dividida en modos y contextos (`InteractionContext`, `LanguageContext`, etc.).
+- **Compatibilidad lingüística**: la app ya sabe qué idiomas soporta cada modelo y autodetecta cuál usar cuando eliges “Auto”.
+- **Historia reciente**:
+  - Se habilitó traducción literal en el modo Básico (JSON mínimo).
+  - Se añadió `lastModelUsed` en la UI para saber qué modelo respondió realmente.
+  - Se deshabilitan idiomas no soportados según el modelo instalado.
+  - Se corrigió el layout (sin scroll indeseado, estilos consistentes).
 
 ---
 
-## Estado Actual (Listo para Usar)
+## Camino hasta aquí
 
-### Setup Requerido
+### 1. De Hugging Face a Ollama (NOV-2025)
+Problema original: `/api/hf-text` devolvía 404 porque el router de Hugging Face retiró varios endpoints legacy. Tras varios intentos (otros modelos, router nuevo, TogetherAI) se optó por **Ollama Local**:
 
 ```bash
-# 1. Instalar Ollama (Windows, Mac, Linux)
-# Descargar desde https://ollama.ai
-
-# 2. Descargar un modelo
-ollama pull llama2      # ~4GB
-# o
-ollama pull mistral     # ~5GB (mejor calidad)
-# o
-ollama pull neural-chat # ~4GB (optimizado para chat)
-
-# 3. Ejecutar Ollama
+ollama pull llama2
 ollama serve
-
-# 4. En otra terminal, ejecutar app
 npm run dev
 ```
 
-### Modelos Disponibles
+`callTextModel` ahora usa `POST /api/generate` de Ollama y `.env.local` solo define `VITE_OLLAMA_BASE_URL` y `VITE_TEXT_MODEL_ID`.
 
-| Modelo | Tamaño | Velocidad | Calidad | Caso de Uso |
-|--------|--------|-----------|---------|------------|
-| llama2 | 4GB | Media | Buena | Texto general, recomendado |
-| mistral | 5GB | Rápida | Muy buena | Mejor calidad, más lento |
-| neural-chat | 4GB | Rápida | Buena | Chat optimizado |
-| orca-mini | 2GB | Muy rápida | Aceptable | Máquinas débiles |
+### 2. Refactor de la SPA (NOV-DIC 2025)
+- Creación de `src/` con componentes por modo (`BasicMode`, `CampaignMode`, etc.).
+- Contextos globales (`InteractionContext`, `ThemeContext`, `LanguageContext`).
+- Consolidación de prompts y traducciones en `src/constants`.
 
----
+### 3. Heurística de idioma/modelo (DIC 2025)
+Casos como “traduce al japonés” fallaban cuando Auto elegía `llama2`. Se añadió:
 
-## Problemas Detectados & Áreas de Mejora
+1. **Mapa de capacidades** (`src/constants/modelCapabilities.ts`): define qué familias soportan CJK, cirílico, etc.
+2. **`resolveTextModelId` mejorado**: si el usuario pide japonés y está instalado un modelo tipo Qwen, se selecciona automáticamente.
+3. **Selectores adaptativos**: los desplegables de idioma muestran solo los idiomas permitidos por el modelo actual. Con “Auto” se muestran todos, pero los no soportados se deshabilitan hasta que instales un modelo compatible.
+4. **`lastModelUsed`** visible bajo el combo para saber qué modelo respondió realmente.
 
-### Problemas Actuales
-
-1. **Monolítico**: Todo código en `index.tsx` (~80KB)
-   - Difícil de mantener y testear
-   - Acoplamiento fuerte entre modos
-   - **Solución**: Refactor a estructura `src/`
-
-2. **Imagen/TTS/STT no implementados**
-   - Solo placeholders vacíos
-   - 5 de 8 modos incompletos
-   - **Solución**: Integrar Stable Diffusion, Bark (TTS), Whisper (STT) en Ollama
-
-3. **Sin tests automatizados**
-   - Solo QA manual de 8 modos
-   - Riesgo alto de regresiiones
-   - **Solución**: Vitest + React Testing Library
-
-4. **Sin backend**
-   - LocalStorage solo, se pierde al limpiar caché
-   - Sin historial de sesiones
-   - Sin multi-usuario
-   - **Solución**: Backend Node.js/Python con BD
-
-5. **Sin CI/CD**
-   - Build y deploy manuales
-   - Sin validación automática pre-push
-   - **Solución**: GitHub Actions
-
-6. **Sin autenticación**
-   - Acceso público a cualquiera
-   - Sin límites de uso
-   - **Solución**: OAuth2 / JWT
-
-### Áreas de Mejora (Priority Order)
-
-**High Priority:**
-1. Implementar imagen con Stable Diffusion
-2. Implementar STT/TTS con Whisper/Bark
-3. Refactor monolítico a estructura modular
-4. Agregar tests automatizados
-
-**Medium Priority:**
-5. Backend para persistencia de sesiones
-6. CI/CD con GitHub Actions
-7. Autenticación basic
-
-**Low Priority:**
-8. Analytics y tracking de uso
-9. Integración con múltiples proveedores LLM
-10. Mobile app (React Native)
+### 4. Ajustes de UX recientes
+- Layout sin scroll vertical extra (los frames ya no se desbordan).
+- Botón “Copiar” ahora tiene contraste alto en modo oscuro.
+- El modo Básico produce traducciones literales limpias (JSON con un único `content`).
 
 ---
 
-## Requisitos para Futuro
+## Estado actual por áreas
 
-Cualquier nueva solución de API **DEBE cumplir**:
-1. ✅ Open source o completamente gratis (sin hidden costs)
-2. ✅ Sin 404s ni errores de disponibilidad
-3. ✅ Sin rate limits o con límites generosos
-4. ✅ Sin autenticación requerida (o muy simple)
-5. ✅ Soportar texto, imagen, TTS, STT
-6. ✅ API simple y bien documentada
-
-Ollama cumple todo excepto imagen/TTS/STT que requieren modelos adicionales.
-
----
-
-## Notas de Seguridad
-
-- ✅ **`.env.local` seguro** - No contiene credenciales sensibles ahora
-- ✅ **Ollama local es seguro** - No viaja por internet
-- ✅ **CORS no es problema** - Todo es local
-- ⚠️ **Validar inputs** - Sanitizar prompts antes de pasar a Ollama
-- ⚠️ **Errores informativos** - No mostrar detalles internos a usuarios
+| Área | Estado | Comentario |
+|------|--------|------------|
+| Generación de texto | ✅ Estable con Ollama | Modelos recomendados: `llama2`, `mistral`, `qwen2.5:7b` (para japonés/chino/ruso). |
+| Traducciones | ✅ | El modo Básico fuerza JSON limpio y la app elige el modelo multilingüe adecuado. |
+| Selección de idioma | ✅ Adaptativo | Los idiomas no soportados aparecen deshabilitados cuando el modelo seleccionado no los cubre. |
+| Mostrar modelo usado | ✅ | `lastModelUsed` se actualiza tras cada generación (visible bajo “Modelo de texto”). |
+| Imagen / Voz / STT | ⚠️ Pendiente | Hooks listos pero faltan endpoints reales (FastAPI opcional). |
+| Refactor front | 🟡 En progreso | Falta completar la migración de algunos modos legacy y añadir tests. |
+| Tests automatizados | ❌ | Vitest configurado pero sin cobertura aún. |
+| Backend persistente | ❌ | Actualmente todo es local (sin DB). |
+| CI/CD | ❌ | Builds manuales. |
 
 ---
 
-## Conclusión
+## Modelos soportados y idiomas
 
-La migración a Ollama **resuelve completamente el problema de 404s** y proporciona una solución:
-- **100% gratuita** (open source)
-- **100% confiable** (local, sin servidores externos)
-- **100% escalable** (infraestructura propia)
-- **Futura-proof** (compatible con nuevos modelos/backends)
+| Modelo / Familia | Idiomas confirmados |
+|------------------|--------------------|
+| `llama2`, `llama3`, `mistral`, `gemma` | ES, EN, FR, DE, PT, IT, RU |
+| `qwen2.5`, `yi`, `deepseek` | Todo lo anterior + JA, ZH |
+| Otros (phi, orca, neural-chat) | ES, EN, FR, DE, PT, IT |
+
+> Si instalas un modelo nuevo y pulsas “Actualizar modelos” la app recalcula automáticamente el soporte lingüístico. Para habilitar japonés/chino instala un Qwen o Yi (`ollama pull qwen2.5:7b`). Si no hay modelo compatible, la opción aparece deshabilitada.
+
+---
+
+## Próximos pasos sugeridos
+
+1. **Implementar imagen/TTS/STT** con el backend FastAPI incluido en `python-backend/`.
+2. **Tests** de regresión para cada modo (Vitest + React Testing Library).
+3. **Persistencia** (FastAPI/Node + DB ligera) para guardar sesiones/resultados.
+4. **Informes de uso** (cuántas generaciones por modo/modelo).
+5. **CI/CD** con GitHub Actions para lint + tests antes de merge.
+
+---
+
+## Notas operativas
+
+- `.env.local` de ejemplo está en la raíz. No requiere claves externas salvo que conectes un backend distinto.
+- Para depurar, usa `npm run check:health` (valida Ollama y endpoints opcionales).
+- Cualquier cambio en estilos debe pasar por `src/styles/commonStyles.ts` para mantener coherencia claro/oscuro.
+- Antes de añadir un idioma nuevo asegúrate de extender `capabilityMatrix` con el modelo que lo soporta.
+
+---
+
+## TL;DR
+
+- Ya no dependemos de endpoints externos: todo corre en Ollama local.
+- La app sabe qué modelo usar según el idioma solicitado y se lo comunica al usuario.
+- Las traducciones literal/estructurada vuelven a ser fiables.
+- Falta completar modos avanzados, tests y backend persistente, pero la base es estable para trabajo diario.
