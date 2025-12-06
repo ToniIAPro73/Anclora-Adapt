@@ -38,6 +38,7 @@ import { useInteraction } from "@/context/InteractionContext";
 import { STT_ENDPOINT, TTS_ENDPOINT } from "@/config";
 import {
   buildLanguageOptions,
+  inferLanguagesForModel,
   LanguageOptionAvailability,
 } from "@/constants/modelCapabilities";
 
@@ -198,6 +199,25 @@ const App: React.FC = () => {
     [availableModels, selectedModel]
   );
 
+  const availableModelPool = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [
+            ...(selectedModel && selectedModel !== AUTO_TEXT_MODEL_ID
+              ? [selectedModel]
+              : []),
+            ...availableModels,
+            DEFAULT_TEXT_MODEL_ID,
+          ].filter(
+            (model): model is string =>
+              Boolean(model) && model !== AUTO_TEXT_MODEL_ID
+          )
+        )
+      ),
+    [availableModels, selectedModel]
+  );
+
   const refreshAvailableModels = useCallback(async () => {
     setIsFetchingModels(true);
     try {
@@ -221,62 +241,89 @@ const App: React.FC = () => {
     void refreshAvailableModels();
   }, [refreshAvailableModels]);
 
-  const resolveTextModelId = useCallback(
-    (context?: AutoModelContext) => {
-      if (selectedModel && selectedModel !== AUTO_TEXT_MODEL_ID) {
-        return selectedModel;
-      }
-
-      const pool = Array.from(
-        new Set(
-          [DEFAULT_TEXT_MODEL_ID, ...availableModels].filter(Boolean)
-        )
-      );
-
-      if (!pool.length) {
-        return DEFAULT_TEXT_MODEL_ID;
-      }
-
-      const normalized = pool.map((name) => name.toLowerCase());
-      const findByKeywords = (keywords: string[]) => {
-        const index = normalized.findIndex((model) =>
-          keywords.some((keyword) => model.includes(keyword))
-        );
-        return index >= 0 ? pool[index] : null;
-      };
+  const scoreModelForContext = useCallback(
+    (modelId: string, context?: AutoModelContext) => {
+      const normalized = modelId.toLowerCase();
+      let score = 0;
 
       if (context?.targetLanguage && context.targetLanguage !== "detect") {
-        const lang = context.targetLanguage.toLowerCase();
-        const needsCjkSupport = ["ja", "zh", "ko"].includes(lang);
-        const needsCyrillicSupport = ["ru"].includes(lang);
+        const supported = inferLanguagesForModel(modelId);
+        if (supported.includes(context.targetLanguage)) {
+          score += 5;
+        } else {
+          score -= 2;
+        }
 
-        if (needsCjkSupport) {
-          const cjkReady = findByKeywords([
-            "qwen",
-            "yi",
-            "gemma",
-            "mistral",
-          ]);
-          if (cjkReady) return cjkReady;
-        } else if (needsCyrillicSupport) {
-          const cyrillicReady = findByKeywords(["qwen", "mistral", "llama3"]);
-          if (cyrillicReady) return cyrillicReady;
+        if (["ja", "zh", "ko"].includes(context.targetLanguage)) {
+          if (/qwen|yi|deepseek/.test(normalized)) score += 5;
+          if (/mistral|gemma/.test(normalized)) score += 2;
+        }
+
+        if (["es", "pt", "fr", "it"].includes(context.targetLanguage)) {
+          if (/mistral|qwen|llama3/.test(normalized)) score += 3;
+        }
+
+        if (context.targetLanguage === "ru") {
+          if (/qwen|mistral|llama3/.test(normalized)) score += 3;
         }
       }
 
       if (context?.preferChat || context?.preferSpeed) {
-        const speedy = findByKeywords(["phi", "mini", "chat", "orca"]);
-        if (speedy) return speedy;
+        if (/phi|mini|chat|orca|gemma/.test(normalized)) score += 2;
       }
 
       if (context?.preferReasoning) {
-        const reasoning = findByKeywords(["qwen", "mistral", "llama"]);
-        if (reasoning) return reasoning;
+        if (/qwen|mistral|llama3/.test(normalized)) score += 2;
       }
 
-      return pool[0] || DEFAULT_TEXT_MODEL_ID;
+      if (/mistral|qwen/.test(normalized)) {
+        score += 1;
+      }
+
+      if (/llama2/.test(normalized)) {
+        score -= 2;
+      }
+
+      return score;
     },
-    [availableModels, selectedModel]
+    []
+  );
+
+  const getModelCandidates = useCallback(
+    (context?: AutoModelContext) => {
+      if (!availableModelPool.length) {
+        return [DEFAULT_TEXT_MODEL_ID];
+      }
+
+      const scored = availableModelPool
+        .map((model) => ({
+          model,
+          score: scoreModelForContext(model, context),
+        }))
+        .sort((a, b) => b.score - a.score || a.model.localeCompare(b.model));
+
+      if (selectedModel && selectedModel !== AUTO_TEXT_MODEL_ID) {
+        const manualFirst = scored.find((entry) => entry.model === selectedModel);
+        const remaining = scored.filter(
+          (entry) => entry.model !== selectedModel
+        );
+        return [
+          manualFirst?.model || selectedModel,
+          ...remaining.map((entry) => entry.model),
+        ];
+      }
+
+      return scored.map((entry) => entry.model);
+    },
+    [availableModelPool, scoreModelForContext, selectedModel]
+  );
+
+  const resolveTextModelId = useCallback(
+    (context?: AutoModelContext) => {
+      const ordered = getModelCandidates(context);
+      return ordered[0] || DEFAULT_TEXT_MODEL_ID;
+    },
+    [getModelCandidates]
   );
 
   const handleGenerate = useCallback(
@@ -285,24 +332,53 @@ const App: React.FC = () => {
       setError(null);
       setImageUrl(null);
       clearOutputs();
-      try {
-        const enforcedPrompt = `${prompt}\nResponde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutputExample}`;
-        const modelIdToUse = resolveTextModelId(context);
-        setLastModelUsed(modelIdToUse);
-        const rawResponse = await callTextModel(enforcedPrompt, modelIdToUse);
+
+      const enforcedPrompt = `${prompt}
+Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutputExample}`;
+      const candidates = getModelCandidates(context).slice(0, 3);
+      let lastError: Error | null = null;
+
+      const runModel = async (modelId: string) => {
+        const rawResponse = await callTextModel(enforcedPrompt, modelId);
         const parsed = JSON.parse(extractJsonPayload(rawResponse));
         const normalized = normalizeOutputs(parsed);
-
         if (!normalized.length) {
-          setError(
+          throw new Error(
             language === "es"
               ? "El modelo no devolvió el formato esperado."
               : "Model did not return the expected format."
           );
-          return;
+        }
+        return normalized;
+      };
+
+      try {
+        for (const candidate of candidates) {
+          try {
+            const normalized = await runModel(candidate);
+            normalized.forEach(addOutput);
+            setLastModelUsed(candidate);
+            lastError = null;
+            return;
+          } catch (err) {
+            lastError = err instanceof Error ? err : new Error(String(err));
+            console.warn(`Fallo con el modelo ${candidate}`, lastError);
+          }
         }
 
-        normalized.forEach(addOutput);
+        if (lastError) {
+          const fallbackNotice =
+            selectedModel && selectedModel !== AUTO_TEXT_MODEL_ID
+              ? language === "es"
+                ? "El modelo elegido no respondió con JSON válido. Prueba con un modelo multilingüe como mistral o qwen."
+                : "The selected model did not return valid JSON. Please try a multilingual model such as mistral or qwen."
+              : "";
+          setError(
+            `${lastError.message}${
+              fallbackNotice ? ` ${fallbackNotice}` : ""
+            }`.trim()
+          );
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido");
       } finally {
@@ -312,11 +388,13 @@ const App: React.FC = () => {
     [
       addOutput,
       clearOutputs,
+      getModelCandidates,
       language,
-      resolveTextModelId,
+      selectedModel,
       setError,
       setImageUrl,
       setIsLoading,
+      setLastModelUsed,
     ]
   );
 

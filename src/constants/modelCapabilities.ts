@@ -12,19 +12,28 @@ type CapabilityEntry = {
 
 const capabilityMatrix: CapabilityEntry[] = [
   {
-    keywords: ["llama2", "llama3", "mistral", "gemma3", "orca", "phi"],
+    keywords: [
+      "llama2",
+      "llama3",
+      "llama3.2",
+      "mixtral",
+      "mistral",
+      "gemma3",
+      "orca",
+      "phi",
+    ],
     languages: EXTENDED_LANGUAGES,
   },
   {
-    keywords: ["qwen", "yi", "deepseek"],
+    keywords: ["qwen", "yi", "deepseek", "command"],
     languages: CJK_LANGUAGES,
   },
 ];
 
 const languageHints: Record<string, string> = {
-  ja: "Instala un modelo con soporte asiático (ej. qwen2.5) para habilitar japonés.",
-  zh: "Instala un modelo compatible con caracteres chinos (ej. qwen2.5 o Yi).",
-  ru: "Necesitas un modelo multilingüe (ej. mistral, qwen) para ruso.",
+  ja: "Instala un modelo con soporte asiático (por ejemplo qwen2.5) para habilitar japonés.",
+  zh: "Instala un modelo compatible con caracteres chinos (qwen2.5 o Yi funcionan muy bien).",
+  ru: "Necesitas un modelo multilingüe (mistral o qwen) para generar en ruso.",
 };
 
 const normalizeModelId = (modelId: string) =>

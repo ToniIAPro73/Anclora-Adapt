@@ -22,6 +22,7 @@ interface BasicCopy {
   literalLabel: string;
   maxCharsLabel?: string;
   buttonIdle: string;
+  buttonLiteral?: string;
   buttonLoading: string;
   outputs: string;
   speedDetailed: string;
@@ -145,6 +146,12 @@ const BasicMode: React.FC<BasicModeProps> = ({
     ? commonStyles.twoFrameContainerMobile
     : commonStyles.twoFrameContainer;
 
+  const buttonLabel = isLoading
+    ? copy.buttonLoading
+    : literalTranslation
+    ? copy.buttonLiteral ?? copy.buttonIdle
+    : copy.buttonIdle;
+
   return (
     <div
       style={{
@@ -154,11 +161,16 @@ const BasicMode: React.FC<BasicModeProps> = ({
       }}
     >
       <div
-        style={
-          isMobile
+        style={{
+          ...(isMobile
             ? commonStyles.inputFrameMobile
-            : commonStyles.inputFrame
-        }
+            : commonStyles.inputFrame),
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+          minHeight: 0,
+        }}
       >
         <h3 style={commonStyles.frameTitle}>{copy.ideaLabel}</h3>
 
@@ -166,162 +178,191 @@ const BasicMode: React.FC<BasicModeProps> = ({
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "6px",
-          }}
-        >
-          <textarea
-            id="basic-idea"
-            style={{ ...commonStyles.textarea, minHeight: "130px", maxHeight: "240px" }}
-            value={idea}
-            onChange={(e) => setIdea(e.target.value)}
-            placeholder={copy.ideaPlaceholder}
-          />
-          <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
-            {formatCounterText(idea, interfaceLanguage)}
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            flexShrink: 0,
+            gap: "12px",
+            flex: 1,
+            minHeight: 0,
           }}
         >
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "10px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
             }}
           >
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-            >
-              <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
-                {copy.languageLabel}
-              </label>
-              <select
-                style={{ ...commonStyles.select, padding: "8px" }}
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-              >
-                {normalizedLanguageOptions.map((lang) => (
-                  <option
-                    key={lang.value}
-                    value={lang.value}
-                    disabled={lang.disabled}
-                    title={lang.disabled ? lang.reason : undefined}
-                  >
-                    {lang.label}
-                    {lang.disabled ? " (no disponible)" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-            >
-              <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
-                {copy.toneLabel}
-              </label>
-              <select
-                style={{ ...commonStyles.select, padding: "8px" }}
-                value={tone}
-                onChange={(e) => setTone(e.target.value)}
-                disabled={literalTranslation}
-              >
-                {tones.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
-              {copy.platformLabel}
-            </label>
-            <div style={{ ...commonStyles.checkboxRow, gap: "6px" }}>
-              {["LinkedIn", "X", "Instagram", "WhatsApp", "Email"].map(
-                (option) => (
-                  <label
-                    key={option}
-                    style={{
-                      ...commonStyles.checkboxChip,
-                      padding: "4px 10px",
-                      fontSize: "0.85em",
-                      opacity: literalTranslation ? 0.5 : 1,
-                      cursor: literalTranslation ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={platforms.includes(option)}
-                      onChange={() => togglePlatform(option)}
-                      disabled={literalTranslation}
-                      style={{ marginRight: "4px" }}
-                    />
-                    {option}
-                  </label>
-                )
-              )}
+            <textarea
+              id="basic-idea"
+              style={{
+                ...commonStyles.textarea,
+                minHeight: "110px",
+                maxHeight: "190px",
+                height: "clamp(120px, 17vh, 200px)",
+                resize: "none" as const,
+              }}
+              value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+              placeholder={copy.ideaPlaceholder}
+            />
+            <div style={{ ...commonStyles.inputCounter, marginTop: 0 }}>
+              {formatCounterText(idea, interfaceLanguage)}
             </div>
           </div>
 
           <div
             style={{
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              flexDirection: "column",
+              gap: "10px",
+              flex: 1,
+              minHeight: 0,
             }}
           >
-            <label
-              style={{ ...commonStyles.checkboxLabel, fontSize: "0.85em" }}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "10px",
+              }}
             >
-              <input
-                type="checkbox"
-                checked={literalTranslation}
-                onChange={(e) => setLiteralTranslation(e.target.checked)}
-              />{" "}
-              {copy.literalLabel}
-            </label>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              >
+                <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
+                  {copy.languageLabel}
+                </label>
+                <select
+                  style={{ ...commonStyles.select, padding: "8px" }}
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                >
+                  {normalizedLanguageOptions.map((lang) => (
+                    <option
+                      key={lang.value}
+                      value={lang.value}
+                      disabled={lang.disabled}
+                      title={lang.disabled ? lang.reason : undefined}
+                    >
+                      {lang.label}
+                      {lang.disabled ? " (no disponible)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              >
+                <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
+                  {copy.toneLabel}
+                </label>
+                <select
+                  style={{ ...commonStyles.select, padding: "8px" }}
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value)}
+                  disabled={literalTranslation}
+                >
+                  {tones.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "0.85em", fontWeight: 600 }}>Max:</span>
-              <input
-                type="number"
-                min="0"
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <label style={{ ...commonStyles.label, fontSize: "0.85em" }}>
+                {copy.platformLabel}
+              </label>
+              <div style={{ ...commonStyles.checkboxRow, gap: "6px" }}>
+                {["LinkedIn", "X", "Instagram", "WhatsApp", "Email"].map(
+                  (option) => (
+                    <label
+                      key={option}
+                      style={{
+                        ...commonStyles.checkboxChip,
+                        padding: "4px 10px",
+                        fontSize: "0.85em",
+                        opacity: literalTranslation ? 0.5 : 1,
+                        cursor: literalTranslation ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={platforms.includes(option)}
+                        onChange={() => togglePlatform(option)}
+                        disabled={literalTranslation}
+                        style={{ marginRight: "4px" }}
+                      />
+                      {option}
+                    </label>
+                  )
+                )}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <label
+                style={{ ...commonStyles.checkboxLabel, fontSize: "0.85em" }}
+              >
+                <input
+                  type="checkbox"
+                  checked={literalTranslation}
+                  onChange={(e) => setLiteralTranslation(e.target.checked)}
+                />{" "}
+                {copy.literalLabel}
+              </label>
+
+              <div
                 style={{
-                  ...commonStyles.select,
-                  width: "70px",
-                  padding: "4px 8px",
-                  fontSize: "0.9em",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "0.85em",
+                  fontWeight: 600,
                 }}
-                value={maxChars}
-                onChange={(e) => setMaxChars(e.target.value)}
-                placeholder="0"
-                disabled={literalTranslation}
-              />
+              >
+                <span>{copy.maxCharsLabel || "Max"}</span>
+                <input
+                  type="number"
+                  min="0"
+                  style={{
+                    ...commonStyles.select,
+                    width: "84px",
+                    padding: "4px 8px",
+                    fontSize: "0.9em",
+                  }}
+                  value={maxChars}
+                  onChange={(e) => setMaxChars(e.target.value)}
+                  placeholder="0"
+                  disabled={literalTranslation}
+                />
+              </div>
             </div>
           </div>
-
-          <button
-            type="button"
-            style={commonStyles.generateButton}
-            onClick={handleGenerate}
-            disabled={isLoading}
-          >
-            {isLoading
-              ? copy.buttonLoading
-              : literalTranslation
-              ? copy.buttonLiteral ?? copy.buttonIdle
-              : copy.buttonIdle}
-          </button>
         </div>
+
+        <button
+          type="button"
+          style={{
+            ...commonStyles.generateButton,
+            marginTop: "auto",
+            width: "100%",
+          }}
+          onClick={handleGenerate}
+          disabled={isLoading}
+        >
+          {buttonLabel}
+        </button>
       </div>
 
       <div

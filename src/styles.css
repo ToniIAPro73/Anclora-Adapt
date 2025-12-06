@@ -23,6 +23,11 @@
   --tab-text: #162032;
   --tab-border: rgba(22, 32, 50, 0.2);
   --tab-text-contrast: #ffffff;
+  --header-subtitle: #475467;
+  --language-toggle-bg: #ffffff;
+  --language-toggle-border: #e0e0e0;
+  --language-toggle-text: #162032;
+  --tab-divider: rgba(22, 32, 50, 0.12);
 }
 :root[data-theme="dark"] {
   --azul-profundo: #e5edf7;
@@ -49,6 +54,11 @@
   --tab-text: #162032;
   --tab-border: rgba(22, 32, 50, 0.2);
   --tab-text-contrast: #ffffff;
+  --header-subtitle: #cbd5f5;
+  --language-toggle-bg: rgba(15, 23, 42, 0.5);
+  --language-toggle-border: #1f2a44;
+  --language-toggle-text: #f8fafc;
+  --tab-divider: rgba(148, 163, 184, 0.25);
 }
 
 html {

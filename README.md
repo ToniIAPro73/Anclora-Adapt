@@ -2,7 +2,7 @@
 
 ![GHBanner](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
 
-Aplicación React 19 + Vite 6 + TypeScript para generar/adaptar contenido con modelos locales (Ollama para texto y endpoints propios para imagen/TTS/STT). La UI está refactorizada en componentes por modo y usa contextos globales (`ThemeContext`, `LanguageContext`, `InteractionContext`) para evitar prop drilling.
+Aplicación React 19 + Vite 6 + TypeScript para generar/adaptar contenido con modelos locales (Ollama para texto y endpoints propios para imagen/TTS/STT). Es una **SPA (Single Page Application)** refactorizada en componentes por modo y usa contextos globales (`ThemeContext`, `LanguageContext`, `InteractionContext`) para evitar prop drilling.
 
 ---
 
@@ -123,6 +123,9 @@ Perfiles ejemplo:
    .\\venv\\Scripts\\Activate.ps1
    pip install -r requirements.txt
    # Descarga kokoro.onnx + voices.json en python-backend/models/
+   # (usa `huggingface-cli login` si tu cuenta es privada)
+   huggingface-cli download hexgrad/Kokoro-82M kokoro.onnx --local-dir models --local-dir-use-symlinks False
+   huggingface-cli download hexgrad/Kokoro-82M voices.json --local-dir models --local-dir-use-symlinks False
    python main.py
    ```
 
@@ -133,7 +136,7 @@ Perfiles ejemplo:
 
 4. **(Opcional) Otros endpoints**
 
-   - Imagen: usa el backend FastAPI (`/api/image`). Si prefieres Automatic1111, ejecuta `node achive/tools/image-bridge.js` (legacy).
+   - Imagen: por defecto el front envía un POST a `http://localhost:8000/api/image` (servido por `python-backend/main.py`). Arranca ese backend o apunta `VITE_IMAGE_MODEL_ENDPOINT` hacia tu servicio favorito. Si prefieres Automatic1111, ejecuta `node achive/tools/image-bridge.js` (legacy).
    - TTS/STT legacy: `npm run tts:server` sólo para pruebas rápidas.
 
 5. **Dev server**  
