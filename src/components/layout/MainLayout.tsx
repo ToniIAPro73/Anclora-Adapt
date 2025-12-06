@@ -5,6 +5,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useInteraction } from "@/context/InteractionContext";
 import type { AppMode, ThemeMode } from "@/types";
+import { translations } from "@/constants/translations";
 
 interface TabItem {
   id: AppMode;
@@ -70,14 +71,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   const { theme, setTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
   const { activeMode, lastModelUsed } = useInteraction();
+  const localizedCopy = translations[language];
+  const themeIcon = theme === "light" ? "☀️" : theme === "dark" ? "🌙" : "🖥️";
+
 
   return (
     <div style={commonStyles.mainContainer}>
       <header style={commonStyles.header}>
         <div>
-          <h1 style={commonStyles.headerTitle}>Anclora Adapt</h1>
+          <h1 style={commonStyles.headerTitle}>{localizedCopy.title}</h1>
           <p style={commonStyles.headerSubtitle}>
-            Tu asistente local para contenidos multiformato
+            {localizedCopy.subtitle}
           </p>
         </div>
 
@@ -88,7 +92,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             style={commonStyles.themeButton}
             aria-label="Cambiar tema"
           >
-            {theme === "light" ? "☀️" : theme === "dark" ? "🌙" : "💻"}
+            {themeIcon}
           </button>
 
           <button

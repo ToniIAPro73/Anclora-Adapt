@@ -7,15 +7,15 @@ Documento vivo con el histórico de decisiones y el estado actual del proyecto.
 
 ## Resumen actual
 
-- **Backend textual** se ejecuta 100 % en **Ollama local** (Llama2/Mistral/Qwen). Sin dependencias externas, sin rate limits.
+- **Backend textual** se ejecuta al 100 % en **Ollama local** (Llama2/Mistral/Qwen). Sin dependencias externas ni rate limits.
 - **SPA modular** (React + Vite) organizada en modos (`BasicMode`, `CampaignMode`, etc.) y contextos globales (`InteractionContext`, `ThemeContext`, `LanguageContext`).
-- **Compatibilidad lingüística** dinámica: la app detecta qué modelos tienes instalados y habilita sólo los idiomas que soportan. Cuando eliges “Auto”, el selector muestra los idiomas disponibles y deshabilita el resto (con un tooltip).
+- **Compatibilidad lingüística adaptativa**: la aplicación detecta los modelos instalados, deshabilita los idiomas que no cubren y recalcula todo cuando se pulsa "Actualizar modelos".
+- **Auto + fallback inteligente**: `resolveTextModelId` puntúa los modelos disponibles (prioriza Qwen/Mistral para CJK/RU) y `handleGenerate` reintenta automáticamente con el siguiente candidato cuando el modelo seleccionado devuelve JSON inválido, incluso si lo eligió manualmente el usuario.
 - **Mejoras recientes de UX**:
-  - Layout sin scroll vertical extra; los botones y campos se muestran completos en 1080p.
-  - Botón “Copiar” y el toggle de idioma tienen contraste correcto en claro/oscuro.
-  - El modo Básico ofrece “Generar traducción” cuando fuerzas traducción literal y produce JSON limpio (un único `content`).
-  - `lastModelUsed` se muestra bajo “Modelo de texto” para saber qué modelo respondió realmente.
-- **Backend FastAPI** (`python-backend`) expone `/api/tts`, `/api/stt`, `/api/image` y `/api/voices`. Se integra con Kokoro (ONNX), Whisper y Stable Diffusion (pendiente de pulir modelos/descargas).
+  - Layout del modo Básico a altura completa, sin scroll extra y con el botón **Generar contenido / Generar traducción** siempre visible.
+  - Botones de modo centrados, toggle de idioma con texto visible en claro/oscuro y botón "Copiar" contrastado.
+  - La casilla "Forzar traducción literal" cambia el texto del CTA a **Generar traducción** y vuelve a **Generar contenido** al desmarcarla.
+  - `lastModelUsed` muestra el modelo real utilizado justo después de cada generación.
 
 ---
 
@@ -43,14 +43,16 @@ VITE_TEXT_MODEL_ID=llama2   # se puede cambiar a mistral, qwen, etc.
 - Prompts/traducciones centralizados en `src/constants`.
 
 ### 3. Heurística de idioma/modelo
-- `src/constants/modelCapabilities.ts`: define qué familias soportan CJK, cirílico, etc.
-- `resolveTextModelId` intenta Qwen/Yi cuando se solicita japonés/chino/ruso.
-- El selector de idioma se alimenta con `buildLanguageOptions`: deshabilita idiomas no soportados y muestra tooltips explicativos.
-- Se registra `lastModelUsed` para enseñar al usuario qué modelo se usó realmente incluso en modo “Auto”.
+- `src/constants/modelCapabilities.ts` amplió la matriz de capacidades (llama3.2, Mixtral, Command, etc.) para reflejar los idiomas que soporta cada familia.
+- `resolveTextModelId` puntúa cada modelo según idioma objetivo, velocidad o profundidad y prioriza Qwen/Yi para japonés/chino/ruso.
+- El modo **Auto** ya no se queda en un único modelo: `handleGenerate` crea una lista ordenada y reintenta con el siguiente candidato cuando el primero devuelve un JSON inválido.
+- Aunque el usuario seleccione un modelo manualmente, se registra `lastModelUsed` y, si el modelo falla, se muestra un mensaje que sugiere alternativas multilingües (mistral/qwen).
 
 ### 4. Ajustes de interfaz
-- Botón “Copiar” y toggle de idioma con estilos uniformes.
-- “Generar traducción” cuando activas el checkbox de traducción literal.
+- Botones de modo centrados entre las líneas divisorias y CTA principal siempre visible (sin necesidad de hacer scroll).
+- Toggle de idioma, botón de reinicio y chips de plataformas con mejor contraste en claro/oscuro.
+- CTA dinámico **Generar contenido / Generar traducción** según la casilla de traducción literal.
+- Botón "Copiar" con texto blanco y estilos consistentes con el tema.
 - Script `scripts/manage-ollama.ps1` para listar modelos, precargar el seleccionado y reiniciar el daemon sin procesos huérfanos.
 
 ---
@@ -59,15 +61,17 @@ VITE_TEXT_MODEL_ID=llama2   # se puede cambiar a mistral, qwen, etc.
 
 | Área | Estado | Comentario |
 |------|--------|------------|
-| ✍️ Generación de texto | ✅ Estable | Modelos recomendados: `llama2`, `mistral`, `qwen2.5:7b` (CJK). |
-| 🌐 Traducción literal | ✅ | JSON limpio; se selecciona modelo multilingüe automáticamente. |
-| 🌍 Selector de idiomas | ✅ Adaptativo | Idiomas no soportados aparecen deshabilitados con tooltip. |
-| 📊 Modelo usado | ✅ | Visible bajo “Modelo de texto”. |
-| 🎨 Imagen / 🔊 Voz / 🗣️ STT | ⚠️ Pendiente | FastAPI expone endpoints, pero falta afinar modelos (Kokoro/Whisper/SD). |
-| 🧩 Refactor front | 🟡 En progreso | Algunos modos legacy requieren limpieza y tests. |
-| ✅ Tests automatizados | ❌ | Vitest configurado, pero sin suites aún. |
-| 🗄️ Persistencia | ❌ | No hay DB; todo se mantiene en localStorage. |
-| 🔁 CI/CD | ❌ | Builds y merges manuales (sin GitHub Actions todavía). |
+| 🧠 Generación de texto | ✅ Estable | Auto prioriza mistral/qwen y reintenta si un modelo devuelve JSON inválido. |
+| 🌐 Traducción literal | ✅ | JSON limpio y CTA dinámico **Generar traducción** cuando corresponde. |
+| 🎯 Selector de idiomas | ✅ Adaptativo | Idiomas no soportados aparecen deshabilitados con tooltip. |
+| 📌 Modelo usado | ✅ | Visible bajo "Modelo de texto" tras cada generación. |
+| 🖼️ Imagen / 🔊 Voz / 🎙️ STT | ⚠️ Pendiente | FastAPI expone endpoints, pero falta afinar modelos (Kokoro/Whisper/SD). |
+| 🧩 Refactor front | ⚙️ En progreso | Modos legacy pendientes de limpieza y tests. |
+| 🧪 Tests automatizados | ⏳ | Vitest configurado, aún sin suites. |
+| 💾 Persistencia | ⏳ | No hay DB; datos en localStorage. |
+| 🚀 CI/CD | ⏳ | Builds manuales (sin GitHub Actions). |
+
+---
 
 ---
 
