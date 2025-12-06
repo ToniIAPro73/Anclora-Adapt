@@ -26,7 +26,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
   headerSubtitle: {
     fontSize: "0.95rem",
     margin: 0,
-    color: "var(--texto-muted, rgba(241,245,249,0.75))",
+    color: "var(--texto-muted, #475467)",
   },
   headerActions: {
     display: "flex",
@@ -71,10 +71,10 @@ const commonStyles: Record<string, React.CSSProperties> = {
     gap: "6px",
     padding: "8px 16px",
     borderRadius: "999px",
-    border: "1px solid var(--panel-border, #1e293b)",
-    background: "var(--panel-bg, #0f172a)",
+    border: "1px solid var(--panel-border, #e0e0e0)",
+    background: "var(--panel-bg, #FFFFFF)",
     fontSize: "14px",
-    color: "#fff",
+    color: "var(--texto, #162032)",
   },
   modeTabsContainer: {
     display: "flex",
@@ -129,10 +129,10 @@ const commonStyles: Record<string, React.CSSProperties> = {
     gridTemplateColumns: "1fr 1fr",
     gap: "18px",
     width: "100%",
-    height: "min(520px, calc(100vh - 260px))",
-    minHeight: 0,
+    minHeight: "520px",
+    height: "auto",
     boxSizing: "border-box",
-    overflow: "hidden",
+    overflow: "visible",
     flex: 1,
   },
   twoFrameContainerMobile: {
@@ -151,7 +151,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     minHeight: 0,
-    overflow: "hidden",
+    overflowY: "auto",
     boxSizing: "border-box",
   },
   inputFrameMobile: {

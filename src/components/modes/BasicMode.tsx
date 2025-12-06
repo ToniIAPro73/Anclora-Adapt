@@ -315,7 +315,11 @@ const BasicMode: React.FC<BasicModeProps> = ({
             onClick={handleGenerate}
             disabled={isLoading}
           >
-            {isLoading ? copy.buttonLoading : copy.buttonIdle}
+            {isLoading
+              ? copy.buttonLoading
+              : literalTranslation
+              ? copy.buttonLiteral ?? copy.buttonIdle
+              : copy.buttonIdle}
           </button>
         </div>
       </div>
