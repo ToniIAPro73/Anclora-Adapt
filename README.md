@@ -8,14 +8,14 @@ Aplicación React 19 + Vite 6 + TypeScript para generar/adaptar contenido con mo
 
 ## Stack & requisitos
 
-| Capa            | Detalle                                                                 |
-| --------------- | ----------------------------------------------------------------------- |
-| UI              | React 19, Vite 6, TypeScript, CSS-in-JS básico                          |
-| Estado global   | Context API (`src/context`)                                             |
-| Modelos texto   | [Ollama](https://ollama.ai/) (`/api/generate`, `/api/tags`)             |
-| Imagen          | Endpoint HTTP (SD 1.5/SDXL, bridge incluido)                            |
-| Audio (TTS/STT) | Endpoints locales (Whisper/Kokoro/etc.)                                 |
-| Tests           | [Vitest](https://vitest.dev/) + React Testing Library                   |
+| Capa            | Detalle                                                     |
+| --------------- | ----------------------------------------------------------- |
+| UI              | React 19, Vite 6, TypeScript, CSS-in-JS básico              |
+| Estado global   | Context API (`src/context`)                                 |
+| Modelos texto   | [Ollama](https://ollama.ai/) (`/api/generate`, `/api/tags`) |
+| Imagen          | Endpoint HTTP (SD 1.5/SDXL, bridge incluido)                |
+| Audio (TTS/STT) | Endpoints locales (Whisper/Kokoro/etc.)                     |
+| Tests           | [Vitest](https://vitest.dev/) + React Testing Library       |
 
 **Requisitos previos**
 
@@ -92,15 +92,15 @@ python python-backend/main.py  # Backend FastAPI (Kokoro + Whisper + SDXL)
 
 ## Modelos y perfiles recomendados
 
-| Tipo   | Modelo             | RAM/VRAM aprox. | Uso sugerido                    |
-| ------ | ------------------ | --------------- | --------------------------------|
-| Texto  | `llama2`           | 4 GB            | Equilibrado generalista         |
-| Texto  | `mistral`          | ~5 GB           | Mayor contexto/calidad          |
-| Texto  | `neural-chat`      | 4 GB            | Conversación                    |
-| Texto  | `orca-mini`        | 2 GB            | Rápido/ligero                   |
-| Imagen | SD 1.5 / SDXL-Lite | 4 GB VRAM       | Generación base 768px           |
-| TTS    | pyttsx3/Kokoro     | CPU/GPU ligera  | Síntesis local simple/neuronal  |
-| STT    | Whisper small/base | CPU/GPU 4–6 GB  | Transcripción de clips cortos   |
+| Tipo   | Modelo             | RAM/VRAM aprox. | Uso sugerido                   |
+| ------ | ------------------ | --------------- | ------------------------------ |
+| Texto  | `llama2`           | 4 GB            | Equilibrado generalista        |
+| Texto  | `mistral`          | ~5 GB           | Mayor contexto/calidad         |
+| Texto  | `neural-chat`      | 4 GB            | Conversación                   |
+| Texto  | `orca-mini`        | 2 GB            | Rápido/ligero                  |
+| Imagen | SD 1.5 / SDXL-Lite | 4 GB VRAM       | Generación base 768px          |
+| TTS    | pyttsx3/Kokoro     | CPU/GPU ligera  | Síntesis local simple/neuronal |
+| STT    | Whisper small/base | CPU/GPU 4–6 GB  | Transcripción de clips cortos  |
 
 Perfiles ejemplo:
 
@@ -115,7 +115,8 @@ Perfiles ejemplo:
 1. **Instala dependencias**  
    `npm install`
 
-2. **Backend FastAPI (python-backend/)**  
+2. **Backend FastAPI (python-backend/)**
+
    ```bash
    cd python-backend
    python -m venv venv
@@ -124,12 +125,14 @@ Perfiles ejemplo:
    # Descarga kokoro.onnx + voices.json en python-backend/models/
    python main.py
    ```
+
    El backend expone `/api/tts`, `/api/stt`, `/api/image` y `/api/voices`.
 
 3. **Arranca Ollama**  
    `ollama pull llama2` → `ollama serve`
 
-4. **(Opcional) Otros endpoints**  
+4. **(Opcional) Otros endpoints**
+
    - Imagen: usa el backend FastAPI (`/api/image`). Si prefieres Automatic1111, ejecuta `node achive/tools/image-bridge.js` (legacy).
    - TTS/STT legacy: `npm run tts:server` sólo para pruebas rápidas.
 
