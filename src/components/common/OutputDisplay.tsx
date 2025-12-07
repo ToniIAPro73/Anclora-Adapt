@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { GeneratedOutput } from "../../types";
 import commonStyles from "../../styles/commonStyles";
 
@@ -7,6 +7,7 @@ export interface OutputCopy {
   downloadAudio: string;
   downloadImage: string;
   copy: string;
+  copied?: string;
 }
 
 interface OutputDisplayProps {
@@ -18,6 +19,66 @@ interface OutputDisplayProps {
   imageUrl?: string | null;
   copy: OutputCopy;
 }
+
+const GeneratedOutputCard: React.FC<{
+  output: GeneratedOutput;
+  copy: OutputCopy;
+  onCopy: (text: string) => void;
+}> = ({ output, copy, onCopy }) => {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const timeoutRef = useRef<number | null>(null);
+  const [content, setContent] = useState(output.content);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => setContent(output.content), [output.content]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [content]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopyClick = () => {
+    onCopy(content);
+    setCopied(true);
+    if (timeoutRef.current) {
+      window.clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = window.setTimeout(() => setCopied(false), 1600);
+  };
+
+  return (
+    <div style={commonStyles.outputCard}>
+      <strong>{output.platform}</strong>
+      <textarea
+        ref={textareaRef}
+        value={content}
+        onChange={(event) => setContent(event.target.value)}
+        spellCheck={false}
+        style={commonStyles.outputTextarea}
+      />
+      <div style={commonStyles.copyButtonRow}>
+        <button type="button" style={commonStyles.copyButton} onClick={handleCopyClick}>
+          {copy.copy}
+        </button>
+        {copied && (
+          <span style={commonStyles.copyHint}>
+            {copy.copied || "Copiado"}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const OutputDisplay: React.FC<OutputDisplayProps> = ({
   generatedOutputs,
@@ -71,45 +132,14 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
       )}
       {generatedOutputs && generatedOutputs.length > 0 && (
         <div style={commonStyles.outputGrid}>
-          {generatedOutputs.map((output, index) => {
-            const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-            React.useEffect(() => {
-              if (textareaRef.current) {
-                textareaRef.current.style.height = "auto";
-                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-              }
-            }, [output.content]);
-            return (
-              <div key={index} style={commonStyles.outputCard}>
-                <strong>{output.platform}</strong>
-                <textarea
-                  ref={textareaRef}
-                  readOnly
-                  value={output.content}
-                  style={{
-                    flex: 1,
-                    borderRadius: "8px",
-                    border: "1px solid var(--panel-border, #e0e0e0)",
-                    padding: "10px",
-                    backgroundColor: "var(--input-bg, #FFFFFF)",
-                    color: "var(--texto, #162032)",
-                    fontFamily: "inherit",
-                    fontSize: "inherit",
-                    lineHeight: "1.5",
-                    resize: "none",
-                    overflow: "hidden",
-                  }}
-                />
-                <button
-                  type="button"
-                  style={commonStyles.copyButton}
-                  onClick={() => onCopy(output.content)}
-                >
-                  {copy.copy}
-                </button>
-              </div>
-            );
-          })}
+          {generatedOutputs.map((output, index) => (
+            <GeneratedOutputCard
+              key={`${output.platform}-${index}`}
+              output={output}
+              copy={copy}
+              onCopy={onCopy}
+            />
+          ))}
         </div>
       )}
     </section>

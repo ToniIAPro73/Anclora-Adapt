@@ -112,6 +112,49 @@ const normalizeOutputs = (payload: unknown): GeneratedOutput[] => {
   return [];
 };
 
+const filterOutputsByPlatforms = (
+  outputs: GeneratedOutput[],
+  allowed?: string[]
+): GeneratedOutput[] => {
+  if (!allowed || allowed.length === 0) {
+    return outputs;
+  }
+  const normalizeName = (value: string) =>
+    value
+      ? value
+          .trim()
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[\s_\-]+/g, "")
+      : "";
+  const normalizedAllowed = allowed
+    .map((platform) => normalizeName(platform))
+    .filter(Boolean);
+  if (!normalizedAllowed.length) {
+    return outputs;
+  }
+  const filtered: GeneratedOutput[] = [];
+  const usedIndexes = new Set<number>();
+  normalizedAllowed.forEach((targetName) => {
+    const matchIndex = outputs.findIndex((output, index) => {
+      if (usedIndexes.has(index) || !output.platform) {
+        return false;
+      }
+      const normalizedPlatform = normalizeName(output.platform);
+      return (
+        normalizedPlatform === targetName ||
+        normalizedPlatform.startsWith(targetName)
+      );
+    });
+    if (matchIndex >= 0) {
+      filtered.push(outputs[matchIndex]);
+      usedIndexes.add(matchIndex);
+    }
+  });
+  return filtered.length ? filtered : outputs;
+};
+
 const speakWithBrowserTts = async (text: string, language: string) => {
   if (typeof window === "undefined" || !window.speechSynthesis) {
     throw new Error("speechSynthesis no está disponible en este navegador.");
@@ -240,27 +283,30 @@ const App: React.FC = () => {
   );
 
   const filteredModelOptions = useMemo(() => {
+    const uniqueList = rawModelOptions;
     if (!recommendedTextKeywords.length) {
-      return rawModelOptions;
+      return uniqueList;
     }
-
-    const recommended = rawModelOptions.filter((model) =>
+    const isRecommendedModel = (model?: string) =>
+      Boolean(model) &&
       recommendedTextKeywords.some((keyword) =>
-        model?.toLowerCase().includes(keyword)
+        model!.toLowerCase().includes(keyword)
+      );
+    const recommended = uniqueList.filter(isRecommendedModel);
+    if (!recommended.length) {
+      return uniqueList;
+    }
+    const others = uniqueList.filter((model) => !recommended.includes(model));
+    return Array.from(
+      new Set(
+        [
+          AUTO_TEXT_MODEL_ID,
+          selectedModel,
+          ...recommended,
+          ...others,
+        ].filter(Boolean) as string[]
       )
     );
-
-    if (!recommended.length) {
-      return rawModelOptions;
-    }
-
-    const base = [
-      AUTO_TEXT_MODEL_ID,
-      selectedModel,
-      ...recommended,
-    ].filter(Boolean) as string[];
-
-    return Array.from(new Set(base));
   }, [rawModelOptions, recommendedTextKeywords, selectedModel]);
 
   const availableModelPool = useMemo(
@@ -453,7 +499,11 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
         for (const candidate of candidates) {
           try {
             const normalized = await runModel(candidate);
-            normalized.forEach(addOutput);
+            const filtered = filterOutputsByPlatforms(
+              normalized,
+              context?.allowedPlatforms
+            );
+            filtered.forEach(addOutput);
             setLastModelUsed(candidate);
             lastError = null;
             return;

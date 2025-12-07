@@ -38,6 +38,7 @@ export type AutoModelContext = {
   preferReasoning?: boolean;
   preferChat?: boolean;
   targetLanguage?: string;
+  allowedPlatforms?: string[];
 };
 
 export const AUTO_TEXT_MODEL_ID = "auto";

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type {
   InterfaceLanguage,
   AutoModelContext,
@@ -21,13 +21,15 @@ interface BasicCopy {
   platformLabel: string;
   literalLabel: string;
   maxCharsLabel?: string;
+  uploadLabel?: string;
+  uploadHint?: string;
   buttonIdle: string;
   buttonLiteral?: string;
   buttonLoading: string;
   outputs: string;
   speedDetailed: string;
   speedFlash: string;
-  errors: { idea: string; platforms: string };
+  errors: { idea: string; platforms: string; upload?: string };
 }
 
 type BasicModeProps = {
@@ -67,6 +69,9 @@ const BasicMode: React.FC<BasicModeProps> = ({
   const [literalTranslation, setLiteralTranslation] = useState(false);
   const [maxChars, setMaxChars] = useState("");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [uploadedText, setUploadedText] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => setImageUrl(null), [setImageUrl]);
   useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
@@ -103,8 +108,59 @@ const BasicMode: React.FC<BasicModeProps> = ({
     );
   };
 
+  const handleFileUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    const normalizedName = file.name?.toLowerCase() ?? "";
+    const allowedExtensions = [
+      ".txt",
+      ".md",
+      ".markdown",
+      ".csv",
+      ".log",
+      ".json",
+    ];
+    const isTextType =
+      file.type.startsWith("text/") ||
+      allowedExtensions.some((ext) => normalizedName.endsWith(ext));
+    if (!isTextType) {
+      setError(
+        copy.errors.upload ||
+          "El archivo debe ser de texto (.txt, .md, .csv, .log)."
+      );
+      event.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === "string" ? reader.result : "";
+      setUploadedText(text);
+      setUploadedFileName(file.name);
+      setError(null);
+      event.target.value = "";
+    };
+    reader.onerror = () => {
+      setError(
+        copy.errors.upload ||
+          "No se pudo leer el archivo. Intenta con otro formato de texto."
+      );
+      event.target.value = "";
+    };
+    reader.readAsText(file);
+  };
+
   const handleGenerate = async () => {
-    if (!idea.trim()) {
+    const typedIdea = idea.trim();
+    const attachedText = uploadedText.trim();
+    if (!typedIdea && !attachedText) {
       setError(copy.errors.idea);
       return;
     }
@@ -123,13 +179,23 @@ const BasicMode: React.FC<BasicModeProps> = ({
       charLimit && charLimit > 0
         ? ` Limita la respuesta a un maximo de ${charLimit} caracteres.`
         : "";
+    const requestedPlatforms = literalTranslation
+      ? [languageDisplay]
+      : platforms;
+    const combinedIdea = [typedIdea, attachedText]
+      .filter(Boolean)
+      .join("\n\n---\n\nTexto adjunto:\n");
+    const payloadIdea = combinedIdea || typedIdea || attachedText;
+
     let prompt: string;
     if (literalTranslation) {
-      prompt = `Actúa como traductor profesional nativo. Traduce el siguiente texto de forma literal al idioma "${languageDisplay}" sin añadir explicaciones ni notas. Responde ÚNICAMENTE en formato JSON con la estructura { "outputs": [{ "platform": "${languageDisplay}", "content": "texto traducido aquí" }] }. Texto original: "${idea}".${limitSuffix}`;
+      prompt = `Actúa como traductor profesional nativo. Traduce el siguiente texto de forma literal al idioma "${languageDisplay}" sin añadir explicaciones ni notas. Responde ÚNICAMENTE en formato JSON con la estructura { "outputs": [{ "platform": "${languageDisplay}", "content": "texto traducido aquí" }] }. Texto original: """${payloadIdea}""".${limitSuffix}`;
     } else {
-      prompt = `Eres un estratega de contenidos. Genera una lista JSON bajo la clave "outputs" siguiendo ${structuredOutputExample}. Idea: "${idea}". Idioma solicitado: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas: ${platforms.join(
-        ", "
-      )}. Nivel de detalle: ${speedDisplay}.${limitSuffix}`;
+      const list =
+        requestedPlatforms.length > 0
+          ? requestedPlatforms.join(", ")
+          : "Sin plataformas";
+      prompt = `Eres un estratega de contenidos. Genera una lista JSON bajo la clave "outputs" siguiendo ${structuredOutputExample}. Idea: """${payloadIdea}""". Idioma solicitado: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas seleccionadas: ${list}. Devuelve exactamente una entrada por cada plataforma listada y no incluyas plataformas adicionales. Nivel de detalle: ${speedDisplay}.${limitSuffix}`;
     }
       await onGenerate(
         prompt,
@@ -138,6 +204,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
           preferSpeed: speed === "flash",
           preferReasoning: speed === "detailed" && !literalTranslation,
           targetLanguage: language,
+          allowedPlatforms: requestedPlatforms,
         }
       );
   };
@@ -172,7 +239,65 @@ const BasicMode: React.FC<BasicModeProps> = ({
           minHeight: 0,
         }}
       >
-        <h3 style={commonStyles.frameTitle}>{copy.ideaLabel}</h3>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "10px",
+            flexWrap: "wrap",
+          }}
+        >
+          <h3 style={{ ...commonStyles.frameTitle, marginBottom: 0 }}>
+            {copy.ideaLabel}
+          </h3>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+              minWidth: 0,
+            }}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,.md,.markdown,.csv,.log,.json,text/plain"
+              style={{ display: "none" }}
+              onChange={handleFileSelected}
+            />
+            <button
+              type="button"
+              style={{
+                ...commonStyles.resetButton,
+                padding: "6px 12px",
+                fontSize: "0.85rem",
+                borderRadius: "999px",
+              }}
+              onClick={handleFileUploadClick}
+            >
+              {copy.uploadLabel || "Importar texto"}
+            </button>
+            {(uploadedFileName || copy.uploadHint) && (
+              <span
+                style={{
+                  ...commonStyles.settingsHint,
+                  margin: 0,
+                  padding: 0,
+                  color: "var(--texto-muted, #94a3b8)",
+                  maxWidth: "280px",
+                  textAlign: "right",
+                }}
+              >
+                {uploadedFileName
+                  ? `• ${uploadedFileName}`
+                  : copy.uploadHint}
+              </span>
+            )}
+          </div>
+        </div>
 
         <div
           style={{
@@ -194,9 +319,9 @@ const BasicMode: React.FC<BasicModeProps> = ({
               id="basic-idea"
               style={{
                 ...commonStyles.textarea,
-                minHeight: "95px",
-                maxHeight: "160px",
-                height: "clamp(105px, 14vh, 160px)",
+                minHeight: "80px",
+                maxHeight: "135px",
+                height: "clamp(85px, 12vh, 135px)",
                 resize: "none" as const,
                 lineHeight: 1.35,
               }}
@@ -310,11 +435,17 @@ const BasicMode: React.FC<BasicModeProps> = ({
                 alignItems: "center",
                 gap: "10px",
                 flexWrap: "wrap",
-                paddingBottom: "4px",
+                paddingBottom: "2px",
+                width: "100%",
               }}
             >
               <label
-                style={{ ...commonStyles.checkboxLabel, fontSize: "0.85em" }}
+                style={{
+                  ...commonStyles.checkboxLabel,
+                  fontSize: "0.85em",
+                  flex: 1,
+                  minWidth: "220px",
+                }}
               >
                 <input
                   type="checkbox"
@@ -331,6 +462,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
                   gap: "6px",
                   fontSize: "0.85em",
                   fontWeight: 600,
+                  flexShrink: 0,
                 }}
               >
                 <span>{copy.maxCharsLabel || "Max"}</span>

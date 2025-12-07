@@ -1,3 +1,4 @@
+import os
 import psutil
 import shutil
 import subprocess
@@ -21,6 +22,17 @@ class RecommendedModel:
 def _query_nvidia_smi():
     try:
         binary = shutil.which("nvidia-smi")
+        if not binary and os.name == "nt":
+            system_root = os.environ.get("SystemRoot", r"C:\Windows")
+            candidates = [
+                os.path.join(system_root, "System32", "nvidia-smi.exe"),
+                os.path.join(system_root, "System32", "Wbem", "nvidia-smi.exe"),
+                r"C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe",
+            ]
+            for candidate in candidates:
+                if os.path.exists(candidate):
+                    binary = candidate
+                    break
         if not binary:
             return None
         result = subprocess.run(
@@ -165,8 +177,8 @@ def _recommend_modes(ram_gb: float, vram_gb: float, has_cuda: bool) -> List[Dict
             "reason": "Live chat necesita GPU o >= 12 GB de RAM para STT.",
         },
         "image": {
-            "enabled": vram_gb >= 6,
-            "reason": "Generar imagenes requiere GPU con >= 6 GB VRAM.",
+            "enabled": vram_gb >= 4 or ram_gb >= 16,
+            "reason": "Se recomienda GPU >= 4 GB VRAM o >= 16 GB RAM para imagen.",
         },
     }
 
