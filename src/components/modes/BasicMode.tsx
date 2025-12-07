@@ -8,6 +8,7 @@ import OutputDisplay, {
 } from "@/components/common/OutputDisplay";
 import commonStyles from "@/styles/commonStyles";
 import { languages, tones } from "@/constants/options";
+import { structuredOutputExample } from "@/constants/prompts";
 import type { LanguageOptionAvailability } from "@/constants/modelCapabilities";
 import { formatCounterText } from "@/utils/text";
 import { useInteraction } from "@/context/InteractionContext";
@@ -19,7 +20,7 @@ interface BasicCopy {
   toneLabel: string;
   platformLabel: string;
   literalLabel: string;
-  maxCharsLabel?: string;
+  minMaxCharsLabel?: string;
   uploadLabel?: string;
   uploadHint?: string;
   buttonIdle: string;
@@ -66,6 +67,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
   ]);
   const [speed, setSpeed] = useState<"detailed" | "flash">("detailed");
   const [literalTranslation, setLiteralTranslation] = useState(false);
+  const [minChars, setMinChars] = useState("");
   const [maxChars, setMaxChars] = useState("");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -172,12 +174,20 @@ const BasicMode: React.FC<BasicModeProps> = ({
     const toneDisplay = tones.find((t) => t.value === tone)?.label || tone;
     const speedDisplay =
       speed === "detailed" ? copy.speedDetailed : copy.speedFlash;
-    const parsedLimit = Number.parseInt(maxChars, 10);
-    const charLimit = Number.isNaN(parsedLimit) ? null : parsedLimit;
-    const limitSuffix =
-      charLimit && charLimit > 0
-        ? ` Limita la respuesta a un maximo de ${charLimit} caracteres.`
-        : "";
+
+    const parsedMin = minChars ? Number.parseInt(minChars, 10) : null;
+    const parsedMax = maxChars ? Number.parseInt(maxChars, 10) : null;
+    const minCharLimit = Number.isNaN(parsedMin ?? NaN) ? null : parsedMin;
+    const maxCharLimit = Number.isNaN(parsedMax ?? NaN) ? null : parsedMax;
+
+    let limitSuffix = "";
+    if (minCharLimit && minCharLimit > 0 && maxCharLimit && maxCharLimit > 0) {
+      limitSuffix = ` Limita la respuesta entre ${minCharLimit} y ${maxCharLimit} caracteres.`;
+    } else if (maxCharLimit && maxCharLimit > 0) {
+      limitSuffix = ` Limita la respuesta a un maximo de ${maxCharLimit} caracteres.`;
+    } else if (minCharLimit && minCharLimit > 0) {
+      limitSuffix = ` Limita la respuesta a un minimo de ${minCharLimit} caracteres.`;
+    }
     const requestedPlatforms = literalTranslation
       ? [languageDisplay]
       : platforms;
@@ -479,20 +489,39 @@ const BasicMode: React.FC<BasicModeProps> = ({
                   whiteSpace: "nowrap",
                 }}
               >
-                <span>{copy.maxCharsLabel || "Max"}</span>
+                <span>{copy.minMaxCharsLabel || "Min/Max"}</span>
                 <input
                   type="number"
                   min="0"
+                  max="999999999"
                   style={{
                     ...commonStyles.select,
-                    width: "84px",
+                    width: "70px",
+                    padding: "4px 8px",
+                    fontSize: "0.9em",
+                  }}
+                  value={minChars}
+                  onChange={(e) => setMinChars(e.target.value)}
+                  placeholder="Min"
+                  disabled={literalTranslation}
+                  title="Número mínimo de caracteres"
+                />
+                <span style={{ fontSize: "0.75em", color: "var(--texto-muted)" }}>–</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="999999999"
+                  style={{
+                    ...commonStyles.select,
+                    width: "70px",
                     padding: "4px 8px",
                     fontSize: "0.9em",
                   }}
                   value={maxChars}
                   onChange={(e) => setMaxChars(e.target.value)}
-                  placeholder="0"
+                  placeholder="Max"
                   disabled={literalTranslation}
+                  title="Número máximo de caracteres"
                 />
               </div>
             </div>
