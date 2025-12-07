@@ -146,7 +146,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           </div>
 
           <div style={commonStyles.settingsBar}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
               <label
                 htmlFor="text-model-select"
                 style={{ ...commonStyles.settingsLabel, marginRight: "4px" }}
@@ -173,7 +173,26 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               </select>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                flexWrap: "wrap",
+                justifyContent: "flex-end",
+                marginLeft: "auto",
+              }}
+            >
+              {hardwareSummary && (
+                <span style={{ ...commonStyles.settingsHint, marginRight: "4px" }}>
+                  {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
+                </span>
+              )}
+              {lastModelUsed && (
+                <span style={{ ...commonStyles.settingsHint, marginRight: "4px" }}>
+                  {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
+                </span>
+              )}
               <button
                 type="button"
                 style={{
@@ -216,35 +235,20 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                   ? modelCopy.hardwareAdjusting
                   : modelCopy.hardwareAdjust}
               </button>
+              <button
+                type="button"
+                style={{ ...commonStyles.resetButton, padding: "6px 12px" }}
+                onClick={onReset}
+                title={modelCopy.reset}
+                aria-label={modelCopy.reset}
+              >
+                <RefreshCw size={18} />
+                <span>
+                  {language === "es" ? "Reiniciar" : "Reset"}
+                </span>
+              </button>
             </div>
-
-            <button
-              type="button"
-              style={{ ...commonStyles.resetButton, padding: "6px 12px" }}
-              onClick={onReset}
-              title={modelCopy.reset}
-              aria-label={modelCopy.reset}
-            >
-              <RefreshCw size={18} />
-              <span>
-                {language === "es" ? "Reiniciar" : "Reset"}
-              </span>
-            </button>
           </div>
-          {(hardwareSummary || lastModelUsed) && (
-            <div style={commonStyles.settingsInfoRow}>
-              {hardwareSummary && (
-                <span style={commonStyles.settingsHint}>
-                  {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
-                </span>
-              )}
-              {lastModelUsed && (
-                <span style={commonStyles.settingsHint}>
-                  {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
-                </span>
-              )}
-            </div>
-          )}
         </div>
       </header>
 

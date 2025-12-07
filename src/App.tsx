@@ -155,6 +155,53 @@ const filterOutputsByPlatforms = (
   return filtered.length ? filtered : outputs;
 };
 
+const LANGUAGE_QUALITY_LABELS: Record<string, string> = {
+  es: "español",
+  en: "inglés",
+  fr: "francés",
+  de: "alemán",
+  pt: "portugués",
+  it: "italiano",
+  zh: "chino",
+  ja: "japonés",
+  ru: "ruso",
+};
+
+const describeLanguageForPrompt = (code?: string) => {
+  if (!code || code === "detect") {
+    return "el idioma solicitado";
+  }
+  return LANGUAGE_QUALITY_LABELS[code] || code;
+};
+
+const enforceLanguageQuality = async (
+  outputs: GeneratedOutput[],
+  languageCode: string | undefined,
+  modelId: string,
+  generateFn: (prompt: string, model: string) => Promise<string>
+): Promise<GeneratedOutput[]> => {
+  if (!outputs.length || !languageCode || languageCode === "detect") {
+    return outputs;
+  }
+  try {
+    const descriptor = describeLanguageForPrompt(languageCode);
+    const payload = JSON.stringify({ outputs });
+    const prompt = `Actúa como revisor nativo de ${descriptor}. Corrige ortografía, gramática y coherencia manteniendo el mismo significado y tono. Si algún texto no está en ${descriptor}, tradúcelo correctamente. Respeta exactamente la cantidad de entradas y nombres de plataforma. Devuelve exclusivamente JSON válido con la misma estructura de la entrada. Texto a revisar: ${payload}`;
+    const raw = await generateFn(prompt, modelId);
+    const parsed = JSON.parse(extractJsonPayload(raw));
+    const normalized = normalizeOutputs(parsed);
+    if (normalized.length === outputs.length) {
+      return normalized;
+    }
+    if (normalized.length) {
+      return normalized;
+    }
+  } catch (err) {
+    console.warn("Language quality enforcement failed", err);
+  }
+  return outputs;
+};
+
 const speakWithBrowserTts = async (text: string, language: string) => {
   if (typeof window === "undefined" || !window.speechSynthesis) {
     throw new Error("speechSynthesis no está disponible en este navegador.");
@@ -503,7 +550,13 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
               normalized,
               context?.allowedPlatforms
             );
-            filtered.forEach(addOutput);
+            const polished = await enforceLanguageQuality(
+              filtered,
+              context?.targetLanguage,
+              candidate,
+              callTextModel
+            );
+            (polished.length ? polished : filtered).forEach(addOutput);
             setLastModelUsed(candidate);
             lastError = null;
             return;

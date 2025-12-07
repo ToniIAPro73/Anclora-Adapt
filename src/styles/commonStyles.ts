@@ -454,15 +454,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: "10px",
     flexWrap: "wrap",
-    justifyContent: "flex-end",
-  },
-  settingsInfoRow: {
-    width: "100%",
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "12px",
-    flexWrap: "wrap",
-    marginTop: "4px",
+    justifyContent: "space-between",
   },
   settingsHint: {
     fontSize: "0.8rem",
