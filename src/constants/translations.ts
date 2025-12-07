@@ -31,6 +31,9 @@ export const translations: Record<InterfaceLanguage, {
       error: string;
       reset: string;
       lastUsed?: string;
+      hardwareAdjust?: string;
+      hardwareAdjusting?: string;
+      hardwareDetected?: string;
     };
     output: {
       loading: string;
@@ -49,7 +52,7 @@ export const translations: Record<InterfaceLanguage, {
       speedFlash: string;
       platformLabel: string;
       literalLabel: string;
-      maxCharsLabel?: string;
+      minMaxCharsLabel?: string;
       uploadLabel?: string;
       uploadHint?: string;
       buttonIdle: string;
@@ -117,7 +120,7 @@ export const translations: Record<InterfaceLanguage, {
       buttonStart: string;
       buttonStop: string;
       transcriptLabel: string;
-      errors: { microphone: string; sttUnavailable: string };
+      errors: { microphone: string; sttUnavailable: string; noSpeech?: string };
     };
     image: {
       promptLabel: string;
@@ -182,8 +185,8 @@ export const translations: Record<InterfaceLanguage, {
       speedDetailed: "Detallado",
       speedFlash: "Flash",
       platformLabel: "Plataformas",
-      literalLabel: "Forzar traducción literal (sin tono ni plataformas)",
-      maxCharsLabel: "Max. carac.",
+      literalLabel: "Traducción (sin tono ni plataformas)",
+      minMaxCharsLabel: "Min/Max. car.",
       uploadLabel: "Importar texto",
       uploadHint: "Acepta .txt, .md o .csv y rellena automáticamente el campo.",
       buttonIdle: "Generar contenido",
@@ -340,8 +343,8 @@ export const translations: Record<InterfaceLanguage, {
       speedDetailed: "Detailed",
       speedFlash: "Flash",
       platformLabel: "Platforms",
-      literalLabel: "Literal translation only (disable tone/platforms)",
-      maxCharsLabel: "Max. char.",
+      literalLabel: "Translation (disable tone/platforms)",
+      minMaxCharsLabel: "Min/Max. char.",
       uploadLabel: "Import text",
       uploadHint: "Upload .txt or .md to auto-fill the field.",
       buttonIdle: "Generate content",

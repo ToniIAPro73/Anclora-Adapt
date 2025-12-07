@@ -260,12 +260,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               <div style={commonStyles.settingsInfoRow}>
                 {hardwareSummary && (
                   <span style={commonStyles.settingsHint}>
-                    {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
+                    {hardwareSummary}
                   </span>
                 )}
                 {textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed && (
                   <span style={commonStyles.settingsHint}>
-                    {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
+                    {`Modelo: ${lastModelUsed}`}
                   </span>
                 )}
               </div>
