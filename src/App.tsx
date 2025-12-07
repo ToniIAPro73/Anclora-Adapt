@@ -447,7 +447,12 @@ const App: React.FC = () => {
         if (/qwen|mistral|llama3/.test(normalized)) score += 2;
       }
 
-      if (/mistral|qwen/.test(normalized)) {
+      // Priorizar modelos multilingües de mejor calidad
+      if (/mistral/.test(normalized)) {
+        score += 3;
+      } else if (/qwen/.test(normalized)) {
+        score += 3;
+      } else if (/llama3/.test(normalized)) {
         score += 1;
       }
 
@@ -539,6 +544,20 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
               : "Model did not return the expected format."
           );
         }
+
+        // Validar límite mínimo de caracteres si está especificado
+        if (context?.minChars && context.minChars > 0) {
+          for (const output of normalized) {
+            if (output.content.length < context.minChars) {
+              throw new Error(
+                language === "es"
+                  ? `El contenido tiene ${output.content.length} caracteres, pero se requiere un mínimo de ${context.minChars}.`
+                  : `Content has ${output.content.length} characters, but a minimum of ${context.minChars} is required.`
+              );
+            }
+          }
+        }
+
         return normalized;
       };
 
