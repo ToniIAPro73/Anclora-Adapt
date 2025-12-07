@@ -211,7 +211,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                     {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
                   </span>
                 )}
-                {lastModelUsed && (
+                {selectedModel === AUTO_TEXT_MODEL_ID && lastModelUsed && (
                   <span style={commonStyles.settingsHint}>
                     {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
                   </span>

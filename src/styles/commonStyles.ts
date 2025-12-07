@@ -457,8 +457,9 @@ const commonStyles: Record<string, React.CSSProperties> = {
   },
   settingsGroup: {
     display: "flex",
-    flexDirection: "column",
-    gap: "4px",
+    alignItems: "center",
+    gap: "8px",
+    flexWrap: "wrap",
   },
   settingsActions: {
     display: "flex",
@@ -466,6 +467,17 @@ const commonStyles: Record<string, React.CSSProperties> = {
     gap: "8px",
     flexWrap: "wrap",
     marginLeft: "auto",
+  },
+  settingsInfoRow: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    flexWrap: "nowrap",
+    marginTop: "4px",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   },
   settingsHint: {
     fontSize: "0.8rem",
