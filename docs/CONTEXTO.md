@@ -1,77 +1,76 @@
 # CONTEXTO DE CAMBIOS Y ESTADO
 
-Documento vivo con el histórico de decisiones y el estado actual del proyecto.  
-Última revisión: **diciembre 2025**.
+Documento vivo con el historico de decisiones y el estado actual del proyecto.  
+Ultima revision: **diciembre 2025**.
 
 ---
 
 ## Resumen actual
 
-- **Backend textual** se ejecuta al 100 % en **Ollama local** (Llama2/Mistral/Qwen). Sin dependencias externas ni rate limits.
-- **SPA modular** (React + Vite) organizada en modos (`BasicMode`, `CampaignMode`, etc.) y contextos globales (`InteractionContext`, `ThemeContext`, `LanguageContext`).
-- **Compatibilidad lingüística adaptativa**: la aplicación detecta los modelos instalados, deshabilita los idiomas que no cubren y recalcula todo cuando se pulsa "Actualizar modelos".
-- **Auto + fallback inteligente**: `resolveTextModelId` puntúa los modelos disponibles (prioriza Qwen/Mistral para CJK/RU) y `handleGenerate` reintenta automáticamente con el siguiente candidato cuando el modelo seleccionado devuelve JSON inválido, incluso si lo eligió manualmente el usuario.
-- **Mejoras recientes de UX**:
-  - Layout del modo Básico a altura completa, sin scroll extra y con el botón **Generar contenido / Generar traducción** siempre visible.
-  - Botones de modo centrados, toggle de idioma con texto visible en claro/oscuro y botón "Copiar" contrastado.
-  - La casilla "Forzar traducción literal" cambia el texto del CTA a **Generar traducción** y vuelve a **Generar contenido** al desmarcarla.
-  - `lastModelUsed` muestra el modelo real utilizado justo después de cada generación.
+- **Backend textual** funciona al 100% sobre **Ollama local** (Llama2, Mistral, Qwen). No hay dependencias externas ni rate limits.
+- **SPA modular** (React + Vite) dividida en modos (`BasicMode`, `CampaignMode`, etc.) y contextos globales (`InteractionContext`, `ThemeContext`, `LanguageContext`).
+- **Compatibilidad linguistica adaptativa**: tras pulsar "Actualizar modelos" se consulta Ollama, se recalculan las capacidades de cada modelo e idiomas no soportados quedan deshabilitados con tooltip.
+- **Auto + fallback inteligente**: `resolveTextModelId` puntua los modelos disponibles (prioriza Qwen/Mistral para CJK) y `handleGenerate` reintenta automaticamente con el siguiente candidato cuando el modelo seleccionado devuelve JSON invalido, incluso si lo eligio manualmente el usuario.
+- **Ajuste de hardware bajo demanda**: boton "Ajuste hardware" que consulta `/api/system/capabilities`, detecta CPU/RAM/VRAM reales (via `torch` o `nvidia-smi`) y devuelve los modelos recomendados en orden, ademas de indicar que modos pueden usarse en la UI.
+- **Mejoras de UX** recientes: layout del modo Basico sin scroll vertical, CTA siempre visible con texto dinamico (**Generar contenido** / **Generar traduccion**), chips y toggles con contraste en claro/oscuro y boton "Copiar" con texto blanco.
 
 ---
 
-## Camino hasta aquí
+## Camino hasta aqui
 
-### 1. Migración a Ollama (noviembre 2025)
-El endpoint `/api/hf-text` devolvía 404 porque Hugging Face retiró `api-inference`. Tras varios intentos (router nuevo, TogetherAI) se migró a **Ollama**:
+### 1. Migracion a Ollama (noviembre 2025)
+El endpoint antiguo de Hugging Face (`/api/hf-text`) quedo obsoleto y se reemplazo por Ollama:
 
 ```bash
 ollama pull llama2
-ollama serve   # o el script manage-ollama.ps1
-npm run dev
+ollama serve            # o scripts/manage-ollama.ps1
+npm run dev             # Vite + FastAPI
 ```
 
-El front usa ahora `POST /api/generate` y `.env.local` solo necesita:
-
-```ini
-VITE_OLLAMA_BASE_URL=http://localhost:11434
-VITE_TEXT_MODEL_ID=llama2   # se puede cambiar a mistral, qwen, etc.
-```
+`POST /api/generate` usa Ollama, de modo que `.env.local` solo necesita `VITE_OLLAMA_BASE_URL` y un modelo por defecto.
 
 ### 2. Refactor de la SPA
-- Creación de `src/` con componentes separados por modo.
-- Contextos globales para estado (modo activo, outputs, idioma, tema).
-- Prompts/traducciones centralizados en `src/constants`.
+- Carpeta `src/` organizada por modos y componentes compartidos.
+- Estados globales via contextos para outputs, idioma, tema y ayudas.
+- Prompts y textos centralizados en `src/constants`.
 
-### 3. Heurística de idioma/modelo
-- `src/constants/modelCapabilities.ts` amplió la matriz de capacidades (llama3.2, Mixtral, Command, etc.) para reflejar los idiomas que soporta cada familia.
-- `resolveTextModelId` puntúa cada modelo según idioma objetivo, velocidad o profundidad y prioriza Qwen/Yi para japonés/chino/ruso.
-- El modo **Auto** ya no se queda en un único modelo: `handleGenerate` crea una lista ordenada y reintenta con el siguiente candidato cuando el primero devuelve un JSON inválido.
-- Aunque el usuario seleccione un modelo manualmente, se registra `lastModelUsed` y, si el modelo falla, se muestra un mensaje que sugiere alternativas multilingües (mistral/qwen).
+### 3. Heuristica de idioma/modelo
+- `src/constants/modelCapabilities.ts` recoge la matriz de soportes por modelo (llama3.2, Mixtral, Qwen2.5, etc.).
+- `resolveTextModelId` elige el mejor modelo segun idioma, velocidad y si se pide razonamiento; autoprioriza Qwen/Mistral para japones/chino/ruso.
+- El modo **Auto** construye una lista ordenada y `handleGenerate` reintenta con el siguiente elemento cuando el primero falla por JSON invalido o timeout.
+- `lastModelUsed` indica el modelo real usado tras cada generacion, incluso si el usuario habia escogido otro.
 
-### 4. Ajustes de interfaz
-- Botones de modo centrados entre las líneas divisorias y CTA principal siempre visible (sin necesidad de hacer scroll).
-- Toggle de idioma, botón de reinicio y chips de plataformas con mejor contraste en claro/oscuro.
-- CTA dinámico **Generar contenido / Generar traducción** según la casilla de traducción literal.
-- Botón "Copiar" con texto blanco y estilos consistentes con el tema.
-- Script `scripts/manage-ollama.ps1` para listar modelos, precargar el seleccionado y reiniciar el daemon sin procesos huérfanos.
+### 4. Ajustes de interfaz y experiencia
+- Botones de modo centrados entre las lineas divisorias y CTA principal visible sin scroll.
+- Toggle de idioma, boton de reinicio y chips de plataformas con contraste adecuado en ambos temas.
+- Checkbox "Forzar traduccion literal" deshabilita campos no necesarios y cambia el CTA a **Generar traduccion** (regresa a **Generar contenido** al desmarcar).
+- Boton "Copiar" y outputs con contraste, iconos y estados de error coherentes.
+- Script `scripts/manage-ollama.ps1` lista modelos (`ollama list`), permite precargar uno, cierra procesos en el puerto 11434 y arranca `ollama serve` limpio.
+
+### 5. Deteccion de hardware y recomendaciones
+- `python-backend/hardware_profiles.py` expone `detect_hardware_profile()` usado por `/api/system/capabilities`.
+- La deteccion primero usa `torch.cuda.is_available()`; si no encuentra GPU recurre a `nvidia-smi` (via `subprocess` + `shutil.which`) y convierte la memoria de MiB a GB para mostrar valores reales (ejemplo: RTX 3050 -> 4.0 GB).
+- Se devuelven:
+  - Datos base (cores, hilos, RAM, VRAM, almacenamiento, flag CUDA).
+  - `recommendations.text`: lista ordenada de modelos sugeridos con razon y requisitos.
+  - `mode_support`: modos habilitados/deshabilitados con motivo (voz, live chat, imagen dependen de VRAM/RAM).
+- El boton "Ajuste hardware" guarda el resultado en contexto, actualiza el selector de modelos (los recomendados van primero), desactiva tabs no soportados y muestra el resumen detectado bajo el boton.
 
 ---
 
-## Estado por áreas
+## Estado por areas
 
-| Área | Estado | Comentario |
+| Area | Estado | Comentario |
 |------|--------|------------|
-| 🧠 Generación de texto | ✅ Estable | Auto prioriza mistral/qwen y reintenta si un modelo devuelve JSON inválido. |
-| 🌐 Traducción literal | ✅ | JSON limpio y CTA dinámico **Generar traducción** cuando corresponde. |
-| 🎯 Selector de idiomas | ✅ Adaptativo | Idiomas no soportados aparecen deshabilitados con tooltip. |
-| 📌 Modelo usado | ✅ | Visible bajo "Modelo de texto" tras cada generación. |
-| 🖼️ Imagen / 🔊 Voz / 🎙️ STT | ⚠️ Pendiente | FastAPI expone endpoints, pero falta afinar modelos (Kokoro/Whisper/SD). |
-| 🧩 Refactor front | ⚙️ En progreso | Modos legacy pendientes de limpieza y tests. |
-| 🧪 Tests automatizados | ⏳ | Vitest configurado, aún sin suites. |
-| 💾 Persistencia | ⏳ | No hay DB; datos en localStorage. |
-| 🚀 CI/CD | ⏳ | Builds manuales (sin GitHub Actions). |
-
----
+| Generacion de texto | Estable | Auto prioriza modelos multilingues y reintenta si uno devuelve JSON invalido. |
+| Traduccion literal | Estable | JSON limpio y CTA dinamico **Generar traduccion**. |
+| Selector de idiomas | Adaptativo | Idiomas no soportados quedan deshabilitados con tooltip. |
+| Indicador de modelo usado | Completo | Visible bajo "Modelo de texto" tras cada generacion. |
+| Imagen / Voz / STT | Pendiente | FastAPI expone `/api/image`, `/api/tts`, `/api/stt` pero requieren modelos definitivos (SDXL, Kokoro, Whisper). |
+| Refactor front | En progreso | Modos legacy pendientes de limpieza y tests. |
+| Tests automatizados | Basico | Vitest listo pero sin suites completas. |
+| Persistencia | Basico | Sin BD; algunos datos se guardan en localStorage. |
+| CI/CD | Manual | No hay GitHub Actions; despliegue manual. |
 
 ---
 
@@ -83,34 +82,33 @@ VITE_TEXT_MODEL_ID=llama2   # se puede cambiar a mistral, qwen, etc.
 | `qwen2.5`, `yi`, `deepseek` | Todo lo anterior + JA, ZH |
 | `phi`, `orca`, `neural-chat` | ES, EN, FR, DE, PT, IT |
 
-> Tras pulsar “Actualizar modelos”, la app recalcula la cobertura. Si faltan idiomas (por ejemplo japonés), instala un modelo compatible (`ollama pull qwen2.5:7b`). El selector mostrará esos idiomas en cuanto el modelo esté disponible.
+> Tras pulsar "Actualizar modelos" la app recalcula la cobertura. Si falta un idioma (ej. japones) instala un modelo compatible (`ollama pull qwen2.5:7b`) y vuelve a ejecutar el ajuste.
 
 ---
 
-## Próximos pasos sugeridos
+## Proximos pasos sugeridos
 
-1. **Backend creativo**: completar la integración de Kokoro (descarga `kokoro.onnx` + `voices.json` en `python-backend/models/`) y ajustar Stable Diffusion en `/api/image`.
-2. **Tests de regresión**: cobertura mínima para los modos críticos (`BasicMode`, `CampaignMode`, `ChatMode`).
-3. **Persistencia y sesiones**: guardar prompts/outputs en una base ligera (SQLite/Postgres) y permitir historial.
-4. **Observabilidad**: métricas básicas (conteo de generaciones por modo/modelo) y logs estructurados.
-5. **CI/CD**: pipeline de GitHub Actions con lint + tests antes de mergear en `development`.
-6. **Optimización de assets**: revisar bundle y lazy loading más granular (solo si no afecta UX).
+1. **Backend creativo**: completar la integracion de Kokoro (`kokoro.onnx` + `voices.json` en `python-backend/models/`) y ajustar Stable Diffusion en `/api/image`.
+2. **Tests de regresion**: cobertura minima para los modos criticos (`BasicMode`, `CampaignMode`, `ChatMode`).
+3. **Persistencia e historial**: guardar prompts/outputs en SQLite o Postgres ligero.
+4. **Observabilidad**: metricas basicas y logs estructurados por modo/modelo.
+5. **CI/CD**: pipeline de GitHub Actions con lint + tests antes de mergear a `development`.
+6. **Optimizar assets**: seguir reduciendo tiempo de carga (lazy de contextos pesados y division por modos).
 
 ---
 
 ## Notas operativas
 
-- `.env.local` en la raíz; no expone credenciales sensibles salvo que conectes backends externos.
-- Para comprobar servicios locales, usa `npm run check:health`.
-- Cambios en estilos van a `src/styles/commonStyles.ts` para mantener consistencia claro/oscuro.
-- Antes de añadir un idioma nuevo, extiende `capabilityMatrix` con el modelo que lo soporta; de lo contrario aparecerá deshabilitado.
-- Script útil: `.\scripts\manage-ollama.ps1` (PowerShell) lista modelos, precarga el seleccionado y reinicia `ollama serve`.
+- `.env.local` en la raiz (sin credenciales sensibles). Usa `VITE_OLLAMA_BASE_URL`, `VITE_TEXT_MODEL_ID` y los endpoints locales.
+- `npm run check:health` comprueba Ollama (`/api/tags`) y los backends locales de imagen/TTS/STT.
+- Cambios de estilo viven en `src/styles/commonStyles.ts` para mantener paridad entre temas.
+- Antes de sumar un idioma nuevo se debe ampliar `capabilityMatrix` con el modelo que lo soporte; si no, el idioma aparecera deshabilitado.
+- Script util: `.\scripts\manage-ollama.ps1` para listar modelos, precargar uno y arrancar `ollama serve` tras matar procesos en el puerto 11434.
 
 ---
 
 ## TL;DR
 
-- El front ya no depende de servicios externos: todo corre en Ollama + FastAPI locales.
-- La UI se adapta al modelo instalado (idiomas, modelo usado, traducciones literales fiables).
-- Falta completar el backend multimedia, añadir tests y automatizar la entrega, pero la base es estable para trabajo diario.  
-- Siguiente hito: cerrar la integración de Kokoro/Whisper/SDXL y añadir pruebas automatizadas.
+- Front y backend ya no dependen de servicios externos: todo corre en Ollama + FastAPI locales.
+- La UI se adapta tanto al hardware como a los modelos instalados (idiomas, modos habilitados y modelo efectivamente usado).
+- Falta cerrar la parte multimedia, sumar pruebas y automatizar la entrega, pero la base actual es estable para trabajo diario. El siguiente hito es completar Kokoro/Whisper/SDXL y endurecer las suites de regresion.
