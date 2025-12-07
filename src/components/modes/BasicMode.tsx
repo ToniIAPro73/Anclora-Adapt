@@ -9,7 +9,6 @@ import OutputDisplay, {
 import commonStyles from "@/styles/commonStyles";
 import { languages, tones } from "@/constants/options";
 import type { LanguageOptionAvailability } from "@/constants/modelCapabilities";
-import { structuredOutputExample } from "@/constants/prompts";
 import { formatCounterText } from "@/utils/text";
 import { useInteraction } from "@/context/InteractionContext";
 
@@ -182,6 +181,19 @@ const BasicMode: React.FC<BasicModeProps> = ({
     const requestedPlatforms = literalTranslation
       ? [languageDisplay]
       : platforms;
+    const outputExample =
+      requestedPlatforms.length > 0
+        ? JSON.stringify(
+            {
+              outputs: requestedPlatforms.map((platform) => ({
+                platform,
+                content: `Contenido generado para ${platform}`,
+              })),
+            },
+            null,
+            2
+          )
+        : structuredOutputExample;
     const combinedIdea = [typedIdea, attachedText]
       .filter(Boolean)
       .join("\n\n---\n\nTexto adjunto:\n");
@@ -195,7 +207,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
         requestedPlatforms.length > 0
           ? requestedPlatforms.join(", ")
           : "Sin plataformas";
-      prompt = `Eres un estratega de contenidos. Genera una lista JSON bajo la clave "outputs" siguiendo ${structuredOutputExample}. Idea: """${payloadIdea}""". Idioma solicitado: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas seleccionadas: ${list}. Devuelve exactamente una entrada por cada plataforma listada y no incluyas plataformas adicionales. Nivel de detalle: ${speedDisplay}.${limitSuffix}`;
+      prompt = `Eres un estratega de contenidos. Genera una lista JSON bajo la clave "outputs" siguiendo este ejemplo dinámico: ${outputExample}. Idea: """${payloadIdea}""". Idioma solicitado: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas seleccionadas: ${list}. Devuelve exactamente una entrada por cada plataforma listada y no incluyas plataformas adicionales. Nivel de detalle: ${speedDisplay}.${limitSuffix}`;
     }
       await onGenerate(
         prompt,
@@ -334,15 +346,16 @@ const BasicMode: React.FC<BasicModeProps> = ({
             </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "10px",
-              flex: 1,
-              minHeight: 0,
-            }}
-          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+                flex: 1,
+                minHeight: 0,
+                paddingBottom: "4px",
+              }}
+            >
             <div
               style={{
                 display: "grid",
@@ -435,7 +448,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
                 alignItems: "center",
                 gap: "10px",
                 flexWrap: "wrap",
-                paddingBottom: "2px",
+                paddingBottom: "6px",
                 width: "100%",
               }}
             >
