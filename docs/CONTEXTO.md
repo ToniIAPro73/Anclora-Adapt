@@ -13,6 +13,12 @@ Ultima revision: **diciembre 2025**.
 - **Auto + fallback inteligente**: `resolveTextModelId` puntua los modelos disponibles (prioriza Qwen/Mistral para CJK) y `handleGenerate` reintenta automaticamente con el siguiente candidato cuando el modelo seleccionado devuelve JSON invalido, incluso si lo eligio manualmente el usuario.
 - **Ajuste de hardware bajo demanda**: boton "Ajuste hardware" que consulta `/api/system/capabilities`, detecta CPU/RAM/VRAM reales (via `torch` o `nvidia-smi`) y devuelve los modelos recomendados en orden, ademas de indicar que modos pueden usarse en la UI.
 - **Mejoras de UX** recientes: layout del modo Basico sin scroll vertical, CTA siempre visible con texto dinamico (**Generar contenido** / **Generar traduccion**), chips y toggles con contraste en claro/oscuro y boton "Copiar" con texto blanco.
+- **Trabajo pendiente sobre la cabecera**: seguimos refinando la barra "Modelo de texto / Actualizar modelo / Ajuste hardware" para que nunca genere nuevas lineas ni desplace el formulario. Tras cada ajuste se vuelve a tener que comprobar que:
+  1. El selector y los botones se mantengan alineados con el subtitulo;
+  2. Al pulsar "Ajuste hardware" la informacion detectada y, en caso de modo `Auto`, el "Modelo usado" aparezcan en una sola línea inmediatamente debajo del grupo anterior, sin desplazar los chips ni los campos "Forzar traducción" y "Max. carac.";
+  3. La línea inferior se adapte al ancho disponible (recortando o moviendo el texto hacia la izquierda) para evitar que aparezcan scrolls o saltos de línea adicionales.
+  
+  Esta alineación está siendo delicada porque la cabecera contiene varios bloques con diferentes longitudes: traducción, alternancia de idioma, selector de modelo, botones y la información dinámica de hardware/modelo usado. Cada cambio de estilo puede causar desbordes y scroll si no se controla bien `flexShrink`, `minWidth` y `white-space`, de ahí los múltiples ajustes recientes.
 
 ---
 
