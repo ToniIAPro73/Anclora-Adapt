@@ -626,8 +626,18 @@ const App: React.FC = () => {
       setImageUrl(null);
       clearOutputs();
 
+      // Construir instrucciones adicionales de restricción de caracteres
+      let charConstraint = "";
+      if (context?.minChars && context.minChars > 0 && context?.maxChars && context.maxChars > 0) {
+        charConstraint = `\nCada plataforma debe tener entre ${context.minChars} y ${context.maxChars} caracteres.`;
+      } else if (context?.minChars && context.minChars > 0) {
+        charConstraint = `\nCada plataforma debe tener AL MENOS ${context.minChars} caracteres. Genera contenido EXTENSO y DETALLADO.`;
+      } else if (context?.maxChars && context.maxChars > 0) {
+        charConstraint = `\nCada plataforma debe tener MÁXIMO ${context.maxChars} caracteres.`;
+      }
+
       const enforcedPrompt = `${prompt}
-Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutputExample}`;
+Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutputExample}${charConstraint}`;
       const candidates = getModelCandidates(context).slice(0, 3);
       let lastError: Error | null = null;
 
