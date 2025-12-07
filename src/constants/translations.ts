@@ -37,6 +37,7 @@ export const translations: Record<InterfaceLanguage, {
       downloadAudio: string;
       downloadImage: string;
       copy: string;
+      copied?: string;
     };
     basic: {
       ideaLabel: string;
@@ -49,11 +50,14 @@ export const translations: Record<InterfaceLanguage, {
       platformLabel: string;
       literalLabel: string;
       maxCharsLabel?: string;
+      uploadLabel?: string;
+      uploadHint?: string;
       buttonIdle: string;
+      buttonLiteral?: string;
       buttonLoading: string;
       outputs: string;
       emptyState: string;
-      errors: { idea: string; platforms: string };
+      errors: { idea: string; platforms: string; upload?: string };
     };
     intelligent: {
       ideaLabel: string;
@@ -167,6 +171,7 @@ export const translations: Record<InterfaceLanguage, {
       downloadAudio: "Descargar audio",
       downloadImage: "Descargar imagen",
       copy: "Copiar",
+      copied: "Copiado",
     },
     basic: {
       ideaLabel: "Tu idea principal",
@@ -179,6 +184,8 @@ export const translations: Record<InterfaceLanguage, {
       platformLabel: "Plataformas",
       literalLabel: "Forzar traducción literal (sin tono ni plataformas)",
       maxCharsLabel: "Máximo de caracteres",
+      uploadLabel: "Importar texto",
+      uploadHint: "Acepta .txt, .md o .csv y rellena automáticamente el campo.",
       buttonIdle: "Generar contenido",
       buttonLiteral: "Generar traducción",
       buttonLoading: "Generando...",
@@ -187,6 +194,7 @@ export const translations: Record<InterfaceLanguage, {
       errors: {
         idea: "Describe tu idea principal.",
         platforms: "Selecciona al menos una plataforma.",
+        upload: "Solo se permiten archivos de texto (.txt, .md, .csv).",
       },
     },
     intelligent: {
@@ -321,6 +329,7 @@ export const translations: Record<InterfaceLanguage, {
       downloadAudio: "Download audio",
       downloadImage: "Download image",
       copy: "Copy",
+      copied: "Copied",
     },
     basic: {
       ideaLabel: "Your main idea",
@@ -333,6 +342,8 @@ export const translations: Record<InterfaceLanguage, {
       platformLabel: "Platforms",
       literalLabel: "Literal translation only (disable tone/platforms)",
       maxCharsLabel: "Maximum characters",
+      uploadLabel: "Import text",
+      uploadHint: "Upload .txt or .md to auto-fill the field.",
       buttonIdle: "Generate content",
       buttonLoading: "Generating...",
       outputs: "Results",
@@ -340,6 +351,7 @@ export const translations: Record<InterfaceLanguage, {
       errors: {
         idea: "Describe your main idea.",
         platforms: "Select at least one platform.",
+        upload: "Only text files are allowed (.txt, .md, .csv).",
       },
     },
     intelligent: {

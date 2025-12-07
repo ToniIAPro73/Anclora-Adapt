@@ -91,52 +91,68 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   return (
     <div style={commonStyles.mainContainer}>
       <header style={commonStyles.header}>
-        <div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <h1 style={commonStyles.headerTitle}>{localizedCopy.title}</h1>
           <p style={commonStyles.headerSubtitle}>
             {localizedCopy.subtitle}
           </p>
         </div>
 
-        <div style={commonStyles.headerActions}>
-          <button
-            type="button"
-            onClick={() => setTheme(getNextTheme(theme))}
-            style={commonStyles.themeButton}
-            aria-label="Cambiar tema"
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+            flex: 1,
+          }}
+        >
+          <div
+            style={{
+              ...commonStyles.headerActions,
+              justifyContent: "flex-end",
+              flexWrap: "wrap",
+            }}
           >
-            {themeIcon}
-          </button>
+            <button
+              type="button"
+              onClick={() => setTheme(getNextTheme(theme))}
+              style={commonStyles.themeButton}
+              aria-label="Cambiar tema"
+            >
+              {themeIcon}
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setLanguage(language === "es" ? "en" : "es")}
-            style={commonStyles.languageToggle}
-            title="Cambiar idioma / Switch language"
-            aria-label="Cambiar idioma"
-          >
-            <span style={{ fontSize: "0.9em", fontWeight: 700 }}>
-              {language.toUpperCase()}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setLanguage(language === "es" ? "en" : "es")}
+              style={commonStyles.languageToggle}
+              title="Cambiar idioma / Switch language"
+              aria-label="Cambiar idioma"
+            >
+              <span style={{ fontSize: "0.9em", fontWeight: 700 }}>
+                {language.toUpperCase()}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={help.onOpen}
-            style={commonStyles.helpButton}
-            title={help.openLabel}
-            aria-label={help.openLabel}
-          >
-            ?
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={help.onOpen}
+              style={commonStyles.helpButton}
+              title={help.openLabel}
+              aria-label={help.openLabel}
+            >
+              ?
+            </button>
+          </div>
 
-        <div style={commonStyles.settingsBar}>
-          <div style={commonStyles.settingsGroup}>
-            <span style={commonStyles.settingsLabel}>
-              {modelCopy.label || "Modelo Texto"}
-            </span>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={commonStyles.settingsBar}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <label
+                htmlFor="text-model-select"
+                style={{ ...commonStyles.settingsLabel, marginRight: "4px" }}
+              >
+                {modelCopy.label || "Modelo Texto"}
+              </label>
               <select
                 id="text-model-select"
                 value={textModelId}
@@ -155,19 +171,35 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <button
                 type="button"
                 style={{
-                  ...commonStyles.copyButton,
+                  ...commonStyles.resetButton,
                   padding: "6px 10px",
-                  color: "#fff",
-                  backgroundColor: "var(--tab-text, #162032)",
+                  width: "38px",
+                  height: "38px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
                 onClick={() => void onRefreshModels()}
                 disabled={isRefreshingModels}
                 title={modelCopy.refresh}
+                aria-label={modelCopy.refresh}
+                aria-busy={isRefreshingModels}
               >
-                {isRefreshingModels ? "." : "?"}
+                <RefreshCw
+                  size={16}
+                  style={{
+                    color: "var(--tab-text, #162032)",
+                    animation: isRefreshingModels
+                      ? "spin 0.9s linear infinite"
+                      : undefined,
+                  }}
+                />
               </button>
               <button
                 type="button"
@@ -185,21 +217,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                   : modelCopy.hardwareAdjust}
               </button>
             </div>
-            {lastModelUsed && (
-              <span style={commonStyles.settingsHint}>
-                {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
-              </span>
-            )}
-            {hardwareSummary && (
-              <span style={commonStyles.settingsHint}>
-                {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
-              </span>
-            )}
-          </div>
-          <div style={{ ...commonStyles.settingsGroup, marginLeft: "auto" }}>
+
             <button
               type="button"
-              style={commonStyles.resetButton}
+              style={{ ...commonStyles.resetButton, padding: "6px 12px" }}
               onClick={onReset}
               title={modelCopy.reset}
               aria-label={modelCopy.reset}
@@ -210,6 +231,20 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               </span>
             </button>
           </div>
+          {(hardwareSummary || lastModelUsed) && (
+            <div style={commonStyles.settingsInfoRow}>
+              {hardwareSummary && (
+                <span style={commonStyles.settingsHint}>
+                  {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
+                </span>
+              )}
+              {lastModelUsed && (
+                <span style={commonStyles.settingsHint}>
+                  {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
