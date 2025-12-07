@@ -16,8 +16,9 @@ const commonStyles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     alignItems: "center",
     gap: "16px",
-    flexWrap: "wrap",
+    flexWrap: "nowrap",
     borderBottom: "1px solid var(--panel-border, #1e293b)",
+    minWidth: 0,
   },
   headerTitle: {
     fontSize: "1.5rem",
@@ -455,6 +456,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     gap: "12px",
     flexWrap: "nowrap",
     minWidth: 0,
+    overflow: "hidden",
   },
   settingsGroup: {
     display: "flex",
@@ -462,6 +464,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     gap: "8px",
     flexWrap: "nowrap",
     minWidth: 0,
+    flex: 1,
   },
   settingsActions: {
     display: "flex",
@@ -469,6 +472,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     gap: "8px",
     flexWrap: "nowrap",
     marginLeft: "auto",
+    flexShrink: 0,
   },
   settingsInfoRow: {
     width: "100%",
