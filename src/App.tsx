@@ -417,6 +417,21 @@ const App: React.FC = () => {
       const normalized = modelId.toLowerCase();
       let score = 0;
 
+      // ========== BONUS POR HARDWARE DISPONIBLE ==========
+      // Si tenemos mucha RAM disponible, priorizar modelos grandes/mejores
+      // incluso si VRAM es limitada (pueden ejecutarse bien en RAM)
+      if (hardwareProfile?.hardware.ram_gb && hardwareProfile.hardware.ram_gb >= 24) {
+        // Con >= 24 GB RAM, los modelos 7B pueden ejecutarse bien incluso con VRAM baja
+        if (/qwen|mistral|llama3/.test(normalized)) {
+          score += 8; // Bonus significativo por capacidad en RAM
+        }
+      } else if (hardwareProfile?.hardware.ram_gb && hardwareProfile.hardware.ram_gb >= 16) {
+        // Con 16-24 GB RAM, todavía buen soporte
+        if (/qwen|mistral|llama3/.test(normalized)) {
+          score += 5;
+        }
+      }
+
       // ========== SOPORTE DE IDIOMA ==========
       if (context?.targetLanguage && context.targetLanguage !== "detect") {
         const supported = inferLanguagesForModel(modelId);
@@ -515,28 +530,44 @@ const App: React.FC = () => {
 
   const getModelCandidates = useCallback(
     (context?: AutoModelContext) => {
-      // Estrategia de selección:
-      // 1. Si se ha ajustado hardware (hardwareProfile existe), priorizar recomendaciones del backend
-      // 2. Luego complementar con scoring inteligente basado en contexto
-      // 3. Si no hay ajuste hardware, usar availableModelPool en modo AUTO
+      // Estrategia de selección mejorada:
+      // 1. Si se ha ajustado hardware (hardwareProfile existe):
+      //    a. Mantener el orden del backend como referencia (orden de calidad/capacidad)
+      //    b. Aplicar scoring de contexto PERO respetando el orden backend como tie-breaker
+      // 2. Si no hay ajuste hardware, usar scoring puro
 
       let basePool: string[] = [];
+      let backendOrderMap: Record<string, number> = {};
 
       if (hardwareProfile) {
         // CASO 1: Se ha pulsado "Ajustar Hardware"
-        // Usar las recomendaciones del backend como base, ordenadas por contexto
+        // El backend ya ordenó los modelos por capacidad/recomendación
+        // Usamos su orden como referencia (tie-breaker de scoring)
         const backendRecs = hardwareProfile.recommendations?.text?.map((rec) =>
           rec.id.toLowerCase()
         ) ?? [];
 
         if (backendRecs.length > 0) {
+          // Crear mapa de posición backend (índice = prioridad)
+          backendRecs.forEach((model, index) => {
+            backendOrderMap[model] = index;
+          });
+
           // Scoring de contexto sobre modelos recomendados por hardware
           const scored = backendRecs
             .map((model) => ({
               model,
               score: scoreModelForContext(model, context),
+              backendIndex: backendOrderMap[model],
             }))
-            .sort((a, b) => b.score - a.score || a.model.localeCompare(b.model));
+            // Ordenar por: 1) Score descendente, 2) Posición backend (mantener orden si score es igual)
+            .sort((a, b) => {
+              if (b.score !== a.score) {
+                return b.score - a.score; // Diferente score: ordena por puntuación
+              }
+              // Mismo score: mantener orden backend
+              return a.backendIndex - b.backendIndex;
+            });
 
           basePool = scored.map((entry) => entry.model);
         }
@@ -567,6 +598,7 @@ const App: React.FC = () => {
             model,
             score: scoreModelForContext(model, context),
           }))
+          // Ordenar por score, y si es igual, por nombre (consistencia)
           .sort((a, b) => b.score - a.score || a.model.localeCompare(b.model));
 
         basePool = scored.map((entry) => entry.model);
@@ -619,12 +651,78 @@ const App: React.FC = () => {
     }
   }, [language, setError, setHardwareProfile]);
 
+  /**
+   * Auto-enhance vague or short prompts for better model comprehension
+   * Detects if a prompt is too generic/short and enriches it with context
+   * EXCEPTION: If translation mode is enabled, the prompt is content to translate and should not be enhanced
+   */
+  const enhancePromptIfNeeded = useCallback(
+    (rawPrompt: string, context?: AutoModelContext): string => {
+      // EXCEPTION: In translation mode, the prompt is the content to translate
+      // Do not enhance it - use it as-is
+      if (context?.isLiteralTranslation) {
+        return rawPrompt;
+      }
+
+      const trimmed = rawPrompt.trim();
+
+      // Check if prompt is too vague or short
+      const isVagueOrShort =
+        trimmed.length < 30 || // Very short prompts
+        /^(post|contenido|texto|copy|escribe|crea)$/i.test(trimmed) || // Single word/generic
+        /^(post|contenido|copy).*(linkedin|instagram|twitter|whatsapp|email)$/i.test(
+          trimmed
+        ); // Generic platform mention only
+
+      if (!isVagueOrShort) {
+        return rawPrompt; // Prompt is detailed enough
+      }
+
+      // Auto-enhance based on mode and context
+      let enhancement = "";
+
+      if (context?.mode === "basic") {
+        enhancement =
+          language === "es"
+            ? "Genera contenido profesional que sea claro, conciso y atractivo para la audiencia."
+            : "Generate professional content that is clear, concise, and engaging for the audience.";
+      } else if (context?.mode === "intelligent") {
+        enhancement =
+          language === "es"
+            ? "Analiza el tema en profundidad y genera contenido perspicaz que demuestre expertise."
+            : "Analyze the topic in depth and generate insightful content that demonstrates expertise.";
+      } else if (context?.mode === "campaign") {
+        enhancement =
+          language === "es"
+            ? "Crea una campaña cohesiva que impulse engagement y conversión con propuestas de valor claras."
+            : "Create a cohesive campaign that drives engagement and conversion with clear value propositions.";
+      }
+
+      // Add platform context if relevant
+      if (context?.allowedPlatforms && context.allowedPlatforms.length > 0) {
+        const platforms = context.allowedPlatforms.join(", ");
+        const platformContext =
+          language === "es"
+            ? `Optimiza el contenido específicamente para: ${platforms}.`
+            : `Optimize the content specifically for: ${platforms}.`;
+        enhancement += ` ${platformContext}`;
+      }
+
+      // Combine original prompt with enhancement
+      return `${trimmed}\n${enhancement}`;
+    },
+    [language]
+  );
+
   const handleGenerate = useCallback(
     async (prompt: string, context?: AutoModelContext) => {
       setIsLoading(true);
       setError(null);
       setImageUrl(null);
       clearOutputs();
+
+      // Auto-enhance vague prompts before processing
+      const enhancedPrompt = enhancePromptIfNeeded(prompt, context);
 
       // Construir instrucciones adicionales de restricción de caracteres
       let charConstraint = "";
@@ -636,7 +734,7 @@ const App: React.FC = () => {
         charConstraint = `\nCada plataforma debe tener MÁXIMO ${context.maxChars} caracteres.`;
       }
 
-      const enforcedPrompt = `${prompt}
+      const enforcedPrompt = `${enhancedPrompt}
 Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutputExample}${charConstraint}`;
       const candidates = getModelCandidates(context).slice(0, 3);
       let lastError: Error | null = null;
@@ -715,6 +813,7 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
     [
       addOutput,
       clearOutputs,
+      enhancePromptIfNeeded,
       getModelCandidates,
       language,
       selectedModel,
