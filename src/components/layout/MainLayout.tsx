@@ -106,6 +106,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             gap: "4px",
             flex: 1,
             minWidth: 0,
+            width: "100%",
           }}
         >
           <div
@@ -150,138 +151,120 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: "12px",
+              flexDirection: "column",
               width: "100%",
+              gap: "2px",
               minWidth: 0,
-              flexWrap: "nowrap",
             }}
           >
-            <div style={{ ...commonStyles.settingsGroup, flex: 1, minWidth: 0 }}>
-              <label
-                htmlFor="text-model-select"
-                style={{ ...commonStyles.settingsLabel, flexShrink: 0 }}
-              >
-                {modelCopy.label || "Modelo Texto"}
-              </label>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  minWidth: 0,
-                }}
-              >
-                <select
-                  id="text-model-select"
-                  value={textModelId}
-                  onChange={(event) => onTextModelChange(event.target.value)}
+            <div style={commonStyles.settingsBar}>
+              <div style={{ ...commonStyles.settingsGroup, flex: 1, minWidth: 0 }}>
+                <label
+                  htmlFor="text-model-select"
+                  style={{ ...commonStyles.settingsLabel, flexShrink: 0 }}
+                >
+                  {modelCopy.label || "Modelo Texto"}
+                </label>
+                <div
                   style={{
-                    ...commonStyles.select,
-                    padding: "6px 10px",
-                    fontSize: "0.9em",
-                    flex: 1,
-                    minWidth: "140px",
-                    maxWidth: "240px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    minWidth: 0,
                   }}
                 >
-                  {modelOptions.map((model) => (
-                    <option key={model} value={model}>
-                      {model === "auto" ? modelCopy.auto || "Auto" : model}
-                    </option>
-                  ))}
-                </select>
+                  <select
+                    id="text-model-select"
+                    value={textModelId}
+                    onChange={(event) => onTextModelChange(event.target.value)}
+                    style={{
+                      ...commonStyles.select,
+                      padding: "6px 10px",
+                      fontSize: "0.9em",
+                      flex: 1,
+                      minWidth: "140px",
+                      maxWidth: "240px",
+                    }}
+                  >
+                    {modelOptions.map((model) => (
+                      <option key={model} value={model}>
+                        {model === "auto" ? modelCopy.auto || "Auto" : model}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    style={{
+                      ...commonStyles.resetButton,
+                      padding: "6px 10px",
+                      width: "38px",
+                      height: "38px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                    onClick={() => void onRefreshModels()}
+                    disabled={isRefreshingModels}
+                    title={modelCopy.refresh}
+                    aria-label={modelCopy.refresh}
+                    aria-busy={isRefreshingModels}
+                  >
+                    <RefreshCw
+                      size={16}
+                      style={{
+                        color: "var(--tab-text, #162032)",
+                        animation: isRefreshingModels
+                          ? "spin 0.9s linear infinite"
+                          : undefined,
+                      }}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ ...commonStyles.settingsActions, flexShrink: 0 }}>
                 <button
                   type="button"
                   style={{
                     ...commonStyles.resetButton,
-                    padding: "6px 10px",
-                    width: "38px",
-                    height: "38px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    padding: "6px 12px",
+                    fontSize: "0.85rem",
                     flexShrink: 0,
                   }}
-                  onClick={() => void onRefreshModels()}
-                  disabled={isRefreshingModels}
-                  title={modelCopy.refresh}
-                  aria-label={modelCopy.refresh}
-                  aria-busy={isRefreshingModels}
+                  onClick={() => void onHardwareAdjust()}
+                  disabled={isHardwareAdjusting}
+                  title={modelCopy.hardwareAdjust}
                 >
-                  <RefreshCw
-                    size={16}
-                    style={{
-                      color: "var(--tab-text, #162032)",
-                      animation: isRefreshingModels
-                        ? "spin 0.9s linear infinite"
-                        : undefined,
-                    }}
-                  />
+                  {isHardwareAdjusting
+                    ? modelCopy.hardwareAdjusting
+                    : modelCopy.hardwareAdjust}
+                </button>
+                <button
+                  type="button"
+                  style={{ ...commonStyles.resetButton, padding: "6px 12px", flexShrink: 0 }}
+                  onClick={onReset}
+                  title={modelCopy.reset}
+                  aria-label={modelCopy.reset}
+                >
+                  <RefreshCw size={18} />
+                  <span>
+                    {language === "es" ? "Reiniciar" : "Reset"}
+                  </span>
                 </button>
               </div>
             </div>
 
-            <div style={{ ...commonStyles.settingsActions, flexShrink: 0 }}>
-              <button
-                type="button"
-                style={{
-                  ...commonStyles.resetButton,
-                  padding: "6px 12px",
-                  fontSize: "0.85rem",
-                  flexShrink: 0,
-                }}
-                onClick={() => void onHardwareAdjust()}
-                disabled={isHardwareAdjusting}
-                title={modelCopy.hardwareAdjust}
-              >
-                {isHardwareAdjusting
-                  ? modelCopy.hardwareAdjusting
-                  : modelCopy.hardwareAdjust}
-              </button>
-              <button
-                type="button"
-                style={{ ...commonStyles.resetButton, padding: "6px 12px", flexShrink: 0 }}
-                onClick={onReset}
-                title={modelCopy.reset}
-                aria-label={modelCopy.reset}
-              >
-                <RefreshCw size={18} />
-                <span>
-                  {language === "es" ? "Reiniciar" : "Reset"}
-                </span>
-              </button>
-            </div>
-
             {(hardwareSummary ||
               (textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed)) && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  marginLeft: "8px",
-                  minWidth: 0,
-                  paddingLeft: "8px",
-                  borderLeft: "1px solid var(--panel-border, #1e293b)",
-                  fontSize: "0.8rem",
-                  color: "var(--texto-muted, #475467)",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  flex: "0 1 auto",
-                }}
-              >
+              <div style={commonStyles.settingsInfoRow}>
                 {hardwareSummary && (
-                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <span style={commonStyles.settingsHint}>
                     {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
                   </span>
                 )}
-                {hardwareSummary && textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed && (
-                  <span style={{ whiteSpace: "nowrap" }}>·</span>
-                )}
                 {textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed && (
-                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <span style={commonStyles.settingsHint}>
                     {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
                   </span>
                 )}
