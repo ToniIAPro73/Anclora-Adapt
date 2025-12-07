@@ -199,9 +199,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
                 platform,
                 content: `Contenido generado para ${platform}`,
               })),
-            },
-            null,
-            2
+            }
           )
         : structuredOutputExample;
     const combinedIdea = [typedIdea, attachedText]
