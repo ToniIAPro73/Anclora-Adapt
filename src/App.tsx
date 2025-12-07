@@ -727,11 +727,11 @@ const App: React.FC = () => {
       // Construir instrucciones adicionales de restricción de caracteres
       let charConstraint = "";
       if (context?.minChars && context.minChars > 0 && context?.maxChars && context.maxChars > 0) {
-        charConstraint = `\nCada plataforma debe tener entre ${context.minChars} y ${context.maxChars} caracteres.`;
+        charConstraint = `\n⚠️ REQUISITO OBLIGATORIO ESTRICTO: Cada plataforma DEBE tener ENTRE ${context.minChars} Y ${context.maxChars} caracteres (rango permitido). Genera contenido extenso y detallado dentro de este rango. NO generes más de ${context.maxChars} caracteres NI menos de ${context.minChars} caracteres.`;
       } else if (context?.minChars && context.minChars > 0) {
-        charConstraint = `\nCada plataforma debe tener AL MENOS ${context.minChars} caracteres. Genera contenido EXTENSO y DETALLADO.`;
+        charConstraint = `\n⚠️ REQUISITO OBLIGATORIO: Cada plataforma DEBE tener MÍNIMO ${context.minChars} caracteres. Genera contenido EXTREMADAMENTE EXTENSO, DETALLADO y PROFUNDO. Si no alcanzas ${context.minChars} caracteres, expande más el contenido. REPITO: MÍNIMO ${context.minChars} CARACTERES OBLIGATORIO.`;
       } else if (context?.maxChars && context.maxChars > 0) {
-        charConstraint = `\nCada plataforma debe tener MÁXIMO ${context.maxChars} caracteres.`;
+        charConstraint = `\n⚠️ REQUISITO OBLIGATORIO: Cada plataforma DEBE tener MÁXIMO ${context.maxChars} caracteres. Sé conciso pero completo.`;
       }
 
       const enforcedPrompt = `${enhancedPrompt}
@@ -751,14 +751,28 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
           );
         }
 
-        // Validar límite mínimo de caracteres si está especificado
-        if (context?.minChars && context.minChars > 0) {
-          for (const output of normalized) {
-            if (output.content.length < context.minChars) {
+        // Validar límites de caracteres (mínimo y/o máximo)
+        for (const output of normalized) {
+          const contentLength = output.content.length;
+
+          // Validar límite mínimo si está especificado
+          if (context?.minChars && context.minChars > 0) {
+            if (contentLength < context.minChars) {
               throw new Error(
                 language === "es"
-                  ? `El contenido tiene ${output.content.length} caracteres, pero se requiere un mínimo de ${context.minChars}.`
-                  : `Content has ${output.content.length} characters, but a minimum of ${context.minChars} is required.`
+                  ? `El contenido tiene ${contentLength} caracteres, pero se requiere un mínimo de ${context.minChars}.`
+                  : `Content has ${contentLength} characters, but a minimum of ${context.minChars} is required.`
+              );
+            }
+          }
+
+          // Validar límite máximo si está especificado
+          if (context?.maxChars && context.maxChars > 0) {
+            if (contentLength > context.maxChars) {
+              throw new Error(
+                language === "es"
+                  ? `El contenido tiene ${contentLength} caracteres, pero no debe exceder ${context.maxChars}.`
+                  : `Content has ${contentLength} characters, but must not exceed ${context.maxChars}.`
               );
             }
           }
