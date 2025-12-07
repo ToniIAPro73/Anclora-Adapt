@@ -153,56 +153,53 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               >
                 {modelCopy.label || "Modelo Texto"}
               </label>
-              <select
-                id="text-model-select"
-                value={textModelId}
-                onChange={(event) => onTextModelChange(event.target.value)}
-                style={{
-                  ...commonStyles.select,
-                  padding: "6px 10px",
-                  fontSize: "0.9em",
-                  minWidth: "170px",
-                  width: "auto",
-                }}
-              >
-                {modelOptions.map((model) => (
-                  <option key={model} value={model}>
-                    {model === "auto" ? modelCopy.auto || "Auto" : model}
-                  </option>
-                ))}
-              </select>
-              {lastModelUsed && (
-                <span style={commonStyles.settingsHint}>
-                  {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
-                </span>
-              )}
-              <button
-                type="button"
-                style={{
-                  ...commonStyles.resetButton,
-                  padding: "6px 10px",
-                  width: "38px",
-                  height: "38px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                onClick={() => void onRefreshModels()}
-                disabled={isRefreshingModels}
-                title={modelCopy.refresh}
-                aria-label={modelCopy.refresh}
-                aria-busy={isRefreshingModels}
-              >
-                <RefreshCw
-                  size={16}
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <select
+                  id="text-model-select"
+                  value={textModelId}
+                  onChange={(event) => onTextModelChange(event.target.value)}
                   style={{
-                    color: "var(--tab-text, #162032)",
-                    animation: isRefreshingModels
-                      ? "spin 0.9s linear infinite"
-                      : undefined,
+                    ...commonStyles.select,
+                    padding: "6px 10px",
+                    fontSize: "0.9em",
+                    minWidth: "170px",
+                    width: "auto",
                   }}
-                />
-              </button>
+                >
+                  {modelOptions.map((model) => (
+                    <option key={model} value={model}>
+                      {model === "auto" ? modelCopy.auto || "Auto" : model}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  style={{
+                    ...commonStyles.resetButton,
+                    padding: "6px 10px",
+                    width: "38px",
+                    height: "38px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  onClick={() => void onRefreshModels()}
+                  disabled={isRefreshingModels}
+                  title={modelCopy.refresh}
+                  aria-label={modelCopy.refresh}
+                  aria-busy={isRefreshingModels}
+                >
+                  <RefreshCw
+                    size={16}
+                    style={{
+                      color: "var(--tab-text, #162032)",
+                      animation: isRefreshingModels
+                        ? "spin 0.9s linear infinite"
+                        : undefined,
+                    }}
+                  />
+                </button>
+              </div>
             </div>
 
             <div style={commonStyles.settingsActions}>
@@ -235,11 +232,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               </button>
             </div>
           </div>
-          {hardwareSummary && (
+          {(hardwareSummary || lastModelUsed) && (
             <div style={commonStyles.settingsInfoRow}>
-              <span style={commonStyles.settingsHint}>
-                {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
-              </span>
+              {hardwareSummary && (
+                <span style={commonStyles.settingsHint}>
+                  {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
+                </span>
+              )}
+              {lastModelUsed && (
+                <span style={commonStyles.settingsHint}>
+                  {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
+                </span>
+              )}
             </div>
           )}
         </div>
