@@ -147,32 +147,30 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
           <div style={commonStyles.settingsBar}>
             <div style={commonStyles.settingsGroup}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label
-                  htmlFor="text-model-select"
-                  style={commonStyles.settingsLabel}
-                >
-                  {modelCopy.label || "Modelo Texto"}
-                </label>
-                <select
-                  id="text-model-select"
-                  value={textModelId}
-                  onChange={(event) => onTextModelChange(event.target.value)}
-                  style={{
-                    ...commonStyles.select,
-                    padding: "6px 10px",
-                    fontSize: "0.9em",
-                    minWidth: "170px",
-                    width: "auto",
-                  }}
-                >
-                  {modelOptions.map((model) => (
-                    <option key={model} value={model}>
-                      {model === "auto" ? modelCopy.auto || "Auto" : model}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <label
+                htmlFor="text-model-select"
+                style={commonStyles.settingsLabel}
+              >
+                {modelCopy.label || "Modelo Texto"}
+              </label>
+              <select
+                id="text-model-select"
+                value={textModelId}
+                onChange={(event) => onTextModelChange(event.target.value)}
+                style={{
+                  ...commonStyles.select,
+                  padding: "6px 10px",
+                  fontSize: "0.9em",
+                  minWidth: "170px",
+                  width: "auto",
+                }}
+              >
+                {modelOptions.map((model) => (
+                  <option key={model} value={model}>
+                    {model === "auto" ? modelCopy.auto || "Auto" : model}
+                  </option>
+                ))}
+              </select>
               {lastModelUsed && (
                 <span style={commonStyles.settingsHint}>
                   {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
