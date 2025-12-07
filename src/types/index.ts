@@ -119,10 +119,39 @@ export interface HealthCheckResponse {
   hardware: HardwareInfo;
 }
 
-export interface SystemCapabilities extends HardwareInfo {
-  can_use_tts: boolean;
-  can_use_stt: boolean;
-  can_use_image: boolean;
+export interface HardwareSpecs {
+  cpu_cores: number;
+  cpu_threads: number;
+  ram_gb: number;
+  gpu_model: string;
+  gpu_vram_gb: number;
+  storage_gb: number;
+  has_cuda: boolean;
+}
+
+export interface HardwareModelRecommendation {
+  id: string;
+  name: string;
+  reason: string;
+  min_ram_gb?: number;
+  min_vram_gb?: number;
+}
+
+export interface HardwareModeSupport {
+  id: AppMode;
+  enabled: boolean;
+  reason?: string;
+}
+
+export interface SystemCapabilities {
+  hardware: HardwareSpecs;
+  recommendations: {
+    text: HardwareModelRecommendation[];
+    image: HardwareModelRecommendation[];
+    tts: HardwareModelRecommendation[];
+    stt: HardwareModelRecommendation[];
+  };
+  mode_support: HardwareModeSupport[];
 }
 
 // ==========================================
@@ -162,6 +191,8 @@ export interface InteractionContextType {
   setSelectedModel: (model: string) => void;
   lastModelUsed: string | null;
   setLastModelUsed: (model: string | null) => void;
+  hardwareProfile: SystemCapabilities | null;
+  setHardwareProfile: (profile: SystemCapabilities | null) => void;
 
   // Media (for image/voice modes)
   selectedFile: File | null;

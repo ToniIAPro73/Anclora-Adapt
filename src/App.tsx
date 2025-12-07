@@ -13,6 +13,7 @@ import TTSMode from "@/components/modes/TTSMode";
 import LiveChatMode from "@/components/modes/LiveChatMode";
 import ImageEditMode from "@/components/modes/ImageEditMode";
 import MainLayout from "@/components/layout/MainLayout";
+import { apiService } from "@/services/api";
 import {
   callTextModel,
   listAvailableTextModels,
@@ -146,7 +147,11 @@ const App: React.FC = () => {
     imageUrl,
     setImageUrl,
     setLastModelUsed,
+    hardwareProfile,
+    setHardwareProfile,
   } = useInteraction();
+
+  const [isHardwareAdjusting, setIsHardwareAdjusting] = useState(false);
 
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isFetchingModels, setIsFetchingModels] = useState(false);
@@ -170,6 +175,29 @@ const App: React.FC = () => {
     [selectedModel, installedModels]
   );
 
+  const recommendedTextKeywords = useMemo(
+    () =>
+      hardwareProfile?.recommendations?.text?.map((rec) =>
+        rec.id.toLowerCase()
+      ) ?? [],
+    [hardwareProfile]
+  );
+
+  const hardwareModeAvailability = useMemo(() => {
+    if (!hardwareProfile?.mode_support) return null;
+    const record: Partial<
+      Record<AppMode, { enabled: boolean; reason?: string }>
+    > = {};
+    hardwareProfile.mode_support.forEach((entry) => {
+      const normalizedId = entry.id as AppMode;
+      record[normalizedId] = {
+        enabled: entry.enabled,
+        reason: entry.reason || undefined,
+      };
+    });
+    return record;
+  }, [hardwareProfile]);
+
   const tabs: { id: AppMode; label: string }[] = useMemo(
     () => [
       { id: "basic", label: copy.tabs.basic },
@@ -184,7 +212,19 @@ const App: React.FC = () => {
     [copy.tabs]
   );
 
-  const modelOptions = useMemo(
+  useEffect(() => {
+    if (!hardwareModeAvailability) return;
+    if (hardwareModeAvailability[activeMode]?.enabled === false) {
+      const fallback = tabs.find(
+        (tab) => hardwareModeAvailability[tab.id]?.enabled !== false
+      );
+      if (fallback) {
+        setActiveMode(fallback.id);
+      }
+    }
+  }, [hardwareModeAvailability, activeMode, tabs, setActiveMode]);
+
+  const rawModelOptions = useMemo(
     () =>
       Array.from(
         new Set(
@@ -198,6 +238,30 @@ const App: React.FC = () => {
       ),
     [availableModels, selectedModel]
   );
+
+  const filteredModelOptions = useMemo(() => {
+    if (!recommendedTextKeywords.length) {
+      return rawModelOptions;
+    }
+
+    const recommended = rawModelOptions.filter((model) =>
+      recommendedTextKeywords.some((keyword) =>
+        model?.toLowerCase().includes(keyword)
+      )
+    );
+
+    if (!recommended.length) {
+      return rawModelOptions;
+    }
+
+    const base = [
+      AUTO_TEXT_MODEL_ID,
+      selectedModel,
+      ...recommended,
+    ].filter(Boolean) as string[];
+
+    return Array.from(new Set(base));
+  }, [rawModelOptions, recommendedTextKeywords, selectedModel]);
 
   const availableModelPool = useMemo(
     () =>
@@ -217,6 +281,20 @@ const App: React.FC = () => {
       ),
     [availableModels, selectedModel]
   );
+
+  const constrainedModelPool = useMemo(() => {
+    if (!recommendedTextKeywords.length) {
+      return availableModelPool;
+    }
+
+    const matched = availableModelPool.filter((model) =>
+      recommendedTextKeywords.some((keyword) =>
+        model.toLowerCase().includes(keyword)
+      )
+    );
+
+    return matched.length ? matched : availableModelPool;
+  }, [availableModelPool, recommendedTextKeywords]);
 
   const refreshAvailableModels = useCallback(async () => {
     setIsFetchingModels(true);
@@ -291,11 +369,11 @@ const App: React.FC = () => {
 
   const getModelCandidates = useCallback(
     (context?: AutoModelContext) => {
-      if (!availableModelPool.length) {
+      if (!constrainedModelPool.length) {
         return [DEFAULT_TEXT_MODEL_ID];
       }
 
-      const scored = availableModelPool
+      const scored = constrainedModelPool
         .map((model) => ({
           model,
           score: scoreModelForContext(model, context),
@@ -315,7 +393,7 @@ const App: React.FC = () => {
 
       return scored.map((entry) => entry.model);
     },
-    [availableModelPool, scoreModelForContext, selectedModel]
+    [constrainedModelPool, scoreModelForContext, selectedModel]
   );
 
   const resolveTextModelId = useCallback(
@@ -325,6 +403,25 @@ const App: React.FC = () => {
     },
     [getModelCandidates]
   );
+
+  const handleHardwareAdjust = useCallback(async () => {
+    setIsHardwareAdjusting(true);
+    try {
+      const profile = await apiService.getCapabilities();
+      setHardwareProfile(profile);
+      setError(null);
+    } catch (error) {
+      const fallbackMessage =
+        language === "es"
+          ? "No se pudo detectar el hardware local."
+          : "Hardware detection failed.";
+      setError(
+        error instanceof Error ? error.message || fallbackMessage : fallbackMessage
+      );
+    } finally {
+      setIsHardwareAdjusting(false);
+    }
+  }, [language, setError, setHardwareProfile]);
 
   const handleGenerate = useCallback(
     async (prompt: string, context?: AutoModelContext) => {
@@ -544,12 +641,16 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
   return (
     <MainLayout
       tabs={tabs}
-      modelOptions={modelOptions}
       modelCopy={copy.modelSelector}
+      modelOptions={filteredModelOptions}
       textModelId={selectedModel}
       onTextModelChange={setSelectedModel}
       onRefreshModels={refreshAvailableModels}
       isRefreshingModels={isFetchingModels}
+      onHardwareAdjust={handleHardwareAdjust}
+      isHardwareAdjusting={isHardwareAdjusting}
+      hardwareProfile={hardwareProfile}
+      modeAvailability={hardwareModeAvailability}
       onTabChange={handleTabChange}
       onReset={handleReset}
       help={helpConfig}

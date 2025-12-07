@@ -18,6 +18,7 @@ import type {
   InteractionContextType,
   AppMode,
   GeneratedOutput,
+  SystemCapabilities,
 } from "@/types";
 import { DEFAULT_TEXT_MODEL_ID } from "@/config";
 
@@ -58,6 +59,8 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
     );
   });
   const [lastModelUsed, setLastModelUsed] = useState<string | null>(null);
+  const [hardwareProfile, setHardwareProfile] =
+    useState<SystemCapabilities | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -102,6 +105,8 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
     setSelectedModel: setSelectedModelState,
     lastModelUsed,
     setLastModelUsed,
+    hardwareProfile,
+    setHardwareProfile,
 
     // Media
     selectedFile,

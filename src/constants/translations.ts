@@ -158,6 +158,9 @@ export const translations: Record<InterfaceLanguage, {
       error: "No se pudo listar los modelos",
       reset: "Reiniciar pantalla (mantiene el modo actual)",
       lastUsed: "Modelo usado",
+      hardwareAdjust: "Ajuste hardware",
+      hardwareAdjusting: "Detectando...",
+      hardwareDetected: "Hardware detectado",
     },
     output: {
       loading: "La IA esta trabajando...",
@@ -309,6 +312,9 @@ export const translations: Record<InterfaceLanguage, {
       error: "Could not list the models",
       reset: "Reset screen (keeps current mode)",
       lastUsed: "Model used",
+      hardwareAdjust: "Hardware fit",
+      hardwareAdjusting: "Detecting...",
+      hardwareDetected: "Detected hardware",
     },
     output: {
       loading: "The AI is crafting your content...",

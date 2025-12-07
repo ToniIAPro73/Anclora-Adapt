@@ -11,6 +11,8 @@ from contextlib import asynccontextmanager
 from typing import Optional, Literal, List, Dict, Any
 from pathlib import Path
 
+from hardware_profiles import detect_hardware_profile
+
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.responses import Response, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -295,7 +297,7 @@ async def health_check():
 @app.get("/api/system/capabilities")
 async def get_capabilities():
     """Endpoint para el detector de hardware del frontend"""
-    return model_manager.get_hardware_info()
+    return detect_hardware_profile()
 
 @app.post("/api/tts")
 async def generate_tts(req: TTSRequest):
