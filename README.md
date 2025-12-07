@@ -119,7 +119,7 @@ Perfiles ejemplo:
 
    ```bash
    cd python-backend
-   python -m venv venv
+   C:\Users\Usuario\AppData\Local\Programs\Python\Python311\python.exe -m venv venv
    .\\venv\\Scripts\\Activate.ps1
    pip install -r requirements.txt
    # Descarga kokoro.onnx + voices.json en python-backend/models/
