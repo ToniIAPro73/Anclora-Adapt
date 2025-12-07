@@ -4,7 +4,7 @@ import commonStyles from "@/styles/commonStyles";
 import { useTheme } from "@/context/ThemeContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useInteraction } from "@/context/InteractionContext";
-import type { AppMode, ThemeMode } from "@/types";
+import type { AppMode, ThemeMode, SystemCapabilities } from "@/types";
 import { translations } from "@/constants/translations";
 
 interface TabItem {
@@ -20,6 +20,9 @@ interface ModelCopy {
   reset: string;
   auto?: string;
   lastUsed?: string;
+  hardwareAdjust?: string;
+  hardwareAdjusting?: string;
+  hardwareDetected?: string;
 }
 
 interface HelpConfig {
@@ -41,6 +44,10 @@ interface MainLayoutProps {
   onTextModelChange: (modelId: string) => void;
   onRefreshModels: () => Promise<void> | void;
   isRefreshingModels: boolean;
+  onHardwareAdjust: () => Promise<void> | void;
+  isHardwareAdjusting: boolean;
+  hardwareProfile?: SystemCapabilities | null;
+  modeAvailability?: Partial<Record<AppMode, { enabled: boolean; reason?: string }>>;
   onTabChange: (tabId: AppMode) => void;
   onReset: () => void;
   help: HelpConfig;
@@ -63,6 +70,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   onTextModelChange,
   onRefreshModels,
   isRefreshingModels,
+  onHardwareAdjust,
+  isHardwareAdjusting,
+  hardwareProfile,
+  modeAvailability,
   onTabChange,
   onReset,
   help,
@@ -73,7 +84,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   const { activeMode, lastModelUsed } = useInteraction();
   const localizedCopy = translations[language];
   const themeIcon = theme === "light" ? "☀️" : theme === "dark" ? "🌙" : "🖥️";
-
+  const hardwareSummary = hardwareProfile?.hardware
+    ? `${hardwareProfile.hardware.gpu_model} (${hardwareProfile.hardware.gpu_vram_gb} GB VRAM) · ${hardwareProfile.hardware.ram_gb} GB RAM`
+    : null;
 
   return (
     <div style={commonStyles.mainContainer}>
@@ -154,7 +167,22 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                 disabled={isRefreshingModels}
                 title={modelCopy.refresh}
               >
-                {isRefreshingModels ? "…" : "↻"}
+                {isRefreshingModels ? "." : "?"}
+              </button>
+              <button
+                type="button"
+                style={{
+                  ...commonStyles.resetButton,
+                  padding: "6px 12px",
+                  fontSize: "0.85rem",
+                }}
+                onClick={() => void onHardwareAdjust()}
+                disabled={isHardwareAdjusting}
+                title={modelCopy.hardwareAdjust}
+              >
+                {isHardwareAdjusting
+                  ? modelCopy.hardwareAdjusting
+                  : modelCopy.hardwareAdjust}
               </button>
             </div>
             {lastModelUsed && (
@@ -162,8 +190,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                 {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
               </span>
             )}
+            {hardwareSummary && (
+              <span style={commonStyles.settingsHint}>
+                {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
+              </span>
+            )}
           </div>
-
           <div style={{ ...commonStyles.settingsGroup, marginLeft: "auto" }}>
             <button
               type="button"
@@ -183,22 +215,41 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
       <main style={commonStyles.mainContent}>
         <nav style={commonStyles.tabNavigation} role="tablist">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={activeMode === tab.id}
-              aria-pressed={activeMode === tab.id}
-              style={{
-                ...commonStyles.tabButton,
-                ...(activeMode === tab.id ? commonStyles.tabButtonActive : {}),
-              }}
-              onClick={() => onTabChange(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {tabs.map((tab) => {
+            const modeInfo = modeAvailability?.[tab.id];
+            const disabled = modeInfo?.enabled === false;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeMode === tab.id}
+                aria-pressed={activeMode === tab.id}
+                style={{
+                  ...commonStyles.tabButton,
+                  ...(activeMode === tab.id ? commonStyles.tabButtonActive : {}),
+                  opacity: disabled ? 0.5 : 1,
+                  cursor: disabled ? "not-allowed" : "pointer",
+                }}
+                disabled={disabled}
+                title={
+                  disabled
+                    ? modeInfo?.reason ||
+                      (language === "es"
+                        ? "Requiere más recursos."
+                        : "Not available for this hardware.")
+                    : undefined
+                }
+                onClick={() => {
+                  if (!disabled) {
+                    onTabChange(tab.id);
+                  }
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </nav>
 
         <div style={commonStyles.modeScrollArea}>{children}</div>
