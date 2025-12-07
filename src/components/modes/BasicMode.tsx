@@ -194,10 +194,11 @@ const BasicMode: React.FC<BasicModeProps> = ({
               id="basic-idea"
               style={{
                 ...commonStyles.textarea,
-                minHeight: "110px",
-                maxHeight: "190px",
-                height: "clamp(120px, 17vh, 200px)",
+                minHeight: "95px",
+                maxHeight: "160px",
+                height: "clamp(105px, 14vh, 160px)",
                 resize: "none" as const,
+                lineHeight: 1.35,
               }}
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
@@ -307,8 +308,9 @@ const BasicMode: React.FC<BasicModeProps> = ({
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                gap: "12px",
+                gap: "10px",
                 flexWrap: "wrap",
+                paddingBottom: "4px",
               }}
             >
               <label
@@ -357,6 +359,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
             ...commonStyles.generateButton,
             marginTop: "auto",
             width: "100%",
+            minHeight: "48px",
           }}
           onClick={handleGenerate}
           disabled={isLoading}
