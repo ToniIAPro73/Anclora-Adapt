@@ -153,7 +153,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               >
                 {modelCopy.label || "Modelo Texto"}
               </label>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  flexWrap: "wrap",
+                }}
+              >
                 <select
                   id="text-model-select"
                   value={textModelId}
@@ -199,6 +206,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                     }}
                   />
                 </button>
+                {hardwareSummary && (
+                  <span style={commonStyles.settingsHint}>
+                    {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
+                  </span>
+                )}
+                {lastModelUsed && (
+                  <span style={commonStyles.settingsHint}>
+                    {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -232,20 +249,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               </button>
             </div>
           </div>
-          {(hardwareSummary || lastModelUsed) && (
-            <div style={commonStyles.settingsInfoRow}>
-              {hardwareSummary && (
-                <span style={commonStyles.settingsHint}>
-                  {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
-                </span>
-              )}
-              {lastModelUsed && (
-                <span style={commonStyles.settingsHint}>
-                  {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
-                </span>
-              )}
-            </div>
-          )}
         </div>
       </header>
 
