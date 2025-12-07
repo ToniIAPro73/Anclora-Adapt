@@ -227,6 +227,8 @@ const BasicMode: React.FC<BasicModeProps> = ({
           preferReasoning: speed === "detailed" && !literalTranslation,
           targetLanguage: language,
           allowedPlatforms: requestedPlatforms,
+          minChars: minCharLimit,
+          maxChars: maxCharLimit,
         }
       );
   };

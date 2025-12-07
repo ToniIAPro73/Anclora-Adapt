@@ -120,7 +120,7 @@ export const translations: Record<InterfaceLanguage, {
       buttonStart: string;
       buttonStop: string;
       transcriptLabel: string;
-      errors: { microphone: string; sttUnavailable: string; noSpeech?: string };
+      errors: { microphone: string; sttUnavailable: string; noSpeech: string };
     };
     image: {
       promptLabel: string;
