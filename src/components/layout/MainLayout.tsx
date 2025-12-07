@@ -5,6 +5,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useInteraction } from "@/context/InteractionContext";
 import type { AppMode, ThemeMode, SystemCapabilities } from "@/types";
+import { AUTO_TEXT_MODEL_ID } from "@/types";
 import { translations } from "@/constants/translations";
 
 interface TabItem {
@@ -146,23 +147,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           </div>
 
           {(hardwareSummary ||
-            (selectedModel === AUTO_TEXT_MODEL_ID && lastModelUsed)) && (
+            (textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed)) && (
             <div style={commonStyles.settingsInfoRow}>
               {hardwareSummary && (
                 <span style={commonStyles.settingsHint}>
                   {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
                 </span>
               )}
-              {(!hardwareSummary &&
-                selectedModel === AUTO_TEXT_MODEL_ID &&
-                lastModelUsed) ||
-              (hardwareSummary &&
-                selectedModel === AUTO_TEXT_MODEL_ID &&
-                lastModelUsed) ? (
+              {textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed && (
                 <span style={commonStyles.settingsHint}>
                   {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
                 </span>
-              ) : null}
+              )}
             </div>
           )}
 
@@ -170,7 +166,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             <div style={{ ...commonStyles.settingsGroup, flex: 1, minWidth: 0 }}>
               <label
                 htmlFor="text-model-select"
-                style={commonStyles.settingsLabel}
+                style={{ ...commonStyles.settingsLabel, flexShrink: 0 }}
               >
                 {modelCopy.label || "Modelo Texto"}
               </label>
@@ -179,7 +175,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                   display: "flex",
                   alignItems: "center",
                   gap: "6px",
-                  flexWrap: "nowrap",
+                  minWidth: 0,
                 }}
               >
                 <select
@@ -190,8 +186,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                     ...commonStyles.select,
                     padding: "6px 10px",
                     fontSize: "0.9em",
-                    minWidth: "170px",
-                    width: "auto",
+                    flex: 1,
+                    minWidth: "140px",
+                    maxWidth: "240px",
                   }}
                 >
                   {modelOptions.map((model) => (
@@ -210,6 +207,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    flexShrink: 0,
                   }}
                   onClick={() => void onRefreshModels()}
                   disabled={isRefreshingModels}
@@ -237,6 +235,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                   ...commonStyles.resetButton,
                   padding: "6px 12px",
                   fontSize: "0.85rem",
+                  flexShrink: 0,
                 }}
                 onClick={() => void onHardwareAdjust()}
                 disabled={isHardwareAdjusting}
@@ -248,7 +247,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               </button>
               <button
                 type="button"
-                style={{ ...commonStyles.resetButton, padding: "6px 12px" }}
+                style={{ ...commonStyles.resetButton, padding: "6px 12px", flexShrink: 0 }}
                 onClick={onReset}
                 title={modelCopy.reset}
                 aria-label={modelCopy.reset}
