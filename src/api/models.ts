@@ -27,6 +27,31 @@ const API_KEY = (
 
 export const DEFAULT_TEXT_MODEL_ID = TEXT_MODEL_ID;
 
+// Mapeador de IDs canónicos a nombres reales de Ollama
+// Los IDs canónicos vienen del backend (hardware_profiles.py), pero los nombres
+// reales de Ollama pueden ser diferentes (ej: qwen2.5-7b → qwen2.5:7b)
+const MODEL_ID_MAPPER: Record<string, string> = {
+  "qwen2.5-7b": "qwen2.5:7b",
+  "qwen2.5-14b": "qwen2.5:14b",
+  "mistral-7b": "mistral:latest",
+  "mistral": "mistral:latest",
+  "llama3.2": "llama3.2:latest",
+  "llama3": "llama3.2:latest",
+  "llama2": "llama2:latest",
+  "orca-mini": "orca-mini:latest",
+  "phi": "phi:latest",
+  "gemma": "gemma3:4b",
+};
+
+/**
+ * Mapea un ID canónico de modelo a su nombre real en Ollama
+ * Si el modelo no tiene mapeo, lo devuelve tal cual
+ */
+export const mapModelIdToOllamaName = (canonicalId: string): string => {
+  const normalized = canonicalId.toLowerCase().trim();
+  return MODEL_ID_MAPPER[normalized] || normalized;
+};
+
 const defaultTimeoutMs = 300_000;
 
 const withTimeout = async <T>(
@@ -71,12 +96,15 @@ export const callTextModel = async (
   );
 
   try {
+    // Mapear ID canónico a nombre real de Ollama
+    const ollamaModelName = mapModelIdToOllamaName(targetModelId);
+
     const response = await withTimeout(
       fetch(`${OLLAMA_BASE_URL}/api/generate`, {
         method: "POST",
         headers: jsonHeaders(),
         body: JSON.stringify({
-          model: targetModelId,
+          model: ollamaModelName,
           prompt,
           stream: false,
           temperature: 0.4,
