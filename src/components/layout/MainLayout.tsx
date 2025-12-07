@@ -145,8 +145,29 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             </button>
           </div>
 
+          {(hardwareSummary ||
+            (selectedModel === AUTO_TEXT_MODEL_ID && lastModelUsed)) && (
+            <div style={commonStyles.settingsInfoRow}>
+              {hardwareSummary && (
+                <span style={commonStyles.settingsHint}>
+                  {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
+                </span>
+              )}
+              {(!hardwareSummary &&
+                selectedModel === AUTO_TEXT_MODEL_ID &&
+                lastModelUsed) ||
+              (hardwareSummary &&
+                selectedModel === AUTO_TEXT_MODEL_ID &&
+                lastModelUsed) ? (
+                <span style={commonStyles.settingsHint}>
+                  {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
+                </span>
+              ) : null}
+            </div>
+          )}
+
           <div style={commonStyles.settingsBar}>
-            <div style={commonStyles.settingsGroup}>
+            <div style={{ ...commonStyles.settingsGroup, flex: 1, minWidth: 0 }}>
               <label
                 htmlFor="text-model-select"
                 style={commonStyles.settingsLabel}
@@ -206,20 +227,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                     }}
                   />
                 </button>
-                {hardwareSummary && (
-                  <span style={commonStyles.settingsHint}>
-                    {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
-                  </span>
-                )}
-                {selectedModel === AUTO_TEXT_MODEL_ID && lastModelUsed && (
-                  <span style={commonStyles.settingsHint}>
-                    {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
-                  </span>
-                )}
               </div>
             </div>
 
-            <div style={commonStyles.settingsActions}>
+            <div style={{ ...commonStyles.settingsActions, flexShrink: 0 }}>
               <button
                 type="button"
                 style={{
