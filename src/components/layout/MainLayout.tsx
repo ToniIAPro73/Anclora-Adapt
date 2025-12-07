@@ -146,50 +146,35 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           </div>
 
           <div style={commonStyles.settingsBar}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-              <label
-                htmlFor="text-model-select"
-                style={{ ...commonStyles.settingsLabel, marginRight: "4px" }}
-              >
-                {modelCopy.label || "Modelo Texto"}
-              </label>
-              <select
-                id="text-model-select"
-                value={textModelId}
-                onChange={(event) => onTextModelChange(event.target.value)}
-                style={{
-                  ...commonStyles.select,
-                  padding: "6px 10px",
-                  fontSize: "0.9em",
-                  minWidth: "150px",
-                  width: "auto",
-                }}
-              >
-                {modelOptions.map((model) => (
-                  <option key={model} value={model}>
-                    {model === "auto" ? modelCopy.auto || "Auto" : model}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                flexWrap: "wrap",
-                justifyContent: "flex-end",
-                marginLeft: "auto",
-              }}
-            >
-              {hardwareSummary && (
-                <span style={{ ...commonStyles.settingsHint, marginRight: "4px" }}>
-                  {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
-                </span>
-              )}
+            <div style={commonStyles.settingsGroup}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <label
+                  htmlFor="text-model-select"
+                  style={commonStyles.settingsLabel}
+                >
+                  {modelCopy.label || "Modelo Texto"}
+                </label>
+                <select
+                  id="text-model-select"
+                  value={textModelId}
+                  onChange={(event) => onTextModelChange(event.target.value)}
+                  style={{
+                    ...commonStyles.select,
+                    padding: "6px 10px",
+                    fontSize: "0.9em",
+                    minWidth: "170px",
+                    width: "auto",
+                  }}
+                >
+                  {modelOptions.map((model) => (
+                    <option key={model} value={model}>
+                      {model === "auto" ? modelCopy.auto || "Auto" : model}
+                    </option>
+                  ))}
+                </select>
+              </div>
               {lastModelUsed && (
-                <span style={{ ...commonStyles.settingsHint, marginRight: "4px" }}>
+                <span style={commonStyles.settingsHint}>
                   {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
                 </span>
               )}
@@ -220,6 +205,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                   }}
                 />
               </button>
+            </div>
+
+            <div style={commonStyles.settingsActions}>
               <button
                 type="button"
                 style={{
@@ -249,6 +237,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               </button>
             </div>
           </div>
+          {hardwareSummary && (
+            <div style={commonStyles.settingsInfoRow}>
+              <span style={commonStyles.settingsHint}>
+                {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
+              </span>
+            </div>
+          )}
         </div>
       </header>
 

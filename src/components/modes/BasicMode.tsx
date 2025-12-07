@@ -315,7 +315,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "12px",
+            gap: "10px",
             flex: 1,
             minHeight: 0,
           }}
@@ -331,9 +331,9 @@ const BasicMode: React.FC<BasicModeProps> = ({
               id="basic-idea"
               style={{
                 ...commonStyles.textarea,
-                minHeight: "80px",
-                maxHeight: "135px",
-                height: "clamp(85px, 12vh, 135px)",
+                minHeight: "75px",
+                maxHeight: "130px",
+                height: "clamp(80px, 11vh, 130px)",
                 resize: "none" as const,
                 lineHeight: 1.35,
               }}
@@ -346,17 +346,16 @@ const BasicMode: React.FC<BasicModeProps> = ({
             </div>
           </div>
 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-                flex: 1,
-                minHeight: 0,
-                paddingBottom: "4px",
-                marginBottom: "6px",
-              }}
-            >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+              flex: 1,
+              minHeight: 0,
+              paddingBottom: "10px",
+            }}
+          >
             <div
               style={{
                 display: "grid",
@@ -444,11 +443,10 @@ const BasicMode: React.FC<BasicModeProps> = ({
 
             <div
               style={{
-                display: "flex",
-                justifyContent: "space-between",
+                display: "grid",
+                gridTemplateColumns: "minmax(180px, 1fr) auto",
                 alignItems: "center",
                 gap: "10px",
-                flexWrap: "wrap",
                 paddingBottom: "6px",
                 width: "100%",
                 marginBottom: "4px",
@@ -478,6 +476,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
                   fontSize: "0.85em",
                   fontWeight: 600,
                   flexShrink: 0,
+                  whiteSpace: "nowrap",
                 }}
               >
                 <span>{copy.maxCharsLabel || "Max"}</span>
