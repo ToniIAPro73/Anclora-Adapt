@@ -515,31 +515,81 @@ const App: React.FC = () => {
 
   const getModelCandidates = useCallback(
     (context?: AutoModelContext) => {
-      if (!constrainedModelPool.length) {
+      // Estrategia de selección:
+      // 1. Si se ha ajustado hardware (hardwareProfile existe), priorizar recomendaciones del backend
+      // 2. Luego complementar con scoring inteligente basado en contexto
+      // 3. Si no hay ajuste hardware, usar availableModelPool en modo AUTO
+
+      let basePool: string[] = [];
+
+      if (hardwareProfile) {
+        // CASO 1: Se ha pulsado "Ajustar Hardware"
+        // Usar las recomendaciones del backend como base, ordenadas por contexto
+        const backendRecs = hardwareProfile.recommendations?.text?.map((rec) =>
+          rec.id.toLowerCase()
+        ) ?? [];
+
+        if (backendRecs.length > 0) {
+          // Scoring de contexto sobre modelos recomendados por hardware
+          const scored = backendRecs
+            .map((model) => ({
+              model,
+              score: scoreModelForContext(model, context),
+            }))
+            .sort((a, b) => b.score - a.score || a.model.localeCompare(b.model));
+
+          basePool = scored.map((entry) => entry.model);
+        }
+      }
+
+      // CASO 2: No hay ajuste hardware, o no hay recomendaciones backend
+      if (basePool.length === 0) {
+        if (selectedModel === AUTO_TEXT_MODEL_ID) {
+          // Modo AUTO puro: usar todos los modelos disponibles
+          basePool = availableModelPool;
+        } else {
+          // Modelo seleccionado manualmente: usar recomendaciones del backend si existen
+          basePool =
+            constrainedModelPool.length > 0
+              ? constrainedModelPool
+              : availableModelPool;
+        }
+      }
+
+      if (!basePool.length) {
         return [DEFAULT_TEXT_MODEL_ID];
       }
 
-      const scored = constrainedModelPool
-        .map((model) => ({
-          model,
-          score: scoreModelForContext(model, context),
-        }))
-        .sort((a, b) => b.score - a.score || a.model.localeCompare(b.model));
+      // Aplicar scoring de contexto si aún no lo hemos hecho (modo AUTO sin hardware)
+      if (!hardwareProfile || hardwareProfile.recommendations?.text?.length === 0) {
+        const scored = basePool
+          .map((model) => ({
+            model,
+            score: scoreModelForContext(model, context),
+          }))
+          .sort((a, b) => b.score - a.score || a.model.localeCompare(b.model));
 
-      if (selectedModel && selectedModel !== AUTO_TEXT_MODEL_ID) {
-        const manualFirst = scored.find((entry) => entry.model === selectedModel);
-        const remaining = scored.filter(
-          (entry) => entry.model !== selectedModel
-        );
-        return [
-          manualFirst?.model || selectedModel,
-          ...remaining.map((entry) => entry.model),
-        ];
+        basePool = scored.map((entry) => entry.model);
       }
 
-      return scored.map((entry) => entry.model);
+      // Si el usuario seleccionó un modelo específico (no AUTO), ponerlo primero
+      if (selectedModel && selectedModel !== AUTO_TEXT_MODEL_ID) {
+        const manualFirst = basePool.find((model) => model === selectedModel);
+        const remaining = basePool.filter((model) => model !== selectedModel);
+        return manualFirst
+          ? [manualFirst, ...remaining]
+          : [selectedModel, ...remaining];
+      }
+
+      return basePool;
     },
-    [constrainedModelPool, scoreModelForContext, selectedModel]
+    [
+      availableModelPool,
+      constrainedModelPool,
+      hardwareProfile,
+      scoreModelForContext,
+      selectedModel,
+    ]
   );
 
   const resolveTextModelId = useCallback(
