@@ -354,6 +354,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
                 flex: 1,
                 minHeight: 0,
                 paddingBottom: "4px",
+                marginBottom: "6px",
               }}
             >
             <div
@@ -450,6 +451,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
                 flexWrap: "wrap",
                 paddingBottom: "6px",
                 width: "100%",
+                marginBottom: "4px",
               }}
             >
               <label
