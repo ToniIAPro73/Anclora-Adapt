@@ -103,8 +103,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "6px",
+            gap: "4px",
             flex: 1,
+            minWidth: 0,
           }}
         >
           <div
@@ -146,23 +147,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             </button>
           </div>
 
-          {(hardwareSummary ||
-            (textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed)) && (
-            <div style={commonStyles.settingsInfoRow}>
-              {hardwareSummary && (
-                <span style={commonStyles.settingsHint}>
-                  {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
-                </span>
-              )}
-              {textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed && (
-                <span style={commonStyles.settingsHint}>
-                  {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
-                </span>
-              )}
-            </div>
-          )}
-
-          <div style={commonStyles.settingsBar}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              width: "100%",
+              minWidth: 0,
+              flexWrap: "nowrap",
+            }}
+          >
             <div style={{ ...commonStyles.settingsGroup, flex: 1, minWidth: 0 }}>
               <label
                 htmlFor="text-model-select"
@@ -258,6 +252,41 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                 </span>
               </button>
             </div>
+
+            {(hardwareSummary ||
+              (textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed)) && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginLeft: "8px",
+                  minWidth: 0,
+                  paddingLeft: "8px",
+                  borderLeft: "1px solid var(--panel-border, #1e293b)",
+                  fontSize: "0.8rem",
+                  color: "var(--texto-muted, #475467)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  flex: "0 1 auto",
+                }}
+              >
+                {hardwareSummary && (
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {(modelCopy.hardwareDetected || "Hardware detectado")}: {hardwareSummary}
+                  </span>
+                )}
+                {hardwareSummary && textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed && (
+                  <span style={{ whiteSpace: "nowrap" }}>·</span>
+                )}
+                {textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed && (
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {(modelCopy.lastUsed || "Modelo usado")}: {lastModelUsed}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </header>
