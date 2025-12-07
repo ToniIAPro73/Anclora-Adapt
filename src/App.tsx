@@ -417,47 +417,95 @@ const App: React.FC = () => {
       const normalized = modelId.toLowerCase();
       let score = 0;
 
+      // ========== SOPORTE DE IDIOMA ==========
       if (context?.targetLanguage && context.targetLanguage !== "detect") {
         const supported = inferLanguagesForModel(modelId);
         if (supported.includes(context.targetLanguage)) {
-          score += 5;
+          score += 10; // Muy importante que soporte el idioma
         } else {
-          score -= 2;
+          score -= 5; // Penalizar fuertemente si no soporta
         }
 
+        // Bonus por modelos especialmente buenos en idiomas específicos
         if (["ja", "zh", "ko"].includes(context.targetLanguage)) {
-          if (/qwen|yi|deepseek/.test(normalized)) score += 5;
-          if (/mistral|gemma/.test(normalized)) score += 2;
+          if (/qwen|yi|deepseek/.test(normalized)) score += 8;
+          if (/mistral|gemma/.test(normalized)) score += 3;
+          if (/llama/.test(normalized)) score -= 2;
         }
 
         if (["es", "pt", "fr", "it"].includes(context.targetLanguage)) {
-          if (/mistral|qwen|llama3/.test(normalized)) score += 3;
+          if (/qwen/.test(normalized)) score += 5;
+          if (/mistral/.test(normalized)) score += 4;
+          if (/llama3/.test(normalized)) score += 2;
         }
 
         if (context.targetLanguage === "ru") {
-          if (/qwen|mistral|llama3/.test(normalized)) score += 3;
+          if (/qwen|mistral/.test(normalized)) score += 5;
+          if (/llama3/.test(normalized)) score += 2;
+          if (/llama2/.test(normalized)) score -= 2;
         }
       }
 
+      // ========== MODO TRADUCCIÓN LITERAL ==========
+      if (context?.isLiteralTranslation) {
+        // La traducción requiere precisión lingüística
+        if (/qwen|mistral|llama3/.test(normalized)) {
+          score += 6;
+        }
+        if (/llama2/.test(normalized)) {
+          score -= 3;
+        }
+      }
+
+      // ========== NÚMERO DE PLATAFORMAS ==========
+      if (context?.numberOfPlatforms && context.numberOfPlatforms > 1) {
+        // Múltiples plataformas requieren mejor control del output
+        // Qwen y Mistral son mejores para generar múltiples outputs
+        if (/qwen/.test(normalized)) score += 4;
+        if (/mistral/.test(normalized)) score += 3;
+        if (/llama2/.test(normalized)) score -= 2;
+      }
+
+      // ========== VELOCIDAD Y RAZONAMIENTO ==========
       if (context?.preferChat || context?.preferSpeed) {
-        if (/phi|mini|chat|orca|gemma/.test(normalized)) score += 2;
+        if (/phi|mini|chat|orca|gemma/.test(normalized)) score += 3;
       }
 
       if (context?.preferReasoning) {
-        if (/qwen|mistral|llama3/.test(normalized)) score += 2;
+        if (/qwen|mistral|llama3/.test(normalized)) score += 4;
       }
 
-      // Priorizar modelos multilingües de mejor calidad
-      if (/mistral/.test(normalized)) {
-        score += 3;
-      } else if (/qwen/.test(normalized)) {
-        score += 3;
+      // ========== CONTENIDO EXTENSO ==========
+      if (context?.minChars && context.minChars > 500) {
+        // Contenido extenso requiere modelos capaces
+        if (/qwen/.test(normalized)) {
+          score += 7; // Qwen es excelente para contenido largo
+        } else if (/mistral/.test(normalized)) {
+          score += 6; // Mistral también muy bueno
+        } else if (/llama3/.test(normalized)) {
+          score += 2;
+        }
+        // Llama2 es débil para contenido extenso
+        if (/llama2/.test(normalized)) {
+          score -= 5;
+        }
+      } else if (context?.maxChars && context.maxChars > 0) {
+        // Si hay límite máximo pero sin mínimo específico
+        if (/mistral|qwen/.test(normalized)) score += 2;
+      }
+
+      // ========== MODELO POR DEFECTO Y CALIDAD GENERAL ==========
+      // Base de puntuación por calidad general
+      if (/qwen/.test(normalized)) {
+        score += 4; // Mejor modelo multilingüe
+      } else if (/mistral/.test(normalized)) {
+        score += 3; // Muy bueno para múltiples idiomas
       } else if (/llama3/.test(normalized)) {
-        score += 1;
+        score += 1; // Aceptable
       }
 
       if (/llama2/.test(normalized)) {
-        score -= 2;
+        score -= 3; // Menos bueno en comparativa
       }
 
       return score;

@@ -41,6 +41,9 @@ export type AutoModelContext = {
   allowedPlatforms?: string[];
   minChars?: number | null;
   maxChars?: number | null;
+  isLiteralTranslation?: boolean;
+  numberOfPlatforms?: number;
+  tone?: string;
 };
 
 export const AUTO_TEXT_MODEL_ID = "auto";
