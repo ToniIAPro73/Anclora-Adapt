@@ -110,7 +110,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             style={{
               ...commonStyles.headerActions,
               justifyContent: "flex-end",
-              flexWrap: "wrap",
+              flexWrap: "nowrap",
             }}
           >
             <button
@@ -158,7 +158,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                   display: "flex",
                   alignItems: "center",
                   gap: "6px",
-                  flexWrap: "wrap",
+                  flexWrap: "nowrap",
                 }}
               >
                 <select
