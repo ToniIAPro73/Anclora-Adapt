@@ -178,7 +178,7 @@ def _recommend_modes(ram_gb: float, vram_gb: float, has_cuda: bool) -> List[Dict
         },
         "image": {
             "enabled": vram_gb >= 4 or ram_gb >= 16,
-            "reason": "Se recomienda GPU >= 4 GB VRAM o >= 16 GB RAM para imagen.",
+            "reason": None,  # Sin reason si está habilitado
         },
     }
 
