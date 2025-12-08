@@ -215,7 +215,10 @@ const BasicMode: React.FC<BasicModeProps> = ({
         requestedPlatforms.length > 0
           ? requestedPlatforms.join(", ")
           : "Sin plataformas";
-      prompt = `Eres un estratega de contenidos. Genera una lista JSON bajo la clave "outputs" siguiendo este ejemplo dinámico: ${outputExample}. Idea: """${payloadIdea}""". Idioma solicitado: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas seleccionadas: ${list}. Devuelve exactamente una entrada por cada plataforma listada y no incluyas plataformas adicionales. Nivel de detalle: ${speedDisplay}.${limitSuffix}`;
+      const platformConstraint = requestedPlatforms.length === 1
+        ? `RESTRICCIÓN CRÍTICA: Genera contenido SOLO para la plataforma "${requestedPlatforms[0]}" y ninguna otra. Tu respuesta debe contener EXACTAMENTE 1 entrada en el array "outputs" con platform: "${requestedPlatforms[0]}". NO generes para otras plataformas.`
+        : `RESTRICCIÓN CRÍTICA: Genera contenido SOLO para estas plataformas exactas: ${list}. Tu respuesta debe contener EXACTAMENTE ${requestedPlatforms.length} entradas en el array "outputs", una por cada plataforma listada. NO incluyas plataformas adicionales.`;
+      prompt = `Eres un estratega de contenidos experto. Genera una lista JSON bajo la clave "outputs" siguiendo este ejemplo dinámico: ${outputExample}. Idea: """${payloadIdea}""". Idioma solicitado: ${languageDisplay}. Tono: ${toneDisplay}. Plataformas seleccionadas: ${list}. ${platformConstraint} Nivel de detalle: ${speedDisplay}.${limitSuffix} RECUERDA: Responde SOLO con el JSON, sin explicaciones adicionales.`;
     }
       await onGenerate(
         prompt,
