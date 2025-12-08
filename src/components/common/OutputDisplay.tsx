@@ -90,6 +90,8 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
   audioUrl,
   imageUrl,
   copy,
+  generatedJSON,
+  onDownloadJSON,
 }) => {
   return (
     <section style={commonStyles.outputSection}>
