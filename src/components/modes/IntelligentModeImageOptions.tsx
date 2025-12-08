@@ -25,6 +25,7 @@ const IntelligentModeImageOptions: React.FC<
   imagePromptPlaceholder,
 }) => {
   const imgRef = useRef<HTMLImageElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Force image to load from blob URL
   useEffect(() => {
@@ -79,13 +80,27 @@ const IntelligentModeImageOptions: React.FC<
               type="file"
               onChange={onFileChange}
               accept="image/*"
+              ref={fileInputRef}
               style={{
-                fontSize: "0.75em",
-                width: "100%",
-                maxWidth: "100%",
-                color: "transparent",
+                display: "none",
               }}
+              id="file-input"
             />
+            <label
+              htmlFor="file-input"
+              style={{
+                display: "inline-block",
+                padding: "6px 12px",
+                backgroundColor: "var(--panel-bg, #1a1a2e)",
+                border: "1px solid var(--panel-border, #444)",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "0.85em",
+                width: "fit-content",
+              }}
+            >
+              Seleccionar archivo
+            </label>
             {imagePreview && imageFile && (
               <div
                 style={{
