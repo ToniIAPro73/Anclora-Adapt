@@ -87,9 +87,6 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          flex: includeImage ? "0 0 auto" : "0 0 135px",
-          height: includeImage ? "140px" : "100%",
-          minHeight: "100px",
           marginBottom: "8px",
           flexShrink: 0,
         }}
@@ -104,7 +101,11 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           Idea
         </label>
         <textarea
-          style={{ ...commonStyles.textarea, height: "100%", resize: "none" }}
+          style={{
+            ...commonStyles.textarea,
+            height: includeImage ? "140px" : "120px",
+            resize: "none",
+          }}
           value={idea}
           onChange={(e) => onIdeaChange(e.target.value)}
           placeholder="Describe tu idea o tarea..."
@@ -119,9 +120,6 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          flex: includeImage ? "0 0 auto" : "0 0 105px",
-          height: includeImage ? "100px" : "100%",
-          minHeight: "80px",
           marginBottom: "8px",
           flexShrink: 0,
         }}
@@ -136,7 +134,11 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           Contexto
         </label>
         <textarea
-          style={{ ...commonStyles.textarea, height: "100%", resize: "none" }}
+          style={{
+            ...commonStyles.textarea,
+            height: includeImage ? "100px" : "100px",
+            resize: "none",
+          }}
           value={context}
           onChange={(e) => onContextChange(e.target.value)}
           placeholder="Añade contexto relevante..."
