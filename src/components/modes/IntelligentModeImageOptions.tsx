@@ -75,32 +75,55 @@ const IntelligentModeImageOptions: React.FC<
                 maxWidth: "100%",
               }}
             />
-            {imagePreview && (
+            {imagePreview && imageFile && (
               <div
                 style={{
                   display: "flex",
-                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: "8px",
                   paddingBottom: "6px",
-                  width: "100%",
+                  padding: "6px 8px",
+                  backgroundColor: "var(--panel-border, #333)",
+                  borderRadius: "6px",
+                  width: "fit-content",
                 }}
               >
                 <img
                   src={imagePreview}
-                  alt="selected image preview"
+                  alt="preview"
                   style={{
-                    maxWidth: "80px",
-                    maxHeight: "80px",
-                    width: "auto",
-                    height: "auto",
-                    objectFit: "contain",
-                    borderRadius: "6px",
-                    border: "1px solid var(--panel-border, #646464)",
-                    display: "block",
-                  }}
-                  onError={(e) => {
-                    console.error("Image failed to load:", e);
+                    width: "40px",
+                    height: "40px",
+                    objectFit: "cover",
+                    borderRadius: "4px",
                   }}
                 />
+                <div style={{ fontSize: "0.85em", flex: 1, minWidth: "100px" }}>
+                  <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {imageFile.name}
+                  </div>
+                  <div style={{ fontSize: "0.75em", opacity: 0.7 }}>
+                    {(imageFile.size / 1024).toFixed(1)} KB
+                  </div>
+                </div>
+                <button
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "inherit",
+                    cursor: "pointer",
+                    fontSize: "1.2em",
+                    padding: "0",
+                    opacity: 0.7,
+                  }}
+                  onClick={() => {
+                    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+                    if (input) input.value = "";
+                  }}
+                  title="Eliminar imagen"
+                >
+                  ×
+                </button>
               </div>
             )}
           </div>
