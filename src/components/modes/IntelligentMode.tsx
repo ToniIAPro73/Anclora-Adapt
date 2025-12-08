@@ -101,6 +101,8 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
     handleFileChange,
     generatedJSON,
     setGeneratedJSON,
+    executedPrompt,
+    setExecutedPrompt,
   } = useIntelligentModeState(interfaceLanguage, languageOptions);
 
   const downloadJSON = () => {
@@ -112,6 +114,21 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
     const link = document.createElement("a");
     link.href = url;
     link.download = "inteligente.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadPromptMarkdown = () => {
+    if (!executedPrompt) return;
+
+    const markdown = `# Prompt Ejecutado\n\n\`\`\`\n${executedPrompt}\n\`\`\``;
+    const dataBlob = new Blob([markdown], { type: "text/markdown" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "prompt.md";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -138,6 +155,9 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
       const prompt = `Rol: Estratega. Tarea: "${idea}". Contexto: "${
         context || "General"
       }". Idioma: ${languageDisplay}. ${thinking} Salida JSON: ${structuredOutputExample}`;
+
+      // Save the executed prompt for download
+      setExecutedPrompt(prompt);
 
       await onGenerate(prompt, {
         mode: "intelligent",
@@ -242,6 +262,8 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
             copy={outputCopy}
             generatedJSON={generatedJSON}
             onDownloadJSON={downloadJSON}
+            executedPrompt={executedPrompt}
+            onDownloadPrompt={downloadPromptMarkdown}
           />
         </div>
       </div>

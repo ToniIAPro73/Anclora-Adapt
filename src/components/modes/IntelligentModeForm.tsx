@@ -87,7 +87,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          marginBottom: "8px",
+          marginBottom: "4px",
           flexShrink: 0,
         }}
       >
@@ -95,7 +95,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           style={{
             ...commonStyles.label,
             fontSize: "0.8em",
-            marginBottom: "2px",
+            marginBottom: "1px",
           }}
         >
           Idea
@@ -120,7 +120,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          marginBottom: "8px",
+          marginBottom: "4px",
           flexShrink: 0,
         }}
       >
@@ -128,7 +128,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           style={{
             ...commonStyles.label,
             fontSize: "0.8em",
-            marginBottom: "2px",
+            marginBottom: "1px",
           }}
         >
           Contexto
@@ -150,7 +150,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
+          gap: "6px",
           flexShrink: 0,
           marginTop: "auto",
           paddingBottom: "2px",
