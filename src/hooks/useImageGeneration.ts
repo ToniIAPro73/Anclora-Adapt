@@ -11,7 +11,7 @@
  * FASE 1.3 - Custom Hooks
  */
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { apiService } from "@/services/api";
 import { downloadImage, generateImageFilename } from "@/services/image";
 
@@ -330,7 +330,7 @@ export const useImageGeneration = (
   }, [cancel, imageUrl]);
 
   // Cleanup en desmontaje
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       cleanup();
     };

@@ -45,7 +45,20 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
-    sourcemap: true,
+    sourcemap: false, // Disable sourcemaps in production for smaller bundle
+    // Optimize chunk sizes and splitting for better caching
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor libraries in separate chunk
+          vendor: ["react", "react-dom"],
+          // Third-party utilities
+          utils: ["lucide-react"],
+        },
+      },
+    },
+    // Reduce chunk size threshold for better code splitting
+    chunkSizeWarningLimit: 500,
   },
   preview: {
     headers: securityHeaders,
@@ -54,5 +67,9 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./src/setupTests.ts",
     globals: true,
+  },
+  // Optimize dependencies
+  optimizeDeps: {
+    include: ["react", "react-dom", "lucide-react"],
   },
 });

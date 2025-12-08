@@ -11,7 +11,7 @@
  * FASE 1.3 - Custom Hooks
  */
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { apiService } from "@/services/api";
 import { AudioRecorder } from "@/services/audio";
 import type { STTResponse } from "@/types";
@@ -374,7 +374,7 @@ export const useSTT = (options: UseSTTOptions = {}): UseSTTReturn => {
   }, [cancel]);
 
   // Cleanup en desmontaje
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       cleanup();
     };

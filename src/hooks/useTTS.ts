@@ -10,7 +10,7 @@
  * FASE 1.3 - Custom Hooks
  */
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { apiService } from "@/services/api";
 import { AudioPlayer, downloadAudio } from "@/services/audio";
 
@@ -325,7 +325,7 @@ export const useTTS = (options: UseTTSOptions = {}): UseTTSReturn => {
   }, [stop]);
 
   // Cleanup en desmontaje
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       cleanup();
     };

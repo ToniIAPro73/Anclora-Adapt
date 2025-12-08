@@ -1,5 +1,3 @@
-import type React from "react";
-
 /**
  * src/types/index.ts
  *
@@ -59,13 +57,11 @@ export interface TTSRequest {
   voice_preset?: string;
 }
 
-export interface TTSResponse {
-  /**
-   * Audio blob response from /api/tts
-   * Returns audio/wav stream directly
-   */
-  // The response is a Blob, not JSON
-}
+/**
+ * Audio blob response from /api/tts
+ * Returns audio/wav stream directly as a Blob
+ */
+export type TTSResponse = Blob;
 
 export interface STTRequest {
   file: Blob;
@@ -85,13 +81,11 @@ export interface ImageRequest {
   num_inference_steps?: number;
 }
 
-export interface ImageResponse {
-  /**
-   * Image blob response from /api/image
-   * Returns image/png stream directly
-   */
-  // The response is a Blob, not JSON
-}
+/**
+ * Image blob response from /api/image
+ * Returns image/png stream directly as a Blob
+ */
+export type ImageResponse = Blob;
 
 export interface ImageGenerationOptions {
   prompt: string;

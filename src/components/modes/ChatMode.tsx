@@ -61,7 +61,7 @@ const ChatMode: React.FC<ChatModeProps> = ({
       const reply = raw.trim();
       const assistantMessage: ChatMessage = { role: "assistant", text: reply };
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
+    } catch {
       const errorMessage: ChatMessage = {
         role: "assistant",
         text: "Hubo un error al consultar el modelo.",

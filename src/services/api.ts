@@ -58,7 +58,7 @@ const withTimeout = async <T,>(
 /**
  * Convierte un File a base64
  */
-const fileToBase64 = (file: File): Promise<string> =>
+const _fileToBase64 = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
