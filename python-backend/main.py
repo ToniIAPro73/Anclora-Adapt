@@ -41,6 +41,12 @@ except ImportError:
     print("⚠️ Advertencia: Image Analyzer no disponible (faltan dependencias CLIP/Ollama).")
     image_analyzer_router = None
 
+try:
+    from app.routes.prompt_optimization import router as prompt_optimizer_router
+except ImportError:
+    print("⚠️ Advertencia: Prompt Optimizer no disponible (faltan dependencias Ollama/Pydantic).")
+    prompt_optimizer_router = None
+
 # --- Configuración de Logging ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -267,6 +273,11 @@ app.add_middleware(
 if image_analyzer_router:
     app.include_router(image_analyzer_router)
     logger.info("✓ Image Analyzer router registrado")
+
+# Registrar router del Prompt Optimizer si está disponible
+if prompt_optimizer_router:
+    app.include_router(prompt_optimizer_router)
+    logger.info("✓ Prompt Optimizer router registrado")
 
 # --- Modelos de Datos (Pydantic) ---
 class TTSRequest(BaseModel):

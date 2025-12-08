@@ -16,6 +16,8 @@ interface IntelligentModeFormProps {
   deepThinking: boolean;
   onDeepThinkingChange: (value: boolean) => void;
   deepThinkingLabel: string;
+  improvePrompt: boolean;
+  onImprovePromptChange: (value: boolean) => void;
   includeImage: boolean;
   onIncludeImageChange: (value: boolean) => void;
   imagePrompt: string;
@@ -40,6 +42,8 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
   deepThinking,
   onDeepThinkingChange,
   deepThinkingLabel,
+  improvePrompt,
+  onImprovePromptChange,
   includeImage,
   onIncludeImageChange,
   imagePrompt,
@@ -210,7 +214,6 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
               fontSize: "0.85em",
               cursor: "pointer",
               whiteSpace: "nowrap",
-              marginLeft: "auto",
             }}
           >
             <input
@@ -219,6 +222,24 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
               onChange={(e) => onDeepThinkingChange(e.target.checked)}
             />{" "}
             {deepThinkingLabel}
+          </label>
+
+          {/* Improve Prompt Checkbox */}
+          <label
+            style={{
+              ...commonStyles.checkboxLabel,
+              fontSize: "0.85em",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              marginLeft: "auto",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={improvePrompt}
+              onChange={(e) => onImprovePromptChange(e.target.checked)}
+            />{" "}
+            Mejorar prompt
           </label>
         </div>
 
