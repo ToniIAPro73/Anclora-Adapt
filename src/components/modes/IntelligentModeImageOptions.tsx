@@ -19,6 +19,7 @@ const IntelligentModeImageOptions: React.FC<
   onIncludeImageChange,
   imagePrompt,
   onImagePromptChange,
+  imageFile,
   imagePreview,
   onFileChange,
   imagePromptPlaceholder,
