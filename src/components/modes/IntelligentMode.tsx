@@ -250,6 +250,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
             body: JSON.stringify({
               prompt: rawPrompt,
               deep_thinking: deepThinking,
+              language: language,
               // No especificamos modelo - el backend usa el mejor disponible (mistral > qwen2.5:14b)
             }),
           });

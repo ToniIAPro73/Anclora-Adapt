@@ -19,6 +19,7 @@ class PromptOptimizeRequest(BaseModel):
     prompt: str
     deep_thinking: bool = False
     model: str | None = None  # Si es None, el backend usa el mejor modelo disponible
+    language: str | None = None  # Idioma del prompt de salida (es, en, fr, etc.)
 
 
 class PromptOptimizeResponse(BaseModel):
@@ -43,13 +44,14 @@ async def optimize_prompt(payload: PromptOptimizeRequest) -> PromptOptimizeRespo
     El prompt resultante será 3-7x más detallado si deep_thinking está activado.
     """
     try:
-        logger.info(f"Optimizing prompt with model: {payload.model}, deep_thinking: {payload.deep_thinking}")
+        logger.info(f"Optimizing prompt with model: {payload.model}, deep_thinking: {payload.deep_thinking}, language: {payload.language}")
         logger.info(f"Raw prompt: {payload.prompt[:100]}...")
 
         result: PromptImprovement = improve_prompt(
             raw_prompt=payload.prompt,
             deep_thinking=payload.deep_thinking,
             model=payload.model,
+            language=payload.language,
         )
 
         logger.info(f"Prompt optimization successful. Result: {result.improved_prompt[:100]}...")
