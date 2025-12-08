@@ -41,7 +41,8 @@ import {
   type AppMode,
 } from "@/types";
 import { useLanguage } from "@/context/LanguageContext";
-import { useInteraction } from "@/context/InteractionContext";
+import { useModelContext } from "@/context/ModelContext";
+import { useUIContext } from "@/context/UIContext";
 import { STT_ENDPOINT, TTS_ENDPOINT } from "@/config";
 import {
   buildLanguageOptions,
@@ -264,6 +265,16 @@ const speakWithBrowserTts = async (text: string, language: string) => {
 
 const App: React.FC = () => {
   const { language } = useLanguage();
+
+  // ===== PERFORMANCE: Split context usage to minimize re-renders =====
+  const {
+    selectedModel,
+    setSelectedModel,
+    setLastModelUsed,
+    hardwareProfile,
+    setHardwareProfile,
+  } = useModelContext();
+
   const {
     activeMode,
     setActiveMode,
@@ -273,14 +284,9 @@ const App: React.FC = () => {
     setIsLoading: _setIsLoading,
     error: _error,
     setError: _setError,
-    selectedModel,
-    setSelectedModel,
     imageUrl: _imageUrl,
     setImageUrl: _setImageUrl,
-    setLastModelUsed,
-    hardwareProfile,
-    setHardwareProfile,
-  } = useInteraction();
+  } = useUIContext();
 
   const [isHardwareAdjusting, setIsHardwareAdjusting] = useState(false);
 
