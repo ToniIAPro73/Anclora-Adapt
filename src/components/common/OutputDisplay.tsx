@@ -26,9 +26,6 @@ interface OutputDisplayProps {
   onDownloadIdeaPromptJSON?: () => void;
   onDownloadImagePrompt?: () => void;
   onDownloadImagePromptJSON?: () => void;
-  executedPrompt?: string | null;
-  onDownloadPrompt?: () => void;
-  onDownloadPromptJSON?: () => void;
 }
 
 const GeneratedOutputCard: React.FC<{
@@ -118,6 +115,9 @@ const PromptDisplay: React.FC<{
           ...commonStyles.outputTextarea,
           backgroundColor: "var(--input-bg)",
           marginTop: "8px",
+          minHeight: "120px",
+          maxHeight: "none",
+          overflow: "visible",
         }}
       />
       <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
@@ -241,47 +241,6 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
             onDownloadMarkdown={onDownloadImagePrompt}
             onDownloadJSON={onDownloadImagePromptJSON}
           />
-        </div>
-      )}
-      {executedPrompt && onDownloadPrompt && (
-        <div style={{ marginTop: "12px" }}>
-          <div style={commonStyles.outputCard}>
-            <strong>Prompt Ejecutado</strong>
-            <textarea
-              value={executedPrompt}
-              readOnly
-              spellCheck={false}
-              style={{
-                ...commonStyles.outputTextarea,
-                backgroundColor: "var(--input-bg)",
-                marginTop: "8px",
-              }}
-            />
-            <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-              <button
-                type="button"
-                style={{
-                  ...commonStyles.copyButton,
-                  flex: 1,
-                }}
-                onClick={onDownloadPrompt}
-              >
-                📥 Descargar como prompt.md
-              </button>
-              {onDownloadPromptJSON && (
-                <button
-                  type="button"
-                  style={{
-                    ...commonStyles.copyButton,
-                    flex: 1,
-                  }}
-                  onClick={onDownloadPromptJSON}
-                >
-                  📥 Descargar como JSON
-                </button>
-              )}
-            </div>
-          </div>
         </div>
       )}
     </section>

@@ -101,8 +101,6 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
     handleFileChange,
     generatedJSON,
     setGeneratedJSON,
-    executedPrompt,
-    setExecutedPrompt,
     improvePrompt,
     setImprovePrompt,
     isProcessing,
@@ -128,52 +126,6 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const downloadPromptMarkdown = () => {
-    if (!executedPrompt) return;
-
-    const markdown = `# Prompt Ejecutado\n\n\`\`\`\n${executedPrompt}\n\`\`\``;
-    const dataBlob = new Blob([markdown], { type: "text/markdown" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "prompt.md";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const downloadPromptJSON = () => {
-    if (!executedPrompt) return;
-
-    const promptData = {
-      metadata: {
-        version: "1.0",
-        timestamp: new Date().toISOString(),
-        mode: "intelligent",
-        format: "prompt_final"
-      },
-      prompt_final: executedPrompt,
-      inputs: {
-        idea,
-        contexto: context || "General",
-        idioma: languages.find((l) => l.value === language)?.label || language,
-        pensamiento_profundo: deepThinking,
-        mejorado: true
-      }
-    };
-
-    const dataStr = JSON.stringify(promptData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "prompt_final.json";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
 
   const downloadIdeaPromptMarkdown = () => {
     if (!ideaPromptFinal) return;
@@ -298,7 +250,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
             body: JSON.stringify({
               prompt: rawPrompt,
               deep_thinking: deepThinking,
-              model: "qwen2.5:7b-instruct",
+              // No especificamos modelo - el backend usa el mejor disponible (mistral > qwen2.5:14b)
             }),
           });
 
@@ -329,7 +281,6 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
 
       const ideaPromptFinalValue = await optimizePromptViaBackend(ideaPromptRaw);
       setIdeaPromptFinal(ideaPromptFinalValue);
-      setExecutedPrompt(ideaPromptFinalValue);
 
       // PROMPT 2: Image Prompt (if included)
       let imagePromptFinalValue: string | undefined;
@@ -445,9 +396,6 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
             onDownloadIdeaPromptJSON={downloadIdeaPromptJSON}
             onDownloadImagePrompt={downloadImagePromptMarkdown}
             onDownloadImagePromptJSON={downloadImagePromptJSON}
-            executedPrompt={executedPrompt}
-            onDownloadPrompt={downloadPromptMarkdown}
-            onDownloadPromptJSON={downloadPromptJSON}
           />
         </div>
       </div>

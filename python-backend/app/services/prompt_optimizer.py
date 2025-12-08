@@ -26,29 +26,35 @@ class PromptImprovement(BaseModel):
 
 # 2) Prompt de sistema del "ingeniero de prompts"
 PROMPT_ENGINEER_SYSTEM_PROMPT = """
-Eres un ingeniero de prompts senior especializado en diseñar instrucciones claras,
-robustas y reutilizables para modelos de lenguaje.
+Eres un ingeniero de prompts EXPERTO en marketing digital y content creation. Tu trabajo es transformar briefings breves en prompts profesionales, detallados y altamente efectivos.
 
-Objetivo:
-- Recibir un prompt inicial.
-- Devolver una versión optimizada que:
-  - Tenga rol claro (quién es el modelo).
-  - Explique el contexto y el objetivo final.
-  - Especifique entradas y salida esperada.
-  - Defina formato de salida (texto libre, JSON, lista, etc.).
-  - Incluya reglas y límites (qué hacer y qué NO hacer).
-  - Use ejemplos breves si aportan claridad.
-  - Sea precisa, no redundante.
+PRINCIPIOS CLAVE:
+1. **Estructura clara**: Todo prompt debe tener rol, contexto, objetivo, restricciones y formato de salida
+2. **Detalle estratégico**: Añade información de valor sobre el público, la plataforma, el tono y el enfoque
+3. **Lenguaje profesional**: Mantén el idioma original, usa vocabulario preciso y términos del marketing
+4. **Restricciones explícitas**: Define exactamente QUÉ HACER y QUÉ NO HACER
+5. **Ejemplos cuando sea necesario**: Proporciona muestras de salida esperada si mejora la claridad
 
-Buenas prácticas:
-- Mantén el idioma del prompt original.
-- Simplifica formulaciones ambiguas.
-- Evita órdenes contradictorias.
-- Si detectas lagunas (falta de info), añade TODOs o comentarios
-  para que el usuario los complete.
-- Pide al modelo que organice su razonamiento internamente, pero
-  que en la respuesta final sólo muestre el resultado y, como mucho,
-  un resumen breve del porqué (no el razonamiento paso a paso).
+ESTRUCTURA QUE DEBES SEGUIR:
+- **ROL**: Define claramente el rol/persona del modelo (ej: "Eres un especialista en marketing inmobiliario...")
+- **CONTEXTO AMPLIO**: Explica el escenario, el público objetivo, el objetivo de negocio
+- **ESPECIFICIDAD**: Demográfica, psicográfica, pain points del cliente
+- **PLATAFORMA**: Si es para redes sociales, menciona la plataforma, formato, límites de caracteres
+- **OBJETIVO PRINCIPAL**: Qué quieres lograr (engagement, conversión, posicionamiento, etc.)
+- **TONO Y ESTILO**: Formal, coloquial, experto, inspirador, etc.
+- **RESTRICCIONES**: Lo que NO debe incluir, errores a evitar
+- **FORMATO DE SALIDA**: Cómo debe estructurarse la respuesta
+- **EJEMPLOS**: Opcional pero recomendado para claridad
+
+MEJORAS QUE DEBES HACER:
+- Amplía significativamente el contexto (3-4x más detalle)
+- Añade instrucciones sobre tono, lenguaje y estilo de escritura
+- Define KPIs o métricas de éxito implícitamente
+- Incluye consideraciones culturales si son relevantes
+- Especifica la longitud y densidad de información esperada
+- Añade "pistas" sobre cómo estructurar el contenido
+
+Mantén el idioma del prompt original. Sé directo, profesional y útil.
 """.strip()
 
 
@@ -56,31 +62,46 @@ def build_optimizer_messages(raw_prompt: str, deep_thinking: bool = False) -> li
     """Construye el array de mensajes para ollama.chat()."""
     detail_instruction = ""
     if deep_thinking:
-        detail_instruction = "\nNota: El usuario ha marcado 'Pensamiento profundo', así que proporciona un prompt MUCHO MÁS detallado y exhaustivo, con más contexto, restricciones y ejemplos."
+        detail_instruction = """
+
+⚠️ IMPORTANTE - PENSAMIENTO PROFUNDO ACTIVADO:
+El usuario ha marcado 'Pensamiento profundo'. Esto significa:
+- AMPLÍA el prompt sustancialmente (5-7x más detallado que el original)
+- AÑADE secciones completas sobre: público objetivo detallado, buyer personas, pain points, objections, CTAs específicos
+- INCLUYE ejemplos concretos de salida esperada
+- DETALLA restricciones y "pitfalls" a evitar
+- ESPECIFICA KPIs, métricas y objetivos de negocio
+- PROPORCIONA guía sobre tono, lenguaje, estilo de redacción
+- ESTRUCTURA el contenido de forma clara y escalable
+
+El prompt resultante debe ser 4-5 veces más extenso y detallado que el original."""
 
     user_content = f"""
-Vas a recibir un PROMPT_ORIGINAL escrito por el usuario.
+Vas a recibir un PROMPT_ORIGINAL escrito por el usuario. Este es un brief o resumen que NECESITA ser transformado en un prompt profesional completo.
 
 Tu tarea:
-1. Analizarlo.
-2. Reescribirlo y ampliarlo aplicando las mejores prácticas actuales de
-   ingeniería de prompts.
-3. Devolver ÚNICAMENTE un objeto JSON con esta estructura:
+1. **ANALIZAR** el brief: identifica el rol, el objetivo, la audiencia, la plataforma
+2. **EXPANDIR significativamente** usando la estructura que te di: rol detallado, contexto amplio, restricciones claras, formato de salida
+3. **ENRIQUECER** con información de marketing: buyer personas, CTAs, metricas de éxito, consideraciones culturales
+4. **DEVOLVER ÚNICAMENTE** un objeto JSON con esta estructura exacta:
 
 {{
-  "improved_prompt": "prompt final listo para usar con un LLM",
-  "rationale": "breve explicación (máx. 10 líneas) de los cambios clave",
+  "improved_prompt": "PROMPT FINAL PROFESIONAL Y DETALLADO - LISTO PARA USAR CON UN LLM",
+  "rationale": "RESUMEN BREVE (máx. 10 líneas) explicando los cambios clave y mejoras aplicadas",
   "checklist": [
-    "punto 1 que el usuario debería revisar o completar",
-    "punto 2...",
-    "..."
+    "punto clave que el usuario debería revisar",
+    "elemento importante a personalizar",
+    "consideración estratégica"
   ]
 }}
 
-Notas:
-- Mantén el idioma del PROMPT_ORIGINAL.
-- No cambies la intención fundamental del usuario.
-- Si algo es confuso o falta información, menciónalo en la checklist.{detail_instruction}
+REGLAS OBLIGATORIAS:
+- ✓ Mantén EXACTAMENTE el idioma del PROMPT_ORIGINAL (español en este caso)
+- ✓ Preserva la intención fundamental del usuario
+- ✓ El "improved_prompt" debe ser PROFESIONAL, DETALLADO y LISTO PARA PRODUCCIÓN
+- ✓ NO abrevies ni simplifiques - EXPANDE y ENRIQUECE
+- ✓ Si hay lagunas, menciónalo en la checklist para que el usuario las complete
+- ✓ Devuelve SOLO el JSON, sin explicaciones adicionales{detail_instruction}
 
 PROMPT_ORIGINAL:
 \"\"\"{raw_prompt}\"\"\"
@@ -95,15 +116,20 @@ PROMPT_ORIGINAL:
 def improve_prompt(
     raw_prompt: str,
     deep_thinking: bool = False,
-    model: str = "qwen2.5:7b-instruct",
+    model: str = None,
 ) -> PromptImprovement:
     """
     Llama al modelo local vía Ollama (HTTP) y devuelve un PromptImprovement.
 
     raw_prompt: prompt original escrito por el usuario.
     deep_thinking: si True, pide un prompt más detallado y exhaustivo.
-    model: nombre del modelo en Ollama (Qwen2.5 recomendado).
+    model: nombre del modelo en Ollama. Si es None, usa la mejor opción disponible.
+           Prioridad: mistral > qwen2.5:14b > qwen2.5:7b-instruct
     """
+    # Si no se especifica modelo, usar el mejor disponible
+    if not model:
+        model = "mistral:latest"  # Mistral es excelente para prompt engineering
+
     messages = build_optimizer_messages(raw_prompt, deep_thinking)
 
     try:
