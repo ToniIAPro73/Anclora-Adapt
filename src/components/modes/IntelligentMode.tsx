@@ -142,34 +142,70 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
       setError(copy.errors.idea);
       return;
     }
-    // Si incluir imagen está marcado, el prompt es obligatorio
+    // Si incluir imagen está marcado, el prompt de imagen es obligatorio
     if (includeImage && !imagePrompt.trim()) {
       setError(copy.errors.imagePrompt);
       return;
     }
     try {
-      const thinking = deepThinking
-        ? "Analiza paso a paso."
-        : "Responde directo.";
       const languageDisplay =
         languages.find((l) => l.value === language)?.label || language;
 
-      const prompt = `Rol: Estratega. Tarea: "${idea}". Contexto: "${
+      // Step 1: Build the raw prompt
+      const rawPrompt = `Rol: Estratega. Tarea: "${idea}". Contexto: "${
         context || "General"
-      }". Idioma: ${languageDisplay}. ${thinking} Salida JSON: ${structuredOutputExample}`;
+      }". Idioma: ${languageDisplay}.${
+        includeImage && imagePrompt.trim()
+          ? ` Prompt para imagen: "${imagePrompt}".`
+          : ""
+      }`;
 
-      // Save the executed prompt for download
-      setExecutedPrompt(prompt);
+      let finalPrompt = rawPrompt;
 
-      await onGenerate(prompt, {
-        mode: "intelligent",
-        preferReasoning: true,
-        preferSpeed: !deepThinking,
-        targetLanguage: language,
-      });
+      // Step 2: If improvePrompt is checked, optimize the prompt using backend
+      if (improvePrompt) {
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"}/api/prompts/optimize`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                prompt: rawPrompt,
+                deep_thinking: deepThinking,
+                model: "qwen2.5:7b-instruct",
+              }),
+            }
+          );
 
+          if (!response.ok) {
+            throw new Error(
+              `Error optimizing prompt: ${response.statusText}`
+            );
+          }
+
+          const optimizeResult = await response.json();
+          if (optimizeResult.success) {
+            finalPrompt = optimizeResult.improved_prompt;
+          } else {
+            setError(optimizeResult.error || "Error al optimizar el prompt");
+            return;
+          }
+        } catch (optimizeErr) {
+          setError(
+            `Error al conectar con el optimizador: ${
+              optimizeErr instanceof Error ? optimizeErr.message : "Error desconocido"
+            }`
+          );
+          return;
+        }
+      }
+
+      // Step 3: Save the final prompt for display and download
+      setExecutedPrompt(finalPrompt);
+
+      // Step 4: Generate image if needed
       let generatedImageUrl: string | undefined;
-
       if (includeImage && imagePrompt.trim()) {
         const base64 = imageFile ? await fileToBase64(imageFile) : undefined;
         const imageResult = await onGenerateImage({
@@ -180,12 +216,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
         setImageUrl(imageResult);
       }
 
-      // Create Intelligent Mode JSON with outputs
-      const generatedContent =
-        outputs && outputs.length > 0
-          ? outputs.map((output) => output.content).join("\n\n")
-          : "";
-
+      // Step 5: Create JSON with the final prompt
       const intelligentJSON: IntelligentJSON = {
         metadata: {
           version: "1.0",
@@ -202,7 +233,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
           ...(includeImage && imageFile && { imagen_analizada: !!imageFile }),
         },
         resultados: {
-          contenido_generado: generatedContent,
+          contenido_generado: finalPrompt,
           ...(generatedImageUrl && { imagen_url: generatedImageUrl }),
         },
       };
