@@ -139,6 +139,38 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const downloadPromptJSON = () => {
+    if (!executedPrompt) return;
+
+    const promptData = {
+      metadata: {
+        version: "1.0",
+        timestamp: new Date().toISOString(),
+        mode: "intelligent",
+        format: "prompt_final"
+      },
+      prompt_final: executedPrompt,
+      inputs: {
+        idea,
+        contexto: context || "General",
+        idioma: languages.find((l) => l.value === language)?.label || language,
+        pensamiento_profundo: deepThinking,
+        mejorado: true
+      }
+    };
+
+    const dataStr = JSON.stringify(promptData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "prompt_final.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleGenerate = async () => {
     if (!idea.trim()) {
       setError(copy.errors.idea);
@@ -155,11 +187,14 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
         languages.find((l) => l.value === language)?.label || language;
 
       // Step 1: Build the raw prompt
-      const rawPrompt = `Rol: Estratega. Tarea: "${idea}". Contexto: "${
-        context || "General"
+      // Sanitize inputs by removing newlines to prevent JSON parsing issues
+      const sanitizeInput = (text: string) => text.replace(/\n/g, " ").replace(/\r/g, "").trim();
+
+      const rawPrompt = `Rol: Estratega. Tarea: "${sanitizeInput(idea)}". Contexto: "${
+        sanitizeInput(context) || "General"
       }". Idioma: ${languageDisplay}.${
         includeImage && imagePrompt.trim()
-          ? ` Prompt para imagen: "${imagePrompt}".`
+          ? ` Prompt para imagen: "${sanitizeInput(imagePrompt)}".`
           : ""
       }`;
 
@@ -304,6 +339,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
             onDownloadJSON={downloadJSON}
             executedPrompt={executedPrompt}
             onDownloadPrompt={downloadPromptMarkdown}
+            onDownloadPromptJSON={downloadPromptJSON}
           />
         </div>
       </div>
