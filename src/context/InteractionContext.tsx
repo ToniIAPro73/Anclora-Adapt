@@ -1,122 +1,82 @@
 /**
  * src/context/InteractionContext.tsx
  *
- * Contexto global unificado para la aplicación
- * Centraliza: modo activo, input/outputs, estados de carga, selección de modelo
+ * DEPRECATED: Legacy wrapper for backward compatibility
  *
- * FASE 1.1 - Refactorización de Frontend
+ * This file has been refactored into three specialized contexts:
+ * - ModelContext: Model selection and hardware profile
+ * - UIContext: Loading/error/outputs/mode state
+ * - MediaContext: File/audio state
+ *
+ * This file now acts as a compatibility layer during migration.
+ * Eventually this entire file should be removed once all components
+ * are migrated to use the specialized contexts directly.
+ *
+ * PHASE 1.2 - Context Splitting Refactoring
  */
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
-import type {
-  InteractionContextType,
-  AppMode,
-  GeneratedOutput,
-  SystemCapabilities,
-} from "@/types";
-import { DEFAULT_TEXT_MODEL_ID } from "@/config";
+import React, { useMemo, ReactNode } from "react";
+import type { InteractionContextType } from "@/types";
+import { useModelContext } from "./ModelContext";
+import { useUIContext } from "./UIContext";
+import { useMediaContext } from "./MediaContext";
 
-const InteractionContext = createContext<InteractionContextType | undefined>(
-  undefined
-);
-
-const TEXT_MODEL_STORAGE_KEY = "anclora.textModel";
+const InteractionContext = React.createContext<
+  InteractionContextType | undefined
+>(undefined);
 
 export interface InteractionProviderProps {
   children: ReactNode;
 }
 
 /**
- * Proveedor del contexto de interacción global
- * Envuelve la aplicación para proporcionar acceso a estado global sin prop drilling
+ * @deprecated
+ * Legacy provider for backward compatibility
+ * This provider no longer manages state directly - it composes the three new contexts
  */
 export const InteractionProvider: React.FC<InteractionProviderProps> = ({
   children,
 }) => {
-  // Mode & UI State
-  const [activeMode, setActiveMode] = useState<AppMode>("basic");
-  const [currentInput, setCurrentInput] = useState<string>("");
-  const [outputs, setOutputs] = useState<GeneratedOutput[]>([]);
+  const modelContext = useModelContext();
+  const uiContext = useUIContext();
+  const mediaContext = useMediaContext();
 
-  // Loading & Error States
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  // Compose the legacy context from three specialized contexts
+  const value = useMemo(
+    () => ({
+      // Model state
+      selectedModel: modelContext.selectedModel,
+      setSelectedModel: modelContext.setSelectedModel,
+      lastModelUsed: modelContext.lastModelUsed,
+      setLastModelUsed: modelContext.setLastModelUsed,
+      hardwareProfile: modelContext.hardwareProfile,
+      setHardwareProfile: modelContext.setHardwareProfile,
 
-  // Model Selection
-  const [selectedModel, setSelectedModelState] = useState<string>(() => {
-    if (typeof window === "undefined") {
-      return DEFAULT_TEXT_MODEL_ID;
-    }
-    return (
-      window.localStorage.getItem(TEXT_MODEL_STORAGE_KEY) ||
-      DEFAULT_TEXT_MODEL_ID
-    );
-  });
-  const [lastModelUsed, setLastModelUsed] = useState<string | null>(null);
-  const [hardwareProfile, setHardwareProfile] =
-    useState<SystemCapabilities | null>(null);
+      // UI state
+      activeMode: uiContext.activeMode,
+      setActiveMode: uiContext.setActiveMode,
+      outputs: uiContext.outputs,
+      addOutput: uiContext.addOutput,
+      clearOutputs: uiContext.clearOutputs,
+      isLoading: uiContext.isLoading,
+      setIsLoading: uiContext.setIsLoading,
+      error: uiContext.error,
+      setError: uiContext.setError,
+      imageUrl: uiContext.imageUrl,
+      setImageUrl: uiContext.setImageUrl,
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(TEXT_MODEL_STORAGE_KEY, selectedModel);
-    }
-  }, [selectedModel]);
+      // Media state
+      selectedFile: mediaContext.selectedFile,
+      setSelectedFile: mediaContext.setSelectedFile,
+      audioBlob: mediaContext.audioBlob,
+      setAudioBlob: mediaContext.setAudioBlob,
 
-  // Media (for image/voice modes)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-
-  // Helper functions
-  const addOutput = (output: GeneratedOutput) => {
-    setOutputs((prev) => [...prev, output]);
-  };
-
-  const clearOutputs = () => {
-    setOutputs([]);
-  };
-
-  const value: InteractionContextType = {
-    // Mode & Theme
-    activeMode,
-    setActiveMode,
-
-    // Input & Output
-    currentInput,
-    setCurrentInput,
-    outputs,
-    addOutput,
-    clearOutputs,
-
-    // Loading & Error States
-    isLoading,
-    setIsLoading,
-    error,
-    setError,
-
-    // Model Selection
-    selectedModel,
-    setSelectedModel: setSelectedModelState,
-    lastModelUsed,
-    setLastModelUsed,
-    hardwareProfile,
-    setHardwareProfile,
-
-    // Media
-    selectedFile,
-    setSelectedFile,
-    audioBlob,
-    setAudioBlob,
-
-    imageUrl,
-    setImageUrl,
-  };
+      // Deprecated/unused fields
+      currentInput: "",
+      setCurrentInput: () => {},
+    }),
+    [modelContext, uiContext, mediaContext]
+  );
 
   return (
     <InteractionContext.Provider value={value}>
@@ -126,11 +86,12 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
 };
 
 /**
- * Hook para acceder al contexto de interacción
+ * @deprecated Use useModelContext, useUIContext, or useMediaContext instead
+ * Hook para acceder al contexto de interacción (legacy)
  * Lanza error si se usa fuera del proveedor
  */
 export const useInteraction = (): InteractionContextType => {
-  const context = useContext(InteractionContext);
+  const context = React.useContext(InteractionContext);
   if (!context) {
     throw new Error(
       "useInteraction debe ser usado dentro de <InteractionProvider>"
