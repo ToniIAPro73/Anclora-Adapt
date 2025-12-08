@@ -227,18 +227,25 @@ Máximo 150 tokens."""
 
         # Use Ollama for refinement
         try:
+            # Try to use Options object first (v0.6+), fall back to dict (v0.3.3)
+            options = {
+                "temperature": 0.7 if deep_thinking else 0.5,
+                "top_p": 0.9,
+                "num_predict": 300 if deep_thinking else 150
+            }
+
             response = self.ollama_client.generate(
                 model=self.ollama_model,
                 prompt=refinement_prompt,
                 stream=False,
-                options={
-                    "temperature": 0.7 if deep_thinking else 0.5,
-                    "top_p": 0.9,
-                    "num_predict": 300 if deep_thinking else 150
-                }
+                options=options
             )
 
-            return response.get('response', '').strip()
+            # Handle both dict and object responses
+            if isinstance(response, dict):
+                return response.get('response', '').strip()
+            else:
+                return response.response.strip()
 
         except Exception as e:
             logger.error(f"Error refining prompt with Ollama: {str(e)}")
