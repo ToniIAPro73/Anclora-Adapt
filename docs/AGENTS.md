@@ -105,6 +105,7 @@ npm run preview
 - `callSpeechToText(audioBlob)` → Usa el backend FastAPI (`/api/stt`, Faster-Whisper)
 - `fileToBase64(file)` → Convierte File a base64
 - `ensureApiKey()` → Valida credenciales
+- `analyzeImage(imageBytes, userPrompt, deepThinking, language)` → Backend FastAPI (`/api/images/analyze`, Qwen3-VL:8b para análisis visual)
 
 **Translations:**
 
@@ -144,6 +145,18 @@ Cualquier nueva cadena debe agregarse en AMBOS idiomas.
 - [ ] Preview de imagen se muestra en chip (40x40px) con nombre y tamaño
 - [ ] Sin prompt para imagen → error "Escribe el prompt para la imagen"
 - [ ] Con prompt → genera imagen sin "Pensamiento profundo" aplicado
+
+**Analizador de Imágenes (Qwen3-VL)**:
+
+- [ ] Backend (`python-backend/app/services/image_analyzer.py`) está corriendo en puerto 8000
+- [ ] Modelo Qwen3-VL:8b está disponible en Ollama (`ollama list` debe mostrar `qwen3-vl:8b`)
+- [ ] Al subir imagen sin prompt de usuario → se genera análisis automático
+- [ ] Análisis produce prompts detallados (500+ caracteres) que describen elementos específicos
+- [ ] Prompts en español cuando se selecciona idioma ES, en inglés para EN, etc.
+- [ ] Modo "Pensamiento profundo" produce prompts más largos (1500+ caracteres)
+- [ ] Si Qwen3-VL falla → fallback a entrada manual del usuario sin errores críticos
+- [ ] Logs en backend muestran: tamaño de imagen base64, estructura de payload, respuestas
+- [ ] Prompts capturan: objetos, colores, estilos artísticos, composición, iluminación, atmósfera
 
 **Checklist por Cambio:**
 
