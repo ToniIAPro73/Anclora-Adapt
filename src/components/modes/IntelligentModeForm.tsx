@@ -1,5 +1,6 @@
 import React from "react";
-import type { InterfaceLanguage, LanguageOptionAvailability } from "@/types";
+import type { InterfaceLanguage } from "@/types";
+import type { LanguageOptionAvailability } from "@/constants/modelCapabilities";
 import commonStyles from "@/styles/commonStyles";
 import { formatCounterText } from "@/utils/text";
 import IntelligentModeImageOptions from "./IntelligentModeImageOptions";
