@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import type { InterfaceLanguage } from "@/types";
 import type { LanguageOptionAvailability } from "@/constants/modelCapabilities";
 import commonStyles from "@/styles/commonStyles";
@@ -52,8 +52,23 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
   isLoading,
   onGenerate,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when includeImage is toggled
+  useEffect(() => {
+    if (includeImage && containerRef.current) {
+      // Use setTimeout to ensure the DOM has updated
+      setTimeout(() => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
+      }, 0);
+    }
+  }, [includeImage]);
+
   return (
     <div
+      ref={containerRef}
       style={
         isMobile
           ? commonStyles.inputFrameMobile

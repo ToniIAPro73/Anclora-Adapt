@@ -68,11 +68,25 @@ export const useIntelligentModeState = (
     }
   }, [normalizedLanguageOptions, language]);
 
+  // Cleanup blob URL when component unmounts or file changes
+  useEffect(() => {
+    return () => {
+      if (imagePreview && imagePreview.startsWith("blob:")) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
+
   // Helper functions
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
     setImageFile(file);
-    setImagePreview(file ? URL.createObjectURL(file) : null);
+    if (file) {
+      const objectUrl = URL.createObjectURL(file);
+      setImagePreview(objectUrl);
+    } else {
+      setImagePreview(null);
+    }
   };
 
   return {
