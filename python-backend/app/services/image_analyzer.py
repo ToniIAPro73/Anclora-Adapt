@@ -196,7 +196,7 @@ class ImageAnalyzer:
         # Format analysis as text
         analysis_text = self._format_analysis(visual_analysis)
 
-        # Build refinement prompt
+        # Build refinement prompt - ENHANCED FOR DETAILED OUTPUT
         if deep_thinking:
             refinement_prompt = f"""Analiza este análisis visual detallado de una imagen:
 
@@ -204,26 +204,40 @@ class ImageAnalyzer:
 
 {("Usuario sugiere: " + user_input) if user_input else ""}
 
-Crea un prompt DETALLADO y ESTRUCTURADO para generar una imagen similar. El prompt debe incluir:
-1. Estilo artístico específico
-2. Composición y distribución
-3. Paleta de colores precisa
-4. Mood/atmósfera
-5. Detalles visuales clave
-6. Elementos específicos (si los hay)
-7. Técnica o medio (si aplica)
-8. Iluminación y textura
+Crea un prompt EXTREMADAMENTE DETALLADO y ESTRUCTURADO para generar una imagen similar. El prompt debe incluir:
 
-Sé muy específico y detallado. Máximo 300 tokens."""
+1. **Estilo artístico específico**: Describe el estilo visual, movimiento artístico, o referencia artística (ej: oil painting, digital art, photorealism, etc)
+2. **Tema y sujetos principales**: Identifica qué o quién es el sujeto principal y contexto de la imagen
+3. **Composición visual**: Describe la distribución espacial, punto focal, perspectiva y balance
+4. **Paleta de colores**: Lista colores específicos, dominantes, de acentos y matices. Describe las transiciones de color
+5. **Mood y atmósfera**: Describe la emoción, energía y atmósfera que transmite la imagen
+6. **Iluminación**: Tipo de iluminación, dirección, intensidad, calidad de luz, sombras y reflejos
+7. **Detalles visuales clave**: Texturas, patrones, acabados, detalles pequeños importantes
+8. **Elementos ambientales**: Fondos, entorno, accesorios, elementos decorativos
+9. **Técnica y medio**: Técnica de rendering, material, acabado (oil, acrylic, digital, photograph, mixed media, etc)
+10. **Proporciones y escala**: Dimensiones, tamaño relativo de elementos, perspectiva
+
+Sé EXTREMADAMENTE ESPECÍFICO y DETALLADO en cada punto. Máximo 800 tokens."""
         else:
-            refinement_prompt = f"""Basándote en este análisis visual:
+            refinement_prompt = f"""Analiza este análisis visual detallado de una imagen:
 
 {analysis_text}
 
 {("Usuario sugiere: " + user_input) if user_input else ""}
 
-Crea un prompt conciso pero específico para generar una imagen similar.
-Máximo 150 tokens."""
+Crea un prompt DETALLADO y BIEN ESTRUCTURADO para generar una imagen similar. El prompt debe incluir:
+
+1. **Estilo artístico**: El estilo visual y técnica de la obra
+2. **Sujeto y tema**: Qué se ve, tema principal y contexto
+3. **Composición**: Distribución, punto focal, perspectiva
+4. **Paleta de colores**: Colores dominantes, acentos y descripción de tonos
+5. **Mood y atmósfera**: La emoción y atmósfera transmitida
+6. **Iluminación**: Tipo, dirección e intensidad de la luz
+7. **Detalles visuales**: Texturas, patrones y detalles importantes
+8. **Ambiente**: Fondo, entorno y elementos contextuales
+9. **Técnica**: Técnica de renderizado o medio artístico
+
+Sé ESPECÍFICO y DETALLADO. Máximo 500 tokens."""
 
         # Use Ollama for refinement
         try:

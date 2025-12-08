@@ -139,11 +139,143 @@ async def analyze_image_stream(
     )
 
 
+@router.post("/analyze-detailed")
+async def analyze_image_detailed(
+    image: UploadFile = File(...),
+    user_prompt: Optional[str] = Form(default=""),
+    deep_thinking: bool = Form(default=False)
+):
+    """
+    Detailed analysis returning comprehensive JSON for external model usage
+
+    Perfect for copying and pasting into other models when image generation fails
+    Returns complete visual breakdown with all CLIP analysis scores
+
+    Parameters:
+    - image: Image file (required)
+    - user_prompt: Optional user input
+    - deep_thinking: More detailed prompts if true
+
+    Returns:
+    - Complete JSON with visual analysis, prompts, and metadata
+    """
+
+    if not analyzer:
+        raise HTTPException(status_code=500, detail="Image analyzer not initialized")
+
+    try:
+        # Validate file type
+        if not image.content_type or not image.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="Only images are allowed")
+
+        # Read and validate size
+        contents = await image.read()
+        if len(contents) > 20 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="Image too large (max 20MB)")
+
+        # Validate it's a readable image
+        try:
+            Image.open(io.BytesIO(contents))
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid image format")
+
+        # Perform complete analysis
+        result = analyzer.analyze_image(
+            image_bytes=contents,
+            user_prompt=user_prompt.strip() if user_prompt else None,
+            deep_thinking=deep_thinking
+        )
+
+        if not result['success']:
+            raise HTTPException(status_code=500, detail=result.get('error'))
+
+        # Build comprehensive JSON response
+        detailed_response = {
+            "metadata": {
+                "version": "1.0",
+                "analyzer": "CLIP-Ollama",
+                "mode": "deep_thinking" if deep_thinking else "standard",
+                "file_name": image.filename,
+                "file_size_bytes": len(contents),
+                "content_type": image.content_type
+            },
+            "visual_analysis": {
+                "style": {
+                    "description": "Artistic style and visual approach",
+                    "top_options": result.get('analysis', {}).get('style', [])
+                },
+                "mood": {
+                    "description": "Emotional tone and atmosphere",
+                    "top_options": result.get('analysis', {}).get('mood', [])
+                },
+                "composition": {
+                    "description": "Spatial layout and framing",
+                    "top_options": result.get('analysis', {}).get('composition', [])
+                },
+                "color_palette": {
+                    "description": "Color scheme and tones",
+                    "top_options": result.get('analysis', {}).get('color_palette', [])
+                },
+                "subjects": {
+                    "description": "Main subjects and elements",
+                    "top_options": result.get('analysis', {}).get('subjects', [])
+                }
+            },
+            "prompts": {
+                "detailed_prompt": result.get('generatedPrompt', ''),
+                "original_user_input": user_prompt if user_prompt else None,
+                "combined_prompt": f"{result.get('generatedPrompt', '')}\n\nContext: {user_prompt}" if user_prompt else result.get('generatedPrompt', '')
+            },
+            "usage_instructions": {
+                "for_image_generation": [
+                    "Use 'detailed_prompt' field for best quality with your image model",
+                    "For iterative refinement, use 'combined_prompt'",
+                    "Copy the entire prompt text to your image generation model"
+                ],
+                "for_external_models": [
+                    "Copy the entire 'visual_analysis' object to provide context to another AI model",
+                    "Include the 'detailed_prompt' for the model to understand the intended image",
+                    "The JSON structure allows another model to understand all analyzed aspects",
+                    "Each category includes scores (0-1) indicating confidence in each aspect"
+                ],
+                "for_refinement": [
+                    "Edit the 'detailed_prompt' to adjust any aspects",
+                    "Combine multiple prompts from 'top_options' for custom variations",
+                    "Add 'original_user_input' back if desired for personal touches"
+                ]
+            },
+            "analysis_scores": {
+                category: [
+                    {
+                        "aspect": item.get('value', ''),
+                        "confidence": item.get('score', 0),
+                        "percentage": f"{item.get('score', 0) * 100:.1f}%"
+                    }
+                    for item in result.get('analysis', {}).get(category, [])
+                ]
+                for category in ['style', 'mood', 'composition', 'color_palette', 'subjects']
+            }
+        }
+
+        return detailed_response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in /analyze-detailed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/health")
 async def health_check():
     """Health check for image analyzer service"""
     return {
         "status": "ok" if analyzer else "error",
         "service": "image-analyzer",
-        "analyzer_initialized": analyzer is not None
+        "analyzer_initialized": analyzer is not None,
+        "endpoints": {
+            "/analyze": "Basic prompt generation",
+            "/analyze-stream": "Streaming analysis with SSE",
+            "/analyze-detailed": "Detailed JSON for external model use"
+        }
     }
