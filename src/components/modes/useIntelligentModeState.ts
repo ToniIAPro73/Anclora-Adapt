@@ -68,22 +68,24 @@ export const useIntelligentModeState = (
     }
   }, [normalizedLanguageOptions, language]);
 
-  // Cleanup blob URL when component unmounts or file changes
+  // Cleanup: data URLs don't need revoking, but blob URLs would
   useEffect(() => {
     return () => {
-      if (imagePreview && imagePreview.startsWith("blob:")) {
-        URL.revokeObjectURL(imagePreview);
-      }
+      // Data URLs don't need cleanup
     };
-  }, [imagePreview]);
+  }, []);
 
   // Helper functions
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
     setImageFile(file);
     if (file) {
-      const objectUrl = URL.createObjectURL(file);
-      setImagePreview(objectUrl);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setImagePreview(result);
+      };
+      reader.readAsDataURL(file);
     } else {
       setImagePreview(null);
     }
