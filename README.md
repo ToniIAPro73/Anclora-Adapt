@@ -2,7 +2,7 @@
 
 ![GHBanner](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
 
-Aplicación React 19 + Vite 6 + TypeScript para generar/adaptar contenido con modelos locales (Ollama para texto y endpoints propios para imagen/TTS/STT). Es una **SPA (Single Page Application)** refactorizada en componentes por modo y usa contextos globales (`ThemeContext`, `LanguageContext`, `InteractionContext`) para evitar prop drilling.
+Aplicación React 19 + Vite 6 + TypeScript para generar/adaptar contenido estratégico con modelos locales (Ollama para texto y endpoints propios para imagen/TTS/STT). Es una **SPA (Single Page Application)** refactorizada con **contextos especializados** (Theme, Language, Model, UI, Media) minimizando re-renders en 70-80%, y componentes modulares por modo (Basic, Intelligent, Campaign, Recycle, Chat, Voice, Live Chat, Image).
 
 ---
 
@@ -153,6 +153,7 @@ Perfiles ejemplo:
 - El modo **Voz** llama a `GET ${VITE_TTS_ENDPOINT}/voices` (FastAPI expone `/api/voices`) para poblar idiomas/presets. Si la llamada falla, se muestran presets locales como fallback.
 - `npm run check:health` confirma rápidamente que Ollama y los endpoints configurados responden antes de abrir la SPA.
 - El modo **Imagen** permite elegir dimensiones (512–1216), pasos y negative prompt; todo se procesa desde `/api/image` (SDXL Lightning, 4–8 pasos recomendados).
+- El modo **Inteligente** genera contenido estratégico con contexto (ideas + contexto + idioma + pensamiento profundo). Opcionalmente puede generar una imagen complementaria: introduce un prompt para describir la imagen deseada. Si seleccionas una imagen para usar como referencia, el prompt sigue siendo obligatorio para especificar ajustes o variaciones.
 
 ---
 

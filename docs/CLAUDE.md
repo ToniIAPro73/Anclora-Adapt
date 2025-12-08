@@ -307,13 +307,15 @@ Currently only **text generation** is implemented. Other modalities are placehol
 | Mode      | Text      | Image          | TTS            | STT            | Status         |
 | --------- | --------- | -------------- | -------------- | -------------- | -------------- |
 | Basic     | ✅ Ollama | —              | —              | —              | ✅ Working     |
-| Smart     | ✅ Ollama | ❌ Placeholder | —              | —              | ⚠️ Partial     |
+| Intelligent | ✅ Ollama | ✅ Optional    | —              | —              | ✅ Working*    |
 | Campaign  | ✅ Ollama | ❌ Placeholder | —              | —              | ⚠️ Partial     |
 | Recycle   | ✅ Ollama | ❌ Placeholder | —              | —              | ⚠️ Partial     |
 | Chat      | ✅ Ollama | —              | —              | —              | ✅ Working     |
 | Voice     | ✅ Ollama | —              | ❌ Placeholder | ❌ Placeholder | ⚠️ Partial     |
 | Live Chat | ✅ Ollama | —              | —              | —              | ✅ Working     |
 | Image     | —         | ❌ Placeholder | —              | —              | ❌ Not working |
+
+\* Intelligent mode text generation working. Image generation functional but requires explicit prompt (no auto-analysis from uploaded images yet).
 
 **Future work**: Integrate image generation (Stable Diffusion), TTS (Bark), STT (Whisper) via Ollama or external APIs.
 

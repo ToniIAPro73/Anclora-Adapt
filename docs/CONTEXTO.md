@@ -27,6 +27,14 @@ Ultima revision: **diciembre 2025** - **Optimizaciones de rendimiento completada
   - TTSMode: 494 → 160 líneas (+ 3 sub-componentes = 500 líneas totales)
   - **Resultado**: Reducción de 58-68% en tamaño de archivos principales
 
+- **Modo Inteligente mejorado** (Diciembre 2025):
+  - Input contextual: Idea + Contexto + Idioma + Pensamiento Profundo
+  - Generación de imagen opcional con prompt explícito obligatorio
+  - Subida de imagen como referencia (sin análisis automático por ahora)
+  - Validación: prompt requerido si "Incluir Imagen" está marcado
+  - Layout optimizado: sin scroll vertical a 100% zoom sin imagen
+  - Preview de imagen en chip compacto (40x40px) con nombre y tamaño
+
 - **Memoización optimizada** en App.tsx:
   - Eliminadas 5 memoizaciones innecesarias (operaciones baratas)
   - Mantenidas 5 memoizaciones esenciales (operaciones costosas)

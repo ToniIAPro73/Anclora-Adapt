@@ -85,8 +85,8 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
       setError(copy.errors.idea);
       return;
     }
-    // Si incluir imagen está marcado pero NO hay imagen seleccionada, el prompt es obligatorio
-    if (includeImage && !imageFile && !imagePrompt.trim()) {
+    // Si incluir imagen está marcado, el prompt es obligatorio
+    if (includeImage && !imagePrompt.trim()) {
       setError(copy.errors.imagePrompt);
       return;
     }
