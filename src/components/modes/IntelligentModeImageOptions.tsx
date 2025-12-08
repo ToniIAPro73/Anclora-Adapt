@@ -167,7 +167,11 @@ const IntelligentModeImageOptions: React.FC<
             }}
             value={imagePrompt}
             onChange={(e) => onImagePromptChange(e.target.value)}
-            placeholder={imagePromptPlaceholder}
+            placeholder={
+              imageFile
+                ? "Opcional: añade instrucciones para refinar la imagen generada..."
+                : imagePromptPlaceholder
+            }
           />
         </div>
       )}
