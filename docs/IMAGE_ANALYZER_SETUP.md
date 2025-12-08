@@ -165,6 +165,37 @@ data: {"status": "generating", "message": "Generating prompt..."}
 data: {"status": "complete", "generatedPrompt": "..."}
 ```
 
+### POST `/api/images/analyze-detailed`
+
+**Comprehensive JSON export for external model usage**
+
+Perfect fallback when image generation fails or for sharing analysis with other AI models.
+
+**Request:**
+```bash
+curl -X POST http://localhost:8000/api/images/analyze-detailed \
+  -F "image=@image.jpg" \
+  -F "user_prompt=A beautiful landscape" \
+  -F "deep_thinking=true" \
+  -o analysis.json
+```
+
+**Response includes:**
+- Complete visual analysis with confidence scores (0-1)
+- Detailed prompt (500-800 tokens depending on mode)
+- Original user input
+- Combined prompt with context
+- Usage instructions for different purposes
+- Metadata about file and analysis
+
+**Use Cases:**
+- Copy/paste into other image generation models (Midjourney, DALL-E, Stable Diffusion, etc.)
+- Provide context to another AI model for refinement or variations
+- Archive and share detailed image analysis
+- Batch process multiple images with complete metadata
+
+**See:** `IMAGE_ANALYZER_DETAILED_JSON_EXAMPLE.md` for complete response structure and integration examples.
+
 ### GET `/api/images/health`
 
 Health check for image analyzer service.
@@ -175,7 +206,12 @@ Health check for image analyzer service.
 {
   "status": "ok",
   "service": "image-analyzer",
-  "analyzer_initialized": true
+  "analyzer_initialized": true,
+  "endpoints": {
+    "/analyze": "Basic prompt generation",
+    "/analyze-stream": "Streaming analysis with SSE",
+    "/analyze-detailed": "Detailed JSON for external model use"
+  }
 }
 ```
 
