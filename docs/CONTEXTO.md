@@ -35,11 +35,13 @@ Ultima revision: **diciembre 2025** - **Optimizaciones de rendimiento completada
   - Layout optimizado: sin scroll vertical a 100% zoom sin imagen
   - Preview de imagen en chip compacto (40x40px) con nombre y tamaño
 
-- **Análisis automático de imágenes** (Diciembre 2025):
-  - CLIP + Ollama para análisis visual inteligente
-  - Auto-generación de prompts desde imágenes subidas
-  - Análisis de 5 categorías: estilo, mood, composición, paleta de colores, sujetos
-  - Endpoints SSE para updates progresivos
+- **Análisis automático de imágenes mejorado** (Diciembre 2025 - Actualización):
+  - ✅ **Migración de CLIP a Qwen3-VL:8b** para mejor comprensión visual
+  - ✅ **Análisis en dos fases**: descripción visual → generación de prompt detallado
+  - ✅ **Soporte multiidioma**: 9 idiomas con prompts específicos (ES, EN, FR, DE, IT, PT, JA, ZH, AR)
+  - ✅ **Token limits aumentados**: 1000 estándar / 2000 deep thinking mode
+  - ✅ **Sistema de prompts mejorado**: instrucciones explícitas para análisis exhaustivo
+  - ✅ **Logging detallado**: verificación de datos de imagen, estructura de payload, respuestas
   - React hook `useImageAnalyzer` integrado en IntelligentMode
   - Fallback a entrada manual si análisis falla
 
@@ -114,6 +116,64 @@ Ultima revision: **diciembre 2025** - **Optimizaciones de rendimiento completada
 - ✅ useTTSModeState.ts (230 líneas) - Lógica de voces
 
 **Resultado**: 58-68% reducción en tamaño de archivos principales, mejor testabilidad.
+
+### Fase 8: Mejora del Análisis de Imágenes con Qwen3-VL (Diciembre 2025)
+
+**Objetivo**: Reemplazar CLIP con Qwen3-VL:8b para análisis visual más detallado y preciso.
+
+**Problema detectado**: CLIP proporcionaba análisis superficiales que generaban prompts genéricos sin capturar detalles específicos de la imagen.
+
+**Cambios implementados**:
+
+- ✅ **Migración de CLIP → Qwen3-VL:8b**
+  - Reemplazo completo de `CLIPModel` y `CLIPProcessor` por Qwen3-VL
+  - Cambio de `/api/generate` a `/api/chat` para soporte de system messages
+  - Base64 encoding de imágenes para transmisión a través de API
+
+- ✅ **Arquitectura de análisis en dos fases**
+  - PASO 1: Descripción exhaustiva de elementos visuales
+    - Objetos principales y secundarios
+    - Colores específicos y gradientes
+    - Estilos artísticos y técnicas
+    - Composición y perspectiva
+    - Iluminación y sombras
+    - Texturas y materiales
+    - Atmósfera y mood
+    - Fondos y ambiente
+    - Profundidad y perspectiva
+  - PASO 2: Generación de prompt basado en análisis
+    - Prompts exhaustivos y específicos
+    - Instruir explícitamente: "NO resumas ni simplifiques - SÉ EXHAUSTIVO"
+    - Mínimo 300 palabras en deep thinking mode
+
+- ✅ **Soporte multiidioma integral**
+  - 9 idiomas: ES, EN, FR, DE, IT, PT, JA, ZH, AR
+  - System messages específicos por idioma
+  - Instrucciones de lenguaje en cada fase
+
+- ✅ **Token limits aumentados para mejor salida**
+  - Modo estándar: 1000 tokens (vs. 800 anterior)
+  - Modo deep thinking: 2000 tokens (vs. 1500 anterior)
+  - Permite outputs más largos y detallados
+
+- ✅ **Sistema de prompts mejorado**
+  - Instrucciones más explícitas para análisis visual
+  - Énfasis en "CUIDADOSAMENTE", "EXHAUSTIVAMENTE", "ESPECÍFICO"
+  - Listas detalladas de qué incluir en cada categoría
+
+- ✅ **Logging y debugging mejorados**
+  - Verificación de tamaño de datos base64 (KB)
+  - Confirmación de estructura de payload
+  - Logging de respuestas y errores con traceback
+  - Manejo de errores de conexión explícito
+
+**Archivos modificados**:
+- `python-backend/app/services/image_analyzer.py` (líneas 94-244)
+  - Método `_generate_prompt_with_vision()` completamente refactorizado
+  - Nuevo sistema de prompts de dos fases
+  - Logging detallado para debugging
+
+**Resultado**: Análisis visual más profundo, prompts específicos de imagen, mejor calidad de salida.
 
 ---
 

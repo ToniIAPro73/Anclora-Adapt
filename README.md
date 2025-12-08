@@ -108,6 +108,23 @@ Perfiles ejemplo:
 - **Solo CPU** → `orca-mini`, imagen deshabilitada, TTS pyttsx3.
 - **Texto únicamente** → define solo `VITE_OLLAMA_BASE_URL` y `VITE_TEXT_MODEL_ID`.
 
+**Nota sobre el Analizador de Imágenes (Qwen3-VL)**:
+
+El modo **Inteligente** incluye análisis automático de imágenes usando el modelo Qwen3-VL:8b (8 GB VRAM). Cuando subes una imagen:
+
+1. El backend analiza visualmente cada elemento (objetos, colores, estilos, composición, iluminación, atmósfera)
+2. Genera un prompt detallado y específico que captura los detalles de la imagen
+3. Soporta 9 idiomas (ES, EN, FR, DE, IT, PT, JA, ZH, AR)
+4. El modo "Pensamiento Profundo" produce prompts más exhaustivos
+
+Para usar esta funcionalidad:
+
+```bash
+ollama pull qwen3-vl:8b    # Descarga el modelo
+# El backend debe estar corriendo en http://localhost:8000
+python python-backend/main.py
+```
+
 ---
 
 ## Flujo de desarrollo
@@ -129,7 +146,7 @@ Perfiles ejemplo:
    python main.py
    ```
 
-   El backend expone `/api/tts`, `/api/stt`, `/api/image` y `/api/voices`.
+   El backend expone `/api/tts`, `/api/stt`, `/api/image`, `/api/voices` y `/api/images/analyze` (Qwen3-VL para análisis visual).
 
 3. **Arranca Ollama**  
    `ollama pull llama2` → `ollama serve`
@@ -153,7 +170,7 @@ Perfiles ejemplo:
 - El modo **Voz** llama a `GET ${VITE_TTS_ENDPOINT}/voices` (FastAPI expone `/api/voices`) para poblar idiomas/presets. Si la llamada falla, se muestran presets locales como fallback.
 - `npm run check:health` confirma rápidamente que Ollama y los endpoints configurados responden antes de abrir la SPA.
 - El modo **Imagen** permite elegir dimensiones (512–1216), pasos y negative prompt; todo se procesa desde `/api/image` (SDXL Lightning, 4–8 pasos recomendados).
-- El modo **Inteligente** genera contenido estratégico con contexto (ideas + contexto + idioma + pensamiento profundo). Opcionalmente puede generar una imagen complementaria: introduce un prompt para describir la imagen deseada. Si seleccionas una imagen para usar como referencia, el prompt sigue siendo obligatorio para especificar ajustes o variaciones.
+- El modo **Inteligente** genera contenido estratégico con contexto (ideas + contexto + idioma + pensamiento profundo). Opcionalmente puede generar una imagen complementaria: introduce un prompt para describir la imagen deseada. **NUEVO**: Si subes una imagen para análisis, el backend usa Qwen3-VL:8b para analizar automáticamente todos los elementos visuales (objetos, colores, estilos, composición, iluminación, atmósfera) y genera un prompt detallado que captura los detalles específicos de la imagen. Soporta 9 idiomas con prompts específicos por idioma.
 
 ---
 

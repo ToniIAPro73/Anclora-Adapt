@@ -317,10 +317,18 @@ Currently only **text generation** is implemented. Other modalities are placehol
 
 \* Intelligent mode:
 - Text generation: ✅ Ollama
-- Image generation: ✅ Optional with auto-analysis via CLIP + Ollama (NEW - December 2025)
-- Image analyzer: ✅ Auto-generates prompts from uploaded images (CLIP embeddings + Ollama refinement)
+- Image generation: ✅ Optional with auto-analysis via Qwen3-VL + Ollama (UPDATED - December 2025)
+- Image analyzer: ✅ Auto-generates detailed prompts from uploaded images using Qwen3-VL vision model
 
-**Implemented**: CLIP-based image analysis with auto-prompt generation. See `docs/IMAGE_ANALYZER_SETUP.md` for setup details.
+**Implemented**: Qwen3-VL-based image analysis with two-stage visual understanding and detailed prompt generation. See `docs/IMAGE_ANALYZER_SETUP.md` for setup details.
+
+**Recent Improvements (December 2025)**:
+- Migrated from CLIP to Qwen3-VL:8b for superior visual understanding
+- Implemented two-stage analysis: visual element description → detailed prompt generation
+- Added support for 9 languages (ES, EN, FR, DE, IT, PT, JA, ZH, AR)
+- Increased token limits: 1000 standard / 2000 deep thinking mode
+- Enhanced system prompts with explicit instructions for detailed analysis
+- Comprehensive error handling and debugging logging
 
 **Future work**: Integrate image generation (Stable Diffusion), TTS (Bark), STT (Whisper) via Ollama or external APIs.
 
@@ -359,6 +367,67 @@ Response:
 - `temperature` (0-1): Randomness of output (0=deterministic, 1=creative)
 - `stream` (bool): Return complete response or stream chunks
 - `num_predict` (int): Max tokens to generate
+
+### Qwen3-VL Vision API (Image Analysis)
+
+Qwen3-VL-8b is used for detailed image analysis and prompt generation via Ollama's `/api/chat` endpoint:
+
+```
+POST http://localhost:11434/api/chat
+Content-Type: application/json
+
+{
+  "model": "qwen3-vl:8b",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are an expert in image analysis and detailed prompt creation..."
+    },
+    {
+      "role": "user",
+      "content": "Analyze this image carefully and describe all visual elements...",
+      "images": ["base64_encoded_image_data"]
+    }
+  ],
+  "stream": false,
+  "options": {
+    "temperature": 0.5,
+    "top_p": 0.9,
+    "num_predict": 1000
+  }
+}
+
+Response:
+{
+  "model": "qwen3-vl:8b",
+  "created_at": "2025-12-09T...",
+  "message": {
+    "role": "assistant",
+    "content": "Detailed analysis of the image with specific visual elements..."
+  },
+  "done": true,
+  "total_duration": 25000000000,
+  ...
+}
+```
+
+**Two-Stage Analysis Process:**
+1. **PASO 1 (Analysis)**: Describe exhaustively all visual elements
+   - Main and secondary objects
+   - Specific colors and gradients
+   - Artistic styles and techniques
+   - Composition and perspective
+   - Lighting and shadows
+   - Textures and materials
+   - Atmosphere and mood
+   - Backgrounds and environment
+
+2. **PASO 2 (Generation)**: Create detailed prompt based on the analysis
+   - Standard mode: 1000 tokens max
+   - Deep thinking mode: 2000 tokens max
+   - Explicit instruction to be exhaustive and specific
+
+**Language Support:** 9 languages with dedicated system prompts (ES, EN, FR, DE, IT, PT, JA, ZH, AR)
 
 ## Known Limitations & Future Improvements
 
