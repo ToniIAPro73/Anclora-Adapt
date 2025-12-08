@@ -109,6 +109,10 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
     setIsProcessing,
   } = useIntelligentModeState(interfaceLanguage, languageOptions);
 
+  // Store separate prompts for display and download
+  const [ideaPromptFinal, setIdeaPromptFinal] = React.useState<string | null>(null);
+  const [imagePromptFinal, setImagePromptFinal] = React.useState<string | null>(null);
+
   const downloadJSON = () => {
     if (!generatedJSON) return;
 
@@ -171,6 +175,98 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const downloadIdeaPromptMarkdown = () => {
+    if (!ideaPromptFinal) return;
+
+    const markdown = `# Prompt para Idea/Contexto\n\n\`\`\`\n${ideaPromptFinal}\n\`\`\``;
+    const dataBlob = new Blob([markdown], { type: "text/markdown" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "prompt_idea.md";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadIdeaPromptJSON = () => {
+    if (!ideaPromptFinal) return;
+
+    const promptData = {
+      metadata: {
+        version: "1.0",
+        timestamp: new Date().toISOString(),
+        mode: "intelligent",
+        type: "idea_prompt"
+      },
+      prompt: ideaPromptFinal,
+      inputs: {
+        idea,
+        contexto: context || "General",
+        idioma: languages.find((l) => l.value === language)?.label || language,
+        pensamiento_profundo: deepThinking,
+        mejorado: improvePrompt
+      }
+    };
+
+    const dataStr = JSON.stringify(promptData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "prompt_idea.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadImagePromptMarkdown = () => {
+    if (!imagePromptFinal) return;
+
+    const markdown = `# Prompt para Imagen\n\n\`\`\`\n${imagePromptFinal}\n\`\`\``;
+    const dataBlob = new Blob([markdown], { type: "text/markdown" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "prompt_imagen.md";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadImagePromptJSON = () => {
+    if (!imagePromptFinal) return;
+
+    const promptData = {
+      metadata: {
+        version: "1.0",
+        timestamp: new Date().toISOString(),
+        mode: "intelligent",
+        type: "image_prompt"
+      },
+      prompt: imagePromptFinal,
+      inputs: {
+        imagen_prompt: imagePrompt,
+        pensamiento_profundo: deepThinking,
+        mejorado: improvePrompt
+      }
+    };
+
+    const dataStr = JSON.stringify(promptData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "prompt_imagen.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleGenerate = async () => {
     if (!idea.trim()) {
       setError(copy.errors.idea);
@@ -186,76 +282,84 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
       const languageDisplay =
         languages.find((l) => l.value === language)?.label || language;
 
-      // Step 1: Build the raw prompt
       // Sanitize inputs by removing newlines to prevent JSON parsing issues
       const sanitizeInput = (text: string) => text.replace(/\n/g, " ").replace(/\r/g, "").trim();
 
-      const rawPrompt = `Rol: Estratega. Tarea: "${sanitizeInput(idea)}". Contexto: "${
-        sanitizeInput(context) || "General"
-      }". Idioma: ${languageDisplay}.${
-        includeImage && imagePrompt.trim()
-          ? ` Prompt para imagen: "${sanitizeInput(imagePrompt)}".`
-          : ""
-      }`;
+      // Helper function to optimize a prompt
+      const optimizePromptViaBackend = async (rawPrompt: string): Promise<string> => {
+        if (!improvePrompt) return rawPrompt;
 
-      let finalPrompt = rawPrompt;
-
-      // Step 2: If improvePrompt is checked, optimize the prompt using backend
-      if (improvePrompt) {
         try {
           const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
           const optimizeUrl = `${API_BASE_URL}/api/prompts/optimize`;
           const response = await fetch(optimizeUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                prompt: rawPrompt,
-                deep_thinking: deepThinking,
-                model: "qwen2.5:7b-instruct",
-              }),
-            }
-          );
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prompt: rawPrompt,
+              deep_thinking: deepThinking,
+              model: "qwen2.5:7b-instruct",
+            }),
+          });
 
           if (!response.ok) {
-            throw new Error(
-              `Error optimizing prompt: ${response.statusText}`
-            );
+            throw new Error(`Error optimizing prompt: ${response.statusText}`);
           }
 
           const optimizeResult = await response.json();
           if (optimizeResult.success && optimizeResult.improved_prompt) {
-            finalPrompt = optimizeResult.improved_prompt;
+            return optimizeResult.improved_prompt;
           } else {
-            // If optimization fails, use raw prompt and show warning
             const errorMsg = optimizeResult.error || "Error desconocido";
             console.warn("Prompt optimization failed, using raw prompt:", errorMsg);
             setError(`Aviso: No se pudo optimizar el prompt. Usando versión original.`);
+            return rawPrompt;
           }
         } catch (optimizeErr) {
-          // If backend is unavailable, use raw prompt with warning
           const errorMsg = optimizeErr instanceof Error ? optimizeErr.message : String(optimizeErr);
           console.warn("Prompt optimizer unavailable, using raw prompt:", errorMsg);
-          // Continue with raw prompt instead of failing
+          return rawPrompt;
         }
-      }
+      };
 
-      // Step 3: Save the final prompt for display and download
-      setExecutedPrompt(finalPrompt);
+      // PROMPT 1: Idea/Context Prompt
+      const ideaPromptRaw = `Rol: Estratega. Tarea: "${sanitizeInput(idea)}". Contexto: "${
+        sanitizeInput(context) || "General"
+      }". Idioma: ${languageDisplay}.`;
 
-      // Step 4: Generate image if needed
+      const ideaPromptFinalValue = await optimizePromptViaBackend(ideaPromptRaw);
+      setIdeaPromptFinal(ideaPromptFinalValue);
+      setExecutedPrompt(ideaPromptFinalValue);
+
+      // PROMPT 2: Image Prompt (if included)
+      let imagePromptFinalValue: string | undefined;
       let generatedImageUrl: string | undefined;
+
       if (includeImage && imagePrompt.trim()) {
-        const base64 = imageFile ? await fileToBase64(imageFile) : undefined;
-        const imageResult = await onGenerateImage({
-          prompt: `${imagePrompt}\nContexto: ${context || "General"}`,
-          base64Image: base64,
-        });
-        generatedImageUrl = imageResult;
-        setImageUrl(imageResult);
+        const imagePromptRaw = sanitizeInput(imagePrompt);
+        imagePromptFinalValue = await optimizePromptViaBackend(imagePromptRaw);
+        setImagePromptFinal(imagePromptFinalValue);
+
+        // Generate image with the optimized prompt
+        // Suppress image generation errors silently since image generation is not implemented
+        try {
+          const base64 = imageFile ? await fileToBase64(imageFile) : undefined;
+          const imageResult = await onGenerateImage({
+            prompt: imagePromptFinalValue,
+            base64Image: base64,
+          });
+          generatedImageUrl = imageResult;
+          setImageUrl(imageResult);
+        } catch (imageErr) {
+          // Silently ignore image generation errors - user knows this is not implemented
+          console.warn("Image generation not available:", imageErr instanceof Error ? imageErr.message : String(imageErr));
+        }
+      } else {
+        setImagePromptFinal(null);
       }
 
-      // Step 5: Create JSON with the final prompt
-      const intelligentJSON: IntelligentJSON = {
+      // Store both prompts for download
+      setGeneratedJSON({
         metadata: {
           version: "1.0",
           timestamp: new Date().toISOString(),
@@ -267,16 +371,14 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
           idioma: languageDisplay,
           pensamiento_profundo: deepThinking,
           imagen_incluida: includeImage,
-          ...(includeImage && { imagen_prompt: imagePrompt }),
-          ...(includeImage && imageFile && { imagen_analizada: !!imageFile }),
+          ...(includeImage && { imagen_prompt: imagePromptFinalValue }),
         },
         resultados: {
-          contenido_generado: finalPrompt,
+          prompt_idea: ideaPromptFinalValue,
+          ...(imagePromptFinalValue && { prompt_imagen: imagePromptFinalValue }),
           ...(generatedImageUrl && { imagen_url: generatedImageUrl }),
         },
-      };
-
-      setGeneratedJSON(intelligentJSON);
+      } as any);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -337,6 +439,12 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
             copy={outputCopy}
             generatedJSON={generatedJSON}
             onDownloadJSON={downloadJSON}
+            ideaPrompt={ideaPromptFinal}
+            imagePrompt={imagePromptFinal}
+            onDownloadIdeaPrompt={downloadIdeaPromptMarkdown}
+            onDownloadIdeaPromptJSON={downloadIdeaPromptJSON}
+            onDownloadImagePrompt={downloadImagePromptMarkdown}
+            onDownloadImagePromptJSON={downloadImagePromptJSON}
             executedPrompt={executedPrompt}
             onDownloadPrompt={downloadPromptMarkdown}
             onDownloadPromptJSON={downloadPromptJSON}
