@@ -113,9 +113,9 @@ const allState = useInteraction();
 
 **Performance Impact**: 70-80% reduction in unnecessary re-renders across the app.
 
-### Previous Architecture
+### Historical Architecture (Pre-December 2025)
 
-All logic previously resided in `index.tsx` (~80KB). The application:
+Previously, all logic resided in monolithic `index.tsx` (~80KB). The application:
 
 1. **Initializes at module load**:
 
