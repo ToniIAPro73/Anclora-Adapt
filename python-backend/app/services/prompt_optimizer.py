@@ -5,9 +5,12 @@ Optimizador de prompts usando un LLM open source vía Ollama (Qwen2.5).
 
 from __future__ import annotations
 
+import logging
 from typing import List
 from pydantic import BaseModel
 from ollama import chat
+
+logger = logging.getLogger(__name__)
 
 
 # 1) Esquema de salida que queremos del modelo
@@ -109,12 +112,34 @@ def improve_prompt(
         },
     )
 
-    # Manejo flexible de la respuesta (puede ser dict o objeto)
-    if isinstance(response, dict):
-        content = response.get("message", {}).get("content", "")
-    else:
-        content = response.message.content
+    # Convertir a dict si es un objeto con atributos
+    response_dict = response if isinstance(response, dict) else vars(response)
 
+    logger.debug(f"Response type: {type(response)}")
+    logger.debug(f"Response dict keys: {response_dict.keys() if isinstance(response_dict, dict) else 'N/A'}")
+    logger.debug(f"Full response: {response_dict}")
+
+    # Extraer contenido: puede estar en response["message"]["content"] o response["content"]
+    content = ""
+    if isinstance(response_dict, dict):
+        # Ruta 1: response["message"]["content"]
+        if "message" in response_dict:
+            message = response_dict["message"]
+            if isinstance(message, dict):
+                content = message.get("content", "")
+            else:
+                # message es un objeto, intenta acceder como atributo
+                content = getattr(message, "content", str(message))
+
+        # Ruta 2: response["content"] si la ruta 1 no funcionó
+        if not content:
+            content = response_dict.get("content", "")
+
+    if not content:
+        logger.error(f"Could not extract content from response: {response_dict}")
+        raise ValueError("La respuesta de Ollama está vacía o en un formato inesperado")
+
+    logger.debug(f"Extracted content length: {len(content)}")
     return PromptImprovement.model_validate_json(content)
 
 
