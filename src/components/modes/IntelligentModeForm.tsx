@@ -67,18 +67,26 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
       }
     >
       {/* Idea Section */}
-      <h3 style={{ ...commonStyles.frameTitle, marginBottom: "2px" }}>Idea</h3>
       <div
         style={{
           display: "flex",
           flexDirection: "column",
-          flex: includeImage ? "0 0 auto" : "0 0 140px",
+          flex: includeImage ? "0 0 auto" : "0 0 135px",
           height: includeImage ? "140px" : "100%",
           minHeight: "100px",
           marginBottom: "8px",
           flexShrink: 0,
         }}
       >
+        <label
+          style={{
+            ...commonStyles.label,
+            fontSize: "0.8em",
+            marginBottom: "2px",
+          }}
+        >
+          Idea
+        </label>
         <textarea
           style={{ ...commonStyles.textarea, height: "100%", resize: "none" }}
           value={idea}
@@ -95,7 +103,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          flex: includeImage ? "0 0 auto" : "0 0 110px",
+          flex: includeImage ? "0 0 auto" : "0 0 105px",
           height: includeImage ? "100px" : "100%",
           minHeight: "80px",
           marginBottom: "8px",
