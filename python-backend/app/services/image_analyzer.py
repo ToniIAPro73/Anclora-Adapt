@@ -212,127 +212,172 @@ class ImageAnalyzer:
         # Build refinement prompt - support multiple languages
         refinement_templates = {
             "es": {
-                "deep": """Analiza este análisis visual detallado de una imagen:
+                "deep": """TAREA: Crear un prompt EXTREMADAMENTE DETALLADO basado en el análisis visual de una imagen real.
 
+ANÁLISIS VISUAL PROPORCIONADO:
 {analysis}
 
 {user_hint}
 
-Crea un prompt EXTREMADAMENTE DETALLADO y ESTRUCTURADO para generar una imagen similar. El prompt debe incluir:
+REQUISITOS - El prompt DEBE:
+1. Ser EXTREMADAMENTE ESPECÍFICO: No vago, no genérico. Cada elemento debe estar descrito con precisión.
+2. COMBINACIÓN INTELIGENTE: Fusionar los elementos detectados (style, mood, composition, etc.) en una narrativa coherente
+3. DETALLE TÉCNICO: Usar términos profesionales específicos para rendering, lighting, materials
+4. DESCRIPTIVO PERO CONCISO: Largo pero enfocado, evitando redundancias
 
-1. **Estilo artístico específico**: Describe el estilo visual, movimiento artístico, o referencia artística (ej: oil painting, digital art, photorealism, etc)
-2. **Tema y sujetos principales**: Identifica qué o quién es el sujeto principal y contexto de la imagen
-3. **Composición visual**: Describe la distribución espacial, punto focal, perspectiva y balance
-4. **Paleta de colores**: Lista colores específicos, dominantes, de acentos y matices. Describe las transiciones de color
-5. **Mood y atmósfera**: Describe la emoción, energía y atmósfera que transmite la imagen
-6. **Iluminación**: Tipo de iluminación, dirección, intensidad, calidad de luz, sombras y reflejos
-7. **Detalles visuales clave**: Texturas, patrones, acabados, detalles pequeños importantes
-8. **Elementos ambientales**: Fondos, entorno, accesorios, elementos decorativos
-9. **Técnica y medio**: Técnica de rendering, material, acabado (oil, acrylic, digital, photograph, mixed media, etc)
-10. **Proporciones y escala**: Dimensiones, tamaño relativo de elementos, perspectiva
+ESTRUCTURA OBLIGATORIA:
+1. **Estilo artístico específico**: Basado en los estilos detectados, describe la técnica visual exacta (ej: si detectó "3D render" y "modern", especifica "photorealistic 3D render", no solo "3D render")
+2. **Tema y sujetos principales**: Los ELEMENTOS ESPECÍFICOS que aparecen en la imagen (usar los "subjects" y "composition" detectados)
+3. **Composición visual detallada**: Cómo se distribuyen los elementos, punto focal, perspectiva específica
+4. **Paleta de colores PRECISA**: Usar los colores detectados, especificar dominantes y secundarios con nombre exacto de color
+5. **Mood y atmósfera ESPECÍFICA**: La emoción exacta basada en análisis detectado
+6. **Iluminación técnica**: Tipo exacto de iluminación (ej: "three-point lighting", "soft diffuse", "harsh directional")
+7. **Materiales y texturas**: Basado en la técnica, especificar materiales (metal, concrete, glass, etc.)
+8. **Elementos ambientales específicos**: Fondos, contexto urbano/natural, detalles del entorno
+9. **Técnica y rendering**: Precisar la técnica exacta (ej: Unreal Engine photorealism, Octane render, etc.)
+10. **Proporciones y escala**: Relación entre elementos, perspectiva específica
 
-Sé EXTREMADAMENTE ESPECÍFICO y DETALLADO en cada punto.""",
-                "standard": """Analiza este análisis visual detallado de una imagen:
+IMPORTANTE: NO inventes elementos que no veas en el análisis. SÓLO elabora y especializa lo que el análisis detectó.
 
+Crea el prompt ahora:""",
+                "standard": """TAREA: Crear un prompt DETALLADO basado en el análisis visual de una imagen real.
+
+ANÁLISIS VISUAL PROPORCIONADO:
 {analysis}
 
 {user_hint}
 
-Crea un prompt DETALLADO y BIEN ESTRUCTURADO para generar una imagen similar. El prompt debe incluir:
+REQUISITOS - El prompt DEBE:
+1. Ser ESPECÍFICO: Descripciones precisas basadas en los elementos detectados
+2. COHERENCIA: Fusionar estilos, mood y composición en una descripción unitaria
+3. TÉCNICO PERO ACCESIBLE: Usar términos profesionales pero comprensibles
 
-1. **Estilo artístico**: El estilo visual y técnica de la obra
-2. **Sujeto y tema**: Qué se ve, tema principal y contexto
-3. **Composición**: Distribución, punto focal, perspectiva
-4. **Paleta de colores**: Colores dominantes, acentos y descripción de tonos
-5. **Mood y atmósfera**: La emoción y atmósfera transmitida
-6. **Iluminación**: Tipo, dirección e intensidad de la luz
-7. **Detalles visuales**: Texturas, patrones y detalles importantes
-8. **Ambiente**: Fondo, entorno y elementos contextuales
-9. **Técnica**: Técnica de renderizado o medio artístico
+ESTRUCTURA OBLIGATORIA:
+1. **Estilo artístico**: La técnica visual exacta (basada en estilos detectados)
+2. **Tema y sujetos**: Los elementos principales que aparecen realmente
+3. **Composición**: Distribución espacial, punto focal, perspectiva
+4. **Paleta de colores**: Colores detectados con nombres específicos
+5. **Mood y atmósfera**: La emoción transmitida por la imagen
+6. **Iluminación**: Tipo y dirección de la luz (basada en análisis)
+7. **Materiales y texturas**: Superficies y texturas detectadas
+8. **Ambiente**: Contexto específico detectado
+9. **Técnica**: Técnica de rendering o medio artístico
 
-Sé ESPECÍFICO y DETALLADO."""
+IMPORTANTE: Basarse ÚNICAMENTE en los elementos del análisis. No inventar.
+
+Crea el prompt:"""
             },
             "en": {
-                "deep": """Analyze this detailed visual analysis of an image:
+                "deep": """TASK: Create an EXTREMELY DETAILED prompt based on real image visual analysis.
 
+VISUAL ANALYSIS PROVIDED:
 {analysis}
 
 {user_hint}
 
-Create an EXTREMELY DETAILED and STRUCTURED prompt for generating a similar image. The prompt must include:
+REQUIREMENTS - The prompt MUST:
+1. Be EXTREMELY SPECIFIC: Not vague, not generic. Each element must be precisely described.
+2. INTELLIGENT COMBINATION: Merge detected elements (style, mood, composition, etc.) into a coherent narrative
+3. TECHNICAL DETAIL: Use specific professional terms for rendering, lighting, materials
+4. DESCRIPTIVE BUT CONCISE: Long but focused, avoiding redundancies
 
-1. **Specific artistic style**: Describe the visual style, artistic movement, or artistic reference (e.g., oil painting, digital art, photorealism, etc)
-2. **Main theme and subjects**: Identify what or who is the main subject and context of the image
-3. **Visual composition**: Describe spatial distribution, focal point, perspective and balance
-4. **Color palette**: List specific, dominant, accent and nuance colors. Describe color transitions
-5. **Mood and atmosphere**: Describe the emotion, energy and atmosphere conveyed by the image
-6. **Lighting**: Type of lighting, direction, intensity, light quality, shadows and reflections
-7. **Key visual details**: Textures, patterns, finishes, important small details
-8. **Environmental elements**: Backgrounds, surroundings, accessories, decorative elements
-9. **Technique and medium**: Rendering technique, material, finish (oil, acrylic, digital, photograph, mixed media, etc)
-10. **Proportions and scale**: Dimensions, relative size of elements, perspective
+MANDATORY STRUCTURE:
+1. **Specific artistic style**: Based on detected styles, describe the exact visual technique (e.g., if detected "3D render" and "modern", specify "photorealistic 3D render", not just "3D render")
+2. **Main theme and subjects**: The SPECIFIC ELEMENTS appearing in the image (use detected "subjects" and "composition")
+3. **Detailed visual composition**: How elements are distributed, focal point, specific perspective
+4. **PRECISE color palette**: Use detected colors, specify dominant and secondary with exact color names
+5. **SPECIFIC mood and atmosphere**: The exact emotion based on detected analysis
+6. **Technical lighting**: Exact lighting type (e.g., "three-point lighting", "soft diffuse", "harsh directional")
+7. **Materials and textures**: Based on technique, specify materials (metal, concrete, glass, etc.)
+8. **Specific environmental elements**: Backgrounds, urban/natural context, environment details
+9. **Technique and rendering**: Specify exact technique (e.g., Unreal Engine photorealism, Octane render, etc.)
+10. **Proportions and scale**: Relationship between elements, specific perspective
 
-Be EXTREMELY SPECIFIC and DETAILED on each point.""",
-                "standard": """Analyze this detailed visual analysis of an image:
+IMPORTANT: Do NOT invent elements not in the analysis. ONLY elaborate and specialize what the analysis detected.
 
+Create the prompt now:""",
+                "standard": """TASK: Create a DETAILED prompt based on real image visual analysis.
+
+VISUAL ANALYSIS PROVIDED:
 {analysis}
 
 {user_hint}
 
-Create a DETAILED and WELL-STRUCTURED prompt for generating a similar image. The prompt must include:
+REQUIREMENTS - The prompt MUST:
+1. Be SPECIFIC: Precise descriptions based on detected elements
+2. COHERENCE: Merge styles, mood and composition into a unified description
+3. TECHNICAL BUT ACCESSIBLE: Use professional terms but understandable
 
-1. **Artistic style**: The visual style and technique of the work
-2. **Subject and theme**: What is seen, main theme and context
-3. **Composition**: Distribution, focal point, perspective
-4. **Color palette**: Dominant colors, accents and tone description
-5. **Mood and atmosphere**: The emotion and atmosphere conveyed
-6. **Lighting**: Type, direction and intensity of light
-7. **Visual details**: Textures, patterns and important details
-8. **Environment**: Background, surroundings and contextual elements
+MANDATORY STRUCTURE:
+1. **Artistic style**: The exact visual technique (based on detected styles)
+2. **Theme and subjects**: The main elements that actually appear
+3. **Composition**: Spatial distribution, focal point, perspective
+4. **Color palette**: Detected colors with specific names
+5. **Mood and atmosphere**: The emotion conveyed by the image
+6. **Lighting**: Type and direction of light (based on analysis)
+7. **Materials and textures**: Detected surfaces and textures
+8. **Environment**: Specific detected context
 9. **Technique**: Rendering technique or artistic medium
 
-Be SPECIFIC and DETAILED."""
+IMPORTANT: Base ONLY on analysis elements. Do NOT invent.
+
+Create the prompt:"""
             },
             "fr": {
-                "deep": """Analysez cette analyse visuelle détaillée d'une image:
+                "deep": """TÂCHE: Créer un prompt EXTRÊMEMENT DÉTAILLÉ basé sur l'analyse visuelle d'une image réelle.
 
+ANALYSE VISUELLE FOURNIE:
 {analysis}
 
 {user_hint}
 
-Créez un prompt EXTRÊMEMENT DÉTAILLÉ et STRUCTURÉ pour générer une image similaire. Le prompt doit inclure:
+EXIGENCES - Le prompt DOIT:
+1. Être EXTRÊMEMENT SPÉCIFIQUE: Pas vague, pas générique. Chaque élément doit être précisément décrit.
+2. COMBINAISON INTELLIGENTE: Fusionner les éléments détectés (style, mood, composition, etc.) dans une narration cohérente
+3. DÉTAIL TECHNIQUE: Utiliser les termes professionnels spécifiques pour le rendu, l'éclairage, les matériaux
+4. DESCRIPTIF MAIS CONCIS: Long mais focalisé, évitant les redondances
 
-1. **Style artistique spécifique**: Décrivez le style visuel, le mouvement artistique ou la référence artistique (par ex: peinture à l'huile, art numérique, photorealisme, etc)
-2. **Thème et sujets principaux**: Identifiez le sujet principal et le contexte de l'image
-3. **Composition visuelle**: Décrivez la distribution spatiale, le point focal, la perspective et l'équilibre
-4. **Palette de couleurs**: Énumérez les couleurs spécifiques, dominantes, d'accent et de nuance. Décrivez les transitions de couleur
-5. **Humeur et atmosphère**: Décrivez l'émotion, l'énergie et l'atmosphère transmises par l'image
-6. **Éclairage**: Type d'éclairage, direction, intensité, qualité de la lumière, ombres et reflets
-7. **Détails visuels clés**: Textures, motifs, finitions, détails petits mais importants
-8. **Éléments environnementaux**: Arrière-plans, environnement, accessoires, éléments décoratifs
-9. **Technique et médium**: Technique de rendu, matériau, finition (huile, acrylique, numérique, photographie, techniques mixtes, etc)
-10. **Proportions et échelle**: Dimensions, taille relative des éléments, perspective
+STRUCTURE OBLIGATOIRE:
+1. **Style artistique spécifique**: Basé sur les styles détectés, décrivez la technique visuelle exacte (ex: si détecté "3D render" et "modern", spécifiez "photorealistic 3D render", pas seulement "3D render")
+2. **Thème et sujets principaux**: Les ÉLÉMENTS SPÉCIFIQUES apparaissant dans l'image (utiliser les "subjects" et "composition" détectés)
+3. **Composition visuelle détaillée**: Comment les éléments sont distribués, point focal, perspective spécifique
+4. **Palette de couleurs PRÉCISE**: Utiliser les couleurs détectées, spécifier dominant et secondaire avec noms exactes
+5. **Humeur et atmosphère SPÉCIFIQUE**: L'émotion exacte basée sur l'analyse détectée
+6. **Éclairage technique**: Type exact d'éclairage (ex: "three-point lighting", "soft diffuse", "harsh directional")
+7. **Matériaux et textures**: Basé sur la technique, spécifier les matériaux (metal, béton, verre, etc.)
+8. **Éléments environnementaux spécifiques**: Arrière-plans, contexte urbain/naturel, détails d'environnement
+9. **Technique et rendu**: Spécifier la technique exacte (ex: Unreal Engine photorealism, Octane render, etc.)
+10. **Proportions et échelle**: Relation entre les éléments, perspective spécifique
 
-Soyez EXTRÊMEMENT SPÉCIFIQUE et DÉTAILLÉ sur chaque point.""",
-                "standard": """Analysez cette analyse visuelle détaillée d'une image:
+IMPORTANT: N'inventez PAS d'éléments absents de l'analyse. SEULEMENT élaborez et spécialisez ce que l'analyse a détecté.
 
+Créez le prompt maintenant:""",
+                "standard": """TÂCHE: Créer un prompt DÉTAILLÉ basé sur l'analyse visuelle d'une image réelle.
+
+ANALYSE VISUELLE FOURNIE:
 {analysis}
 
 {user_hint}
 
-Créez un prompt DÉTAILLÉ et BIEN STRUCTURÉ pour générer une image similaire. Le prompt doit inclure:
+EXIGENCES - Le prompt DOIT:
+1. Être SPÉCIFIQUE: Descriptions précises basées sur les éléments détectés
+2. COHÉRENCE: Fusionner les styles, mood et composition dans une description unitaire
+3. TECHNIQUE MAIS ACCESSIBLE: Utiliser des termes professionnels mais compréhensibles
 
-1. **Style artistique**: Le style visuel et la technique de l'œuvre
-2. **Sujet et thème**: Ce qui se voit, thème principal et contexte
-3. **Composition**: Distribution, point focal, perspective
-4. **Palette de couleurs**: Couleurs dominantes, accents et description des tonalités
-5. **Humeur et atmosphère**: L'émotion et l'atmosphère transmises
-6. **Éclairage**: Type, direction et intensité de la lumière
-7. **Détails visuels**: Textures, motifs et détails importants
-8. **Environnement**: Arrière-plan, environnement et éléments contextuels
+STRUCTURE OBLIGATOIRE:
+1. **Style artistique**: La technique visuelle exacte (basée sur les styles détectés)
+2. **Thème et sujets**: Les éléments principaux qui apparaissent réellement
+3. **Composition**: Distribution spatiale, point focal, perspective
+4. **Palette de couleurs**: Couleurs détectées avec noms spécifiques
+5. **Humeur et atmosphère**: L'émotion transmise par l'image
+6. **Éclairage**: Type et direction de la lumière (basé sur l'analyse)
+7. **Matériaux et textures**: Surfaces et textures détectées
+8. **Environnement**: Contexte spécifique détecté
 9. **Technique**: Technique de rendu ou médium artistique
 
-Soyez SPÉCIFIQUE et DÉTAILLÉ."""
+IMPORTANT: Basez-vous SEULEMENT sur les éléments de l'analyse. N'inventez PAS.
+
+Créez le prompt:"""
             }
         }
 
