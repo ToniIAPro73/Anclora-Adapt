@@ -67,7 +67,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
       }
     >
       {/* Idea Section */}
-      <h3 style={commonStyles.frameTitle}>Idea</h3>
+      <h3 style={{ ...commonStyles.frameTitle, marginBottom: "2px" }}>Idea</h3>
       <div
         style={{
           display: "flex",
@@ -75,7 +75,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           flex: includeImage ? "0 0 auto" : "0 0 140px",
           height: includeImage ? "140px" : "100%",
           minHeight: "100px",
-          marginBottom: "12px",
+          marginBottom: "8px",
           flexShrink: 0,
         }}
       >
@@ -98,7 +98,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           flex: includeImage ? "0 0 auto" : "0 0 110px",
           height: includeImage ? "100px" : "100%",
           minHeight: "80px",
-          marginBottom: "12px",
+          marginBottom: "8px",
           flexShrink: 0,
         }}
       >
