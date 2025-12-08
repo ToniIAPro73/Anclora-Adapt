@@ -22,6 +22,7 @@ interface OutputDisplayProps {
   onDownloadJSON?: () => void;
   executedPrompt?: string | null;
   onDownloadPrompt?: () => void;
+  onDownloadPromptJSON?: () => void;
 }
 
 const GeneratedOutputCard: React.FC<{
@@ -96,6 +97,7 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
   onDownloadJSON,
   executedPrompt,
   onDownloadPrompt,
+  onDownloadPromptJSON,
 }) => {
   return (
     <section style={commonStyles.outputSection}>
@@ -165,17 +167,30 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
                 maxHeight: "150px",
               }}
             />
-            <button
-              type="button"
-              style={{
-                ...commonStyles.copyButton,
-                marginTop: "8px",
-                width: "100%",
-              }}
-              onClick={onDownloadPrompt}
-            >
-              📥 Descargar como prompt.md
-            </button>
+            <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+              <button
+                type="button"
+                style={{
+                  ...commonStyles.copyButton,
+                  flex: 1,
+                }}
+                onClick={onDownloadPrompt}
+              >
+                📥 Descargar como prompt.md
+              </button>
+              {onDownloadPromptJSON && (
+                <button
+                  type="button"
+                  style={{
+                    ...commonStyles.copyButton,
+                    flex: 1,
+                  }}
+                  onClick={onDownloadPromptJSON}
+                >
+                  📥 Descargar como JSON
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

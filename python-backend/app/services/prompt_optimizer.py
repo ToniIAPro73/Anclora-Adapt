@@ -6,11 +6,15 @@ Optimizador de prompts usando un LLM open source vía Ollama (Qwen2.5).
 from __future__ import annotations
 
 import logging
+import json
+import requests
 from typing import List
 from pydantic import BaseModel
-from ollama import chat
 
 logger = logging.getLogger(__name__)
+
+# URL del servidor Ollama
+OLLAMA_API_URL = "http://localhost:11434/api/chat"
 
 
 # 1) Esquema de salida que queremos del modelo
@@ -94,7 +98,7 @@ def improve_prompt(
     model: str = "qwen2.5:7b-instruct",
 ) -> PromptImprovement:
     """
-    Llama al modelo local vía Ollama y devuelve un PromptImprovement.
+    Llama al modelo local vía Ollama (HTTP) y devuelve un PromptImprovement.
 
     raw_prompt: prompt original escrito por el usuario.
     deep_thinking: si True, pide un prompt más detallado y exhaustivo.
@@ -102,45 +106,71 @@ def improve_prompt(
     """
     messages = build_optimizer_messages(raw_prompt, deep_thinking)
 
-    response = chat(
-        model=model,
-        messages=messages,
-        # Structured outputs: pedimos que respete el esquema JSON de PromptImprovement
-        format=PromptImprovement.model_json_schema(),
-        options={
-            "temperature": 0.3,  # más estable y menos creativo
-        },
-    )
+    try:
+        logger.info(f"Calling Ollama API at {OLLAMA_API_URL}")
 
-    # Convertir a dict si es un objeto con atributos
-    response_dict = response if isinstance(response, dict) else vars(response)
+        # Hacer petición HTTP a Ollama
+        payload = {
+            "model": model,
+            "messages": messages,
+            "stream": False,
+            "options": {
+                "temperature": 0.3,
+            }
+        }
 
-    logger.debug(f"Response type: {type(response)}")
-    logger.debug(f"Response dict keys: {response_dict.keys() if isinstance(response_dict, dict) else 'N/A'}")
-    logger.debug(f"Full response: {response_dict}")
+        logger.debug(f"Payload: {json.dumps(payload, indent=2, ensure_ascii=False)[:200]}...")
 
-    # Extraer contenido: puede estar en response["message"]["content"] o response["content"]
-    content = ""
-    if isinstance(response_dict, dict):
-        # Ruta 1: response["message"]["content"]
-        if "message" in response_dict:
-            message = response_dict["message"]
-            if isinstance(message, dict):
-                content = message.get("content", "")
-            else:
-                # message es un objeto, intenta acceder como atributo
-                content = getattr(message, "content", str(message))
+        response = requests.post(OLLAMA_API_URL, json=payload, timeout=120)
+        response.raise_for_status()
 
-        # Ruta 2: response["content"] si la ruta 1 no funcionó
-        if not content:
-            content = response_dict.get("content", "")
+        response_data = response.json()
+        logger.debug(f"Response status: {response.status_code}")
+        logger.debug(f"Response data keys: {response_data.keys()}")
 
-    if not content:
-        logger.error(f"Could not extract content from response: {response_dict}")
-        raise ValueError("La respuesta de Ollama está vacía o en un formato inesperado")
+        # Extraer el contenido de la respuesta
+        if "message" not in response_data:
+            raise ValueError(f"La respuesta no contiene 'message': {response_data}")
 
-    logger.debug(f"Extracted content length: {len(content)}")
-    return PromptImprovement.model_validate_json(content)
+        message = response_data["message"]
+        if "content" not in message:
+            raise ValueError(f"El message no contiene 'content': {message}")
+
+        content = message["content"]
+        logger.debug(f"Raw content from Ollama:\n{content[:200]}...")
+
+        # Parsear el JSON de la respuesta
+        try:
+            json_data = json.loads(content)
+        except json.JSONDecodeError as e:
+            logger.error(f"Could not parse JSON from content: {content}")
+            raise ValueError(f"La respuesta no es un JSON válido: {str(e)}")
+
+        # Validar que tiene los campos requeridos
+        improved_prompt = json_data.get("improved_prompt", "")
+        rationale = json_data.get("rationale", "")
+        checklist = json_data.get("checklist", [])
+
+        if not improved_prompt:
+            raise ValueError("El JSON no contiene 'improved_prompt' o está vacío")
+
+        logger.info(f"Successfully parsed improved prompt ({len(improved_prompt)} chars)")
+
+        return PromptImprovement(
+            improved_prompt=improved_prompt,
+            rationale=rationale,
+            checklist=checklist if isinstance(checklist, list) else []
+        )
+
+    except requests.exceptions.ConnectionError as e:
+        logger.error(f"Cannot connect to Ollama at {OLLAMA_API_URL}: {str(e)}")
+        raise ValueError(f"No se puede conectar a Ollama. ¿Está ejecutándose en {OLLAMA_API_URL}?")
+    except requests.exceptions.Timeout:
+        logger.error("Ollama request timed out")
+        raise ValueError("La solicitud a Ollama expiró")
+    except Exception as e:
+        logger.error(f"Error in improve_prompt: {str(e)}", exc_info=True)
+        raise
 
 
 if __name__ == "__main__":

@@ -43,13 +43,15 @@ async def optimize_prompt(payload: PromptOptimizeRequest) -> PromptOptimizeRespo
     """
     try:
         logger.info(f"Optimizing prompt with model: {payload.model}, deep_thinking: {payload.deep_thinking}")
+        logger.info(f"Raw prompt: {payload.prompt[:100]}...")
+
         result: PromptImprovement = improve_prompt(
             raw_prompt=payload.prompt,
             deep_thinking=payload.deep_thinking,
             model=payload.model,
         )
 
-        logger.info("Prompt optimization successful")
+        logger.info(f"Prompt optimization successful. Result: {result.improved_prompt[:100]}...")
         return PromptOptimizeResponse(
             success=True,
             improved_prompt=result.improved_prompt,
