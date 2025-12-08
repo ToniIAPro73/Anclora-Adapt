@@ -17,7 +17,7 @@ Aplicación React 19 + Vite 6 + TypeScript para generar/adaptar contenido estrat
 | Audio (TTS/STT) | Endpoints locales (Whisper/Kokoro/etc.)                     |
 | Tests           | [Vitest](https://vitest.dev/) + React Testing Library       |
 
-**Requisitos previos**
+## Requisitos previos
 
 - Node.js 18+
 - Ollama en local (`ollama serve`)
@@ -28,7 +28,7 @@ Aplicación React 19 + Vite 6 + TypeScript para generar/adaptar contenido estrat
 
 ## Estructura del repositorio
 
-```
+```Tree
 .
 ├── assets/               # Recursos estáticos (capturas, audio demo)
 ├── docs/                 # Documentación viva (AGENTS, ROADMAP, setups, etc.)
