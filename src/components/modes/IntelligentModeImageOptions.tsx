@@ -80,18 +80,25 @@ const IntelligentModeImageOptions: React.FC<
                 style={{
                   display: "flex",
                   justifyContent: "center",
-                  paddingBottom: "4px",
+                  paddingBottom: "6px",
+                  width: "100%",
                 }}
               >
                 <img
                   src={imagePreview}
                   alt="selected image preview"
                   style={{
-                    maxWidth: "100%",
-                    maxHeight: "120px",
+                    maxWidth: "80px",
+                    maxHeight: "80px",
+                    width: "auto",
+                    height: "auto",
                     objectFit: "contain",
-                    borderRadius: "8px",
-                    border: "1px solid var(--panel-border, #e0e0e0)",
+                    borderRadius: "6px",
+                    border: "1px solid var(--panel-border, #646464)",
+                    display: "block",
+                  }}
+                  onError={(e) => {
+                    console.error("Image failed to load:", e);
                   }}
                 />
               </div>
