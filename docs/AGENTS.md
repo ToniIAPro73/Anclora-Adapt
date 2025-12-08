@@ -15,30 +15,40 @@
 
 ## Project Structure & Module Organization
 
-Anclora-Adapt es un **SPA monolítico sin carpeta `src`**: toda la lógica, componentes, helpers y estado global viven en `index.tsx` (~80KB). La estructura es:
+Anclora-Adapt es un **SPA modular refactorizada** (Diciembre 2025) con estructura `src/`:
 
 ```
 .
 ├── index.html          # DOM root, CSS variables (tema), favicon inline
-├── index.tsx           # Monolithic app (TODO: refactor to src/)
-├── vite.config.ts      # Proxy config, API key injection
-├── tsconfig.json       # TypeScript config (target ES2022, JSX react-jsx)
+├── src/
+│   ├── App.tsx         # Main component (routing modes, context providers)
+│   ├── components/
+│   │   ├── layout/     # MainLayout, OutputDisplay
+│   │   └── modes/      # BasicMode, IntelligentMode, CampaignMode, etc.
+│   │       ├── BasicMode.tsx + BasicModeForm + BasicModeOptions + useBasicModeState
+│   │       ├── IntelligentMode.tsx + IntelligentModeForm + IntelligentModeImageOptions + useIntelligentModeState
+│   │       └── ... (otros modos)
+│   ├── context/        # Contextos especializados (Theme, Language, Model, UI, Media, Interaction)
+│   ├── hooks/          # Custom hooks (useModeState, useLayoutState, useInteraction)
+│   ├── api/            # Helpers para Ollama, imagen, audio
+│   ├── utils/          # Utilidades (fileToBase64, formatCounterText, etc.)
+│   ├── types/          # Tipos TypeScript compartidos
+│   ├── constants/      # Prompts, opciones, traducciones, capacidades de modelos
+│   └── styles/         # commonStyles.ts
+├── vite.config.ts      # Configuración Vite
+├── tsconfig.json       # TypeScript (ES2022, strict mode)
 ├── package.json        # Dependencies (React 19, Vite 6)
-├── .env.local          # Ollama config (VITE_OLLAMA_BASE_URL, VITE_TEXT_MODEL_ID)
-├── CLAUDE.md           # Claude Code guidance
-├── AGENTS.md           # This file
-├── CONTEXTO.md         # Historical context & known issues
+├── .env.local          # Configuración Ollama y endpoints
+├── docs/               # Documentación (CLAUDE.md, AGENTS.md, CONTEXTO.md)
 ├── dist/               # Build output (ignored)
 └── node_modules/       # Dependencies (ignored)
 ```
 
-**Futuro**: Migrar a estructura `src/` con:
-
-- `src/components/` - Componentes por modo
-- `src/hooks/` - Custom hooks (useTheme, useLanguage, useTextModel)
-- `src/api/` - Helpers para Ollama (callTextModel, callImageModel, etc.)
-- `src/utils/` - Utilidades generales
-- `src/types/` - Tipos TypeScript compartidos
+**Arquitectura (Fases 1-7 completadas)**:
+- ✅ Contextos especializados (70-80% menos re-renders)
+- ✅ Componentes modularizados (58-68% menos líneas en archivos principales)
+- ✅ Custom hooks para gestión de estado por modo
+- ✅ Validación de capacidades de modelos en tiempo real
 
 ---
 
@@ -123,6 +133,17 @@ Cualquier nueva cadena debe agregarse en AMBOS idiomas.
 6. **Voz** - STT + TTS + respuesta de audio
 7. **Live Chat** - Chat en tiempo real
 8. **Imagen** - Solo generación de imágenes
+
+**Modo Inteligente específico**:
+
+- [ ] Entrada: Idea + Contexto renderiza correctamente
+- [ ] Selector Idioma con ancho adaptable (no 100%)
+- [ ] Checkbox "Pensamiento profundo" alineado a la derecha sin background
+- [ ] Checkbox "Incluir Imagen" muestra/oculta opciones con scroll automático
+- [ ] Botón "Seleccionar archivo" es blanco con bordes redondeados
+- [ ] Preview de imagen se muestra en chip (40x40px) con nombre y tamaño
+- [ ] Sin prompt para imagen → error "Escribe el prompt para la imagen"
+- [ ] Con prompt → genera imagen sin "Pensamiento profundo" aplicado
 
 **Checklist por Cambio:**
 
