@@ -145,17 +145,12 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
   audioUrl,
   imageUrl,
   copy,
-  generatedJSON,
-  onDownloadJSON,
   ideaPrompt,
   imagePrompt,
   onDownloadIdeaPrompt,
   onDownloadIdeaPromptJSON,
   onDownloadImagePrompt,
   onDownloadImagePromptJSON,
-  executedPrompt,
-  onDownloadPrompt,
-  onDownloadPromptJSON,
 }) => {
   return (
     <section style={commonStyles.outputSection}>
