@@ -157,6 +157,8 @@ const filterOutputsByPlatforms = (
   const usedIndexes = new Set<number>();
 
   // Platform mapping: some aliases that models might use
+  // Key = normalized platform name that user selected
+  // Value = list of platform names that model might generate (all normalized)
   const platformAliases: Record<string, string[]> = {
     x: ["x", "twitter"],
     twitter: ["twitter", "x"],
@@ -164,7 +166,7 @@ const filterOutputsByPlatforms = (
     linkedin: ["linkedin", "linkedln"],
     instagram: ["instagram", "ig"],
     ig: ["instagram", "ig"],
-    whatsapp: ["whatsapp", "whatsapp"],
+    whatsapp: ["whatsapp"],
     email: ["email", "correo", "mail"],
   };
 
@@ -829,6 +831,16 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
               normalized,
               context?.allowedPlatforms
             );
+
+            // Check if filtering resulted in empty output
+            if (filtered.length === 0 && context?.allowedPlatforms && context.allowedPlatforms.length > 0) {
+              throw new Error(
+                language === "es"
+                  ? `No se generó contenido para las plataformas seleccionadas (${context.allowedPlatforms.join(", ")}). El modelo generó contenido para otras plataformas.`
+                  : `No content was generated for the selected platforms (${context.allowedPlatforms.join(", ")}). The model generated content for other platforms.`
+              );
+            }
+
             const polished = await enforceLanguageQuality(
               filtered,
               context?.targetLanguage,
