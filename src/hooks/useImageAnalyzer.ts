@@ -20,6 +20,12 @@ export interface ImageAnalyzerState {
   analysis: Record<string, Array<{ value: string; score: number }>> | null;
 }
 
+interface EventSourceInit {
+  method?: string;
+  body?: BodyInit;
+  headers?: Record<string, string>;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export const useImageAnalyzer = () => {
@@ -56,10 +62,6 @@ export const useImageAnalyzer = () => {
           formData.append("user_prompt", userPrompt);
         }
         formData.append("deep_thinking", deepThinking ? "true" : "false");
-
-        const endpoint = useStreaming
-          ? `${API_BASE_URL}/api/images/analyze-stream`
-          : `${API_BASE_URL}/api/images/analyze`;
 
         if (useStreaming) {
           return await analyzeImageStream(formData);
@@ -121,9 +123,13 @@ export const useImageAnalyzer = () => {
   const analyzeImageStream = useCallback(
     async (formData: FormData): Promise<AnalysisResult> => {
       return new Promise((resolve, reject) => {
+        const eventSourceInit: EventSourceInit = {
+          method: "POST",
+          body: formData,
+        };
         const eventSource = new EventSource(
           `${API_BASE_URL}/api/images/analyze-stream`,
-          { method: "POST", body: formData } as any
+          eventSourceInit
         );
 
         let finalResult: AnalysisResult = {
