@@ -27,22 +27,12 @@ const IntelligentModeImageOptions: React.FC<
   const imgRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load image from blob URL
+  // Load image from data URL
   useEffect(() => {
-    if (imgRef.current && imagePreview && imageFile) {
-      // Create a new image element and load the blob URL
-      const img = new Image();
-      img.onload = () => {
-        if (imgRef.current) {
-          imgRef.current.src = imagePreview;
-        }
-      };
-      img.onerror = () => {
-        console.error("Failed to load image:", imagePreview);
-      };
-      img.src = imagePreview;
+    if (imgRef.current && imagePreview) {
+      imgRef.current.src = imagePreview;
     }
-  }, [imagePreview, imageFile]);
+  }, [imagePreview]);
 
   return (
     <div
