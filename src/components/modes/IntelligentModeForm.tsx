@@ -44,6 +44,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
   onIncludeImageChange,
   imagePrompt,
   onImagePromptChange,
+  imageFile,
   imagePreview,
   onFileChange,
   languageOptions,
@@ -202,7 +203,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           onIncludeImageChange={onIncludeImageChange}
           imagePrompt={imagePrompt}
           onImagePromptChange={onImagePromptChange}
-          imageFile={null}
+          imageFile={imageFile}
           imagePreview={imagePreview}
           onFileChange={onFileChange}
           imagePromptPlaceholder="Describe la imagen que deseas generar..."
