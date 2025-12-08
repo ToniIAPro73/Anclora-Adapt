@@ -35,6 +35,7 @@ export const useIntelligentModeState = (
   const [generatedJSON, setGeneratedJSON] = useState<object | null>(null);
   const [executedPrompt, setExecutedPrompt] = useState<string | null>(null);
   const [improvePrompt, setImprovePrompt] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Handle window resize
   useEffect(() => {
@@ -124,6 +125,8 @@ export const useIntelligentModeState = (
     setExecutedPrompt,
     improvePrompt,
     setImprovePrompt,
+    isProcessing,
+    setIsProcessing,
     // Computed
     normalizedLanguageOptions,
     // Handlers

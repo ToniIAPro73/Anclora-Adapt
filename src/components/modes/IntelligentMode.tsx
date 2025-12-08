@@ -105,6 +105,8 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
     setExecutedPrompt,
     improvePrompt,
     setImprovePrompt,
+    isProcessing,
+    setIsProcessing,
   } = useIntelligentModeState(interfaceLanguage, languageOptions);
 
   const downloadJSON = () => {
@@ -147,6 +149,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
       setError(copy.errors.imagePrompt);
       return;
     }
+    setIsProcessing(true);
     try {
       const languageDisplay =
         languages.find((l) => l.value === language)?.label || language;
@@ -185,16 +188,18 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
           }
 
           const optimizeResult = await response.json();
-          if (optimizeResult.success) {
+          if (optimizeResult.success && optimizeResult.improved_prompt) {
             finalPrompt = optimizeResult.improved_prompt;
           } else {
             // If optimization fails, use raw prompt and show warning
-            console.warn("Prompt optimization failed, using raw prompt:", optimizeResult.error);
+            const errorMsg = optimizeResult.error || "Error desconocido";
+            console.warn("Prompt optimization failed, using raw prompt:", errorMsg);
             setError(`Aviso: No se pudo optimizar el prompt. Usando versión original.`);
           }
         } catch (optimizeErr) {
           // If backend is unavailable, use raw prompt with warning
-          console.warn("Prompt optimizer unavailable, using raw prompt:", optimizeErr);
+          const errorMsg = optimizeErr instanceof Error ? optimizeErr.message : String(optimizeErr);
+          console.warn("Prompt optimizer unavailable, using raw prompt:", errorMsg);
           // Continue with raw prompt instead of failing
         }
       }
@@ -239,6 +244,8 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
       setGeneratedJSON(intelligentJSON);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -273,7 +280,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
         onFileChange={handleFileChange}
         languageOptions={normalizedLanguageOptions}
         isMobile={isMobile}
-        isLoading={isLoading}
+        isLoading={isLoading || isProcessing}
         onGenerate={handleGenerate}
       />
 
