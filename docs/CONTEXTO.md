@@ -35,6 +35,14 @@ Ultima revision: **diciembre 2025** - **Optimizaciones de rendimiento completada
   - Layout optimizado: sin scroll vertical a 100% zoom sin imagen
   - Preview de imagen en chip compacto (40x40px) con nombre y tamaño
 
+- **Análisis automático de imágenes** (Diciembre 2025):
+  - CLIP + Ollama para análisis visual inteligente
+  - Auto-generación de prompts desde imágenes subidas
+  - Análisis de 5 categorías: estilo, mood, composición, paleta de colores, sujetos
+  - Endpoints SSE para updates progresivos
+  - React hook `useImageAnalyzer` integrado en IntelligentMode
+  - Fallback a entrada manual si análisis falla
+
 - **Memoización optimizada** en App.tsx:
   - Eliminadas 5 memoizaciones innecesarias (operaciones baratas)
   - Mantenidas 5 memoizaciones esenciales (operaciones costosas)
@@ -164,6 +172,7 @@ npm run dev             # Vite + FastAPI
 | Traduccion literal             | Estable       | JSON limpio y CTA dinamico **Generar traduccion**.                                                                          |
 | Selector de idiomas            | Adaptativo    | Idiomas no soportados quedan deshabilitados con tooltip.                                                                    |
 | Indicador de modelo usado      | Completo      | Visible bajo "Modelo de texto" tras cada generacion.                                                                        |
+| **Análisis de imágenes**       | ✅ Nuevo      | CLIP para análisis visual + Ollama para refinamiento de prompts. Auto-genera prompts desde imágenes. SSE streaming.         |
 | Imagen / Voz / STT             | Pendiente     | FastAPI expone `/api/image`, `/api/tts`, `/api/stt` pero requieren modelos definitivos (SDXL, Kokoro, Whisper).             |
 | **Arquitectura & Performance** | ✅ Optimizado | Context splitting (70-80% re-renders reducidos), memoización selectiva, componentes modularizados (58-68% tamaño reducido). |
 | **Organización del código**    | ✅ Completado | Componentes focalizados con custom hooks, separación clara de responsabilidades.                                            |
@@ -189,14 +198,20 @@ npm run dev             # Vite + FastAPI
 
 ### Prioridad Alta (Funcionalidad Crítica)
 
-1. **Backend creativo**: completar la integracion de Kokoro (`kokoro.onnx` + `voices.json` en `python-backend/models/`) y ajustar Stable Diffusion en `/api/image`.
-2. **Tests de regresion**: cobertura minima para los modos criticos (`BasicMode`, `CampaignMode`, `ChatMode`) aprovechando la nueva arquitectura modular.
-3. **Persistencia e historial**: guardar prompts/outputs en SQLite o Postgres ligero (selectedModel ya persiste en ModelContext).
+1. **Análisis de imágenes** (✅ COMPLETADO - Diciembre 2025):
+   - CLIP + Ollama para análisis visual e auto-generación de prompts
+   - Endpoints SSE para streaming progresivo
+   - React hook `useImageAnalyzer` integrado en IntelligentMode
+   - Ver: `docs/IMAGE_ANALYZER_SETUP.md` para instalación y configuración
+
+2. **Backend creativo**: completar la integracion de Kokoro (`kokoro.onnx` + `voices.json` en `python-backend/models/`) y ajustar Stable Diffusion en `/api/image`.
+3. **Tests de regresion**: cobertura minima para los modos criticos (`BasicMode`, `CampaignMode`, `ChatMode`) aprovechando la nueva arquitectura modular.
+4. **Persistencia e historial**: guardar prompts/outputs en SQLite o Postgres ligero (selectedModel ya persiste en ModelContext).
 
 ### Prioridad Media (Mantenibilidad & DevOps)
 
-4. **Observabilidad**: metricas basicas y logs estructurados por modo/modelo.
-5. **CI/CD**: pipeline de GitHub Actions con lint + tests antes de mergear a `development`.
+5. **Observabilidad**: metricas basicas y logs estructurados por modo/modelo.
+6. **CI/CD**: pipeline de GitHub Actions con lint + tests antes de mergear a `development`.
 6. **Code splitting por modos**: lazy loading de CampaignMode, TTSMode, etc. para mejorar initial load time.
 
 ### Optimizaciones Futuras (Performance Avanzado)

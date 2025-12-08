@@ -12,3 +12,6 @@ kokoro-onnx==0.3.1
 numpy<2.0.0
 Pillow==10.1.0
 pydantic==2.5.0
+# Image Analyzer Dependencies
+ollama>=0.0.1
+torch>=2.0.0

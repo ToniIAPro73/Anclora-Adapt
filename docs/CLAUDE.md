@@ -307,7 +307,7 @@ Currently only **text generation** is implemented. Other modalities are placehol
 | Mode      | Text      | Image          | TTS            | STT            | Status         |
 | --------- | --------- | -------------- | -------------- | -------------- | -------------- |
 | Basic     | ✅ Ollama | —              | —              | —              | ✅ Working     |
-| Intelligent | ✅ Ollama | ✅ Optional    | —              | —              | ✅ Working*    |
+| Intelligent | ✅ Ollama | ✅ Optional*   | —              | —              | ✅ Working*    |
 | Campaign  | ✅ Ollama | ❌ Placeholder | —              | —              | ⚠️ Partial     |
 | Recycle   | ✅ Ollama | ❌ Placeholder | —              | —              | ⚠️ Partial     |
 | Chat      | ✅ Ollama | —              | —              | —              | ✅ Working     |
@@ -315,7 +315,12 @@ Currently only **text generation** is implemented. Other modalities are placehol
 | Live Chat | ✅ Ollama | —              | —              | —              | ✅ Working     |
 | Image     | —         | ❌ Placeholder | —              | —              | ❌ Not working |
 
-\* Intelligent mode text generation working. Image generation functional but requires explicit prompt (no auto-analysis from uploaded images yet).
+\* Intelligent mode:
+- Text generation: ✅ Ollama
+- Image generation: ✅ Optional with auto-analysis via CLIP + Ollama (NEW - December 2025)
+- Image analyzer: ✅ Auto-generates prompts from uploaded images (CLIP embeddings + Ollama refinement)
+
+**Implemented**: CLIP-based image analysis with auto-prompt generation. See `docs/IMAGE_ANALYZER_SETUP.md` for setup details.
 
 **Future work**: Integrate image generation (Stable Diffusion), TTS (Bark), STT (Whisper) via Ollama or external APIs.
 

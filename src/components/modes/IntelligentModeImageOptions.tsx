@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import commonStyles from "@/styles/commonStyles";
+import { useImageAnalyzer } from "@/hooks/useImageAnalyzer";
 
 interface IntelligentModeImageOptionsProps {
   includeImage: boolean;
@@ -26,6 +27,7 @@ const IntelligentModeImageOptions: React.FC<
 }) => {
   const imgRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { analyzeImage, isAnalyzing, error: analysisError } = useImageAnalyzer();
 
   // Load image from data URL
   useEffect(() => {
@@ -33,6 +35,24 @@ const IntelligentModeImageOptions: React.FC<
       imgRef.current.src = imagePreview;
     }
   }, [imagePreview]);
+
+  // Auto-analyze image when file is selected
+  useEffect(() => {
+    if (imageFile && !imagePrompt) {
+      const analyzeImageFile = async () => {
+        try {
+          const result = await analyzeImage(imageFile);
+          if (result.success && result.generatedPrompt) {
+            onImagePromptChange(result.generatedPrompt);
+          }
+        } catch (err) {
+          // Image analysis failed, user can manually enter prompt
+          console.error("Image analysis error:", err);
+        }
+      };
+      analyzeImageFile();
+    }
+  }, [imageFile, imagePrompt, analyzeImage, onImagePromptChange]);
 
   return (
     <div
@@ -155,20 +175,40 @@ const IntelligentModeImageOptions: React.FC<
               </div>
             )}
           </div>
-          <textarea
-            style={{
-              ...commonStyles.textarea,
-              padding: "6px",
-              fontSize: "0.9em",
-              width: "100%",
-              boxSizing: "border-box",
-              height: "100px",
-              resize: "none",
-            }}
-            value={imagePrompt}
-            onChange={(e) => onImagePromptChange(e.target.value)}
-            placeholder={imagePromptPlaceholder}
-          />
+          <div style={{ position: "relative", width: "100%" }}>
+            <textarea
+              style={{
+                ...commonStyles.textarea,
+                padding: "6px",
+                fontSize: "0.9em",
+                width: "100%",
+                boxSizing: "border-box",
+                height: "100px",
+                resize: "none",
+                opacity: isAnalyzing ? 0.6 : 1,
+                transition: "opacity 0.2s",
+              }}
+              value={imagePrompt}
+              onChange={(e) => onImagePromptChange(e.target.value)}
+              placeholder={isAnalyzing ? "Analizando imagen..." : imagePromptPlaceholder}
+              disabled={isAnalyzing}
+            />
+            {analysisError && (
+              <div
+                style={{
+                  marginTop: "4px",
+                  padding: "6px",
+                  backgroundColor: "rgba(220, 53, 69, 0.1)",
+                  color: "#dc3545",
+                  fontSize: "0.8em",
+                  borderRadius: "4px",
+                  border: "1px solid #dc3545",
+                }}
+              >
+                No se pudo analizar la imagen. Por favor, ingresa el prompt manualmente.
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
