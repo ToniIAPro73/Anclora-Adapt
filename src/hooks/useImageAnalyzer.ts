@@ -20,7 +20,7 @@ export interface ImageAnalyzerState {
   analysis: Record<string, Array<{ value: string; score: number }>> | null;
 }
 
-interface EventSourceInit {
+interface SSEInit {
   method?: string;
   body?: BodyInit;
   headers?: Record<string, string>;
@@ -123,13 +123,13 @@ export const useImageAnalyzer = () => {
   const analyzeImageStream = useCallback(
     async (formData: FormData): Promise<AnalysisResult> => {
       return new Promise((resolve, reject) => {
-        const eventSourceInit: EventSourceInit = {
+        const sseInit: SSEInit = {
           method: "POST",
           body: formData,
         };
         const eventSource = new EventSource(
           `${API_BASE_URL}/api/images/analyze-stream`,
-          eventSourceInit
+          sseInit as EventSourceInit
         );
 
         let finalResult: AnalysisResult = {
