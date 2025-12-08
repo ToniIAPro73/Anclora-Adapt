@@ -107,7 +107,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         <textarea
           style={{
             ...commonStyles.textarea,
-            height: includeImage ? "110px" : "90px",
+            height: includeImage ? "90px" : "75px",
             resize: "none",
           }}
           value={idea}
@@ -140,7 +140,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         <textarea
           style={{
             ...commonStyles.textarea,
-            height: "80px",
+            height: "65px",
             resize: "none",
           }}
           value={context}
@@ -154,10 +154,10 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "6px",
+          gap: "4px",
           flexShrink: 0,
           marginTop: "auto",
-          paddingBottom: "2px",
+          paddingBottom: "0px",
           width: "100%",
           backgroundColor: "var(--panel-bg)",
         }}
@@ -185,7 +185,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
             <select
               style={{
                 ...commonStyles.select,
-                padding: "6px 10px",
+                padding: "4px 8px",
                 fontSize: "0.9em",
                 width: "auto",
                 minWidth: "100px",
@@ -260,7 +260,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           type="button"
           style={{
             ...commonStyles.generateButton,
-            padding: "12px",
+            padding: "10px",
             width: "100%",
           }}
           onClick={onGenerate}
