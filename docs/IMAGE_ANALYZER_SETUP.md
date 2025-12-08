@@ -45,6 +45,7 @@ ollama pull mistral:latest
 ```
 
 Verify:
+
 ```bash
 curl http://localhost:11434/api/tags
 ```
@@ -90,6 +91,7 @@ python -c "from app.services.image_analyzer import ImageAnalyzer; a = ImageAnaly
 ```
 
 Expected output:
+
 ```
 Loading CLIP model: openai/clip-vit-base-patch32
 ImageAnalyzer initialized on cuda
@@ -103,19 +105,22 @@ ImageAnalyzer initialized on cuda
 Synchronous image analysis with complete response.
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:8000/api/images/analyze \
-  -F "image=@image.jpg" \
+  -F "image=@Captura.png" \
   -F "user_prompt=A beautiful landscape" \
   -F "deep_thinking=false"
 ```
 
 **Parameters:**
+
 - `image` (file, required): Image to analyze
 - `user_prompt` (string, optional): User input for prompt refinement
 - `deep_thinking` (boolean, default: false): Detailed analysis mode
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -140,6 +145,7 @@ curl -X POST http://localhost:8000/api/images/analyze \
 Streaming analysis with Server-Sent Events for progressive updates.
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:8000/api/images/analyze-stream \
   -F "image=@image.jpg" \
@@ -148,6 +154,7 @@ curl -X POST http://localhost:8000/api/images/analyze-stream \
 ```
 
 **Response Stream:**
+
 ```
 data: {"status": "analyzing", "message": "Analyzing image..."}
 
@@ -163,6 +170,7 @@ data: {"status": "complete", "generatedPrompt": "..."}
 Health check for image analyzer service.
 
 **Response:**
+
 ```json
 {
   "status": "ok",
@@ -193,9 +201,13 @@ function MyComponent() {
 
   return (
     <div>
-      <input type="file" accept="image/*" onChange={(e) => {
-        if (e.target.files?.[0]) handleImageSelect(e.target.files[0]);
-      }} />
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          if (e.target.files?.[0]) handleImageSelect(e.target.files[0]);
+        }}
+      />
       {isAnalyzing && <p>Analyzing...</p>}
       {error && <p>Error: {error}</p>}
     </div>
@@ -206,6 +218,7 @@ function MyComponent() {
 ### 2. Intelligent Mode Integration
 
 The `IntelligentModeImageOptions` component automatically:
+
 - Detects when an image is selected
 - Calls `analyzeImage()` via the hook
 - Auto-populates the prompt textarea with generated prompt
@@ -224,8 +237,10 @@ VITE_API_BASE_URL=http://localhost:8000
 ```
 
 The API URL is read from:
+
 ```typescript
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 ```
 
 ## Docker Setup (Optional)
@@ -235,7 +250,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
 Create `docker-compose.yml` in the project root:
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   # Ollama Service
@@ -263,11 +278,11 @@ services:
       - "8000:8000"
     volumes:
       - ./python-backend:/app
-      - clip_cache:/root/.cache  # CLIP model cache
-      - ollama_data:/root/.ollama  # Ollama models
+      - clip_cache:/root/.cache # CLIP model cache
+      - ollama_data:/root/.ollama # Ollama models
     environment:
-      - DEVICE=cuda  # or 'cpu'
-      - OLLAMA_HOST=http://ollama:11434  # Internal network reference
+      - DEVICE=cuda # or 'cpu'
+      - OLLAMA_HOST=http://ollama:11434 # Internal network reference
     depends_on:
       - ollama
     profiles:
@@ -337,6 +352,7 @@ if self.device == "cuda":
 ```
 
 **Expected VRAM usage on RTX 3050 (4GB):**
+
 - CLIP model: ~2.5GB
 - Ollama mistral: ~4GB (on separate process)
 - Buffer: ~1.5GB available for operations
@@ -363,6 +379,7 @@ image = image.resize((256, 256))
 **Cause:** CLIP model download failed or torch not installed
 
 **Solution:**
+
 ```bash
 # Reinstall PyTorch with CUDA support
 pip install torch --index-url https://download.pytorch.org/whl/cu121
@@ -380,6 +397,7 @@ python -c "from transformers import CLIPModel; CLIPModel.from_pretrained('openai
 **Cause:** Ollama service not running or mistral model not downloaded
 
 **Solution:**
+
 ```bash
 # Check Ollama is running
 curl http://localhost:11434/api/tags
@@ -396,6 +414,7 @@ ollama serve
 **Cause:** GPU VRAM exhausted
 
 **Solution:**
+
 1. Close GPU-intensive applications (Chrome, games, Adobe)
 2. Reduce image size in `image_analyzer.py` (line 111):
    ```python
@@ -411,6 +430,7 @@ ollama serve
 **Cause:** File exceeds 20MB limit
 
 **Solution:** Compress image before uploading. Max file size is set in `image_analysis.py:58`:
+
 ```python
 if len(contents) > 20 * 1024 * 1024:  # Change this value
 ```
@@ -420,6 +440,7 @@ if len(contents) > 20 * 1024 * 1024:  # Change this value
 **Cause:** Model downloading or first-time initialization
 
 **Solution:**
+
 - First request downloads CLIP model (~600MB) - this is normal
 - Subsequent requests are much faster
 - For faster responses on repeated images, consider caching results
@@ -483,6 +504,7 @@ categories = {
 ## Support
 
 For issues:
+
 1. Check this guide's troubleshooting section
 2. Review backend logs: `python-backend/logs/` (if enabled)
 3. Check CLIP cache: `~/.cache/huggingface/hub/`
