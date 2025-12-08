@@ -5,13 +5,22 @@ import MainLayout from "../MainLayout";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { InteractionProvider } from "@/context/InteractionContext";
+import { ModelProvider } from "@/context/ModelContext";
+import { UIProvider } from "@/context/UIContext";
+import { MediaProvider } from "@/context/MediaContext";
 import type { AppMode } from "@/types";
 
 const renderWithProviders = (ui: React.ReactElement) =>
   render(
     <ThemeProvider>
       <LanguageProvider>
-        <InteractionProvider>{ui}</InteractionProvider>
+        <ModelProvider>
+          <UIProvider>
+            <MediaProvider>
+              <InteractionProvider>{ui}</InteractionProvider>
+            </MediaProvider>
+          </UIProvider>
+        </ModelProvider>
       </LanguageProvider>
     </ThemeProvider>
   );

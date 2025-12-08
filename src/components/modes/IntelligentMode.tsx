@@ -138,6 +138,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
         onLanguageChange={setLanguage}
         deepThinking={deepThinking}
         onDeepThinkingChange={setDeepThinking}
+        deepThinkingLabel={copy.deepThinkingLabel}
         includeImage={includeImage}
         onIncludeImageChange={setIncludeImage}
         imagePrompt={imagePrompt}

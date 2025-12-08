@@ -14,6 +14,7 @@ interface IntelligentModeFormProps {
   onLanguageChange: (value: string) => void;
   deepThinking: boolean;
   onDeepThinkingChange: (value: boolean) => void;
+  deepThinkingLabel: string;
   includeImage: boolean;
   onIncludeImageChange: (value: boolean) => void;
   imagePrompt: string;
@@ -37,6 +38,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
   onLanguageChange,
   deepThinking,
   onDeepThinkingChange,
+  deepThinkingLabel,
   includeImage,
   onIncludeImageChange,
   imagePrompt,
@@ -69,7 +71,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          flex: includeImage ? "0 0 auto" : "1 1 auto",
+          flex: includeImage ? "0 0 auto" : "1 1 35%",
           height: includeImage ? "140px" : "auto",
           minHeight: "100px",
           marginBottom: "12px",
@@ -92,7 +94,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          flex: includeImage ? "0 0 auto" : "1 1 auto",
+          flex: includeImage ? "0 0 auto" : "1 1 35%",
           height: includeImage ? "100px" : "auto",
           minHeight: "80px",
           marginBottom: "12px",
@@ -181,7 +183,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
               onChange={(e) => onDeepThinkingChange(e.target.checked)}
               style={{ marginRight: "6px" }}
             />
-            Deep Thinking
+            {deepThinkingLabel}
           </label>
         </div>
 
