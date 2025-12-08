@@ -32,6 +32,7 @@ export const useIntelligentModeState = (
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [generatedJSON, setGeneratedJSON] = useState<object | null>(null);
 
   // Handle window resize
   useEffect(() => {
@@ -115,6 +116,8 @@ export const useIntelligentModeState = (
     imageFile,
     imagePreview,
     isMobile,
+    generatedJSON,
+    setGeneratedJSON,
     // Computed
     normalizedLanguageOptions,
     // Handlers
