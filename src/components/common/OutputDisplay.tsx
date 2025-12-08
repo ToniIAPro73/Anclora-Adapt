@@ -98,10 +98,21 @@ const PromptDisplay: React.FC<{
 
   useEffect(() => {
     if (textareaRef.current) {
+      // Reset height to auto to get accurate scrollHeight
+      textareaRef.current.style.height = "auto";
+      // Set to scrollHeight to expand based on content
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = `${scrollHeight}px`;
+    }
+  }, [prompt]);
+
+  // Re-calculate height when component mounts
+  useEffect(() => {
+    if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
-  }, [prompt]);
+  }, []);
 
   return (
     <div style={commonStyles.outputCard}>
@@ -115,9 +126,6 @@ const PromptDisplay: React.FC<{
           ...commonStyles.outputTextarea,
           backgroundColor: "var(--input-bg)",
           marginTop: "8px",
-          minHeight: "120px",
-          maxHeight: "none",
-          overflow: "visible",
         }}
       />
       <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
