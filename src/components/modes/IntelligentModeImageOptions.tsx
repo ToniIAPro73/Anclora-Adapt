@@ -27,12 +27,22 @@ const IntelligentModeImageOptions: React.FC<
   const imgRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Force image to load from blob URL
+  // Load image from blob URL
   useEffect(() => {
-    if (imgRef.current && imagePreview) {
-      imgRef.current.src = imagePreview;
+    if (imgRef.current && imagePreview && imageFile) {
+      // Create a new image element and load the blob URL
+      const img = new Image();
+      img.onload = () => {
+        if (imgRef.current) {
+          imgRef.current.src = imagePreview;
+        }
+      };
+      img.onerror = () => {
+        console.error("Failed to load image:", imagePreview);
+      };
+      img.src = imagePreview;
     }
-  }, [imagePreview]);
+  }, [imagePreview, imageFile]);
 
   return (
     <div
@@ -90,13 +100,15 @@ const IntelligentModeImageOptions: React.FC<
               htmlFor="file-input"
               style={{
                 display: "inline-block",
-                padding: "6px 12px",
-                backgroundColor: "var(--panel-bg, #1a1a2e)",
-                border: "1px solid var(--panel-border, #444)",
-                borderRadius: "6px",
+                padding: "8px 16px",
+                backgroundColor: "#ffffff",
+                border: "none",
+                borderRadius: "20px",
                 cursor: "pointer",
                 fontSize: "0.85em",
+                fontWeight: "bold",
                 width: "fit-content",
+                color: "#000000",
               }}
             >
               Seleccionar archivo
