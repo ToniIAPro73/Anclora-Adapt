@@ -168,6 +168,48 @@ export type AppMode =
   | "live"
   | "image";
 
+// ==========================================
+// SPLIT CONTEXT TYPES (Performance Optimized)
+// ==========================================
+
+export interface ModelContextType {
+  selectedModel: string;
+  lastModelUsed: string | null;
+  hardwareProfile: SystemCapabilities | null;
+  setSelectedModel: (model: string) => void;
+  setLastModelUsed: (model: string | null) => void;
+  setHardwareProfile: (profile: SystemCapabilities | null) => void;
+}
+
+export interface UIContextType {
+  isLoading: boolean;
+  error: string | null;
+  outputs: GeneratedOutput[];
+  imageUrl: string | null;
+  activeMode: AppMode;
+  setIsLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  setImageUrl: (url: string | null) => void;
+  setActiveMode: (mode: AppMode) => void;
+  addOutput: (output: GeneratedOutput) => void;
+  clearOutputs: () => void;
+}
+
+export interface MediaContextType {
+  selectedFile: File | null;
+  audioBlob: Blob | null;
+  setSelectedFile: (file: File | null) => void;
+  setAudioBlob: (blob: Blob | null) => void;
+}
+
+// ==========================================
+// LEGACY INTERACTION CONTEXT TYPE
+// ==========================================
+
+/**
+ * @deprecated Use ModelContextType, UIContextType, or MediaContextType instead
+ * This type is kept for backward compatibility during migration
+ */
 export interface InteractionContextType {
   // Mode & Theme
   activeMode: AppMode;

@@ -11,7 +11,7 @@ import { languages, tones } from "@/constants/options";
 import { structuredOutputExample } from "@/constants/prompts";
 import type { LanguageOptionAvailability } from "@/constants/modelCapabilities";
 import { formatCounterText } from "@/utils/text";
-import { useInteraction } from "@/context/InteractionContext";
+import { useModeState } from "@/context/useContextSelectors";
 
 interface BasicCopy {
   ideaLabel: string;
@@ -57,7 +57,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
     setIsLoading: _setIsLoading,
     imageUrl: _imageUrl,
     setImageUrl: _setImageUrl,
-  } = useInteraction();
+  } = useModeState();
   const [idea, setIdea] = useState("");
   const [language, setLanguage] = useState("es");
   const [tone, setTone] = useState("detect");

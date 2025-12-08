@@ -3,7 +3,7 @@ import { RefreshCw } from "lucide-react";
 import commonStyles from "@/styles/commonStyles";
 import { useTheme } from "@/context/ThemeContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { useInteraction } from "@/context/InteractionContext";
+import { useLayoutState } from "@/context/useContextSelectors";
 import type { AppMode, ThemeMode, SystemCapabilities } from "@/types";
 import { AUTO_TEXT_MODEL_ID } from "@/types";
 import { translations } from "@/constants/translations";
@@ -82,7 +82,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 }) => {
   const { theme, setTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
-  const { activeMode, lastModelUsed } = useInteraction();
+  const { activeMode, lastModelUsed } = useLayoutState();
   const localizedCopy = translations[language];
   const themeIcon = theme === "light" ? "☀️" : theme === "dark" ? "🌙" : "🖥️";
   const hardwareSummary = hardwareProfile?.hardware

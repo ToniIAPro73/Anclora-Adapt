@@ -13,7 +13,7 @@ import { fileToBase64 } from "@/utils/files";
 import OutputDisplay, {
   type OutputCopy,
 } from "@/components/common/OutputDisplay";
-import { useInteraction } from "@/context/InteractionContext";
+import { useModeState } from "@/context/useContextSelectors";
 
 type GenerateImageFn = (
   options: ImageGenerationOptions
@@ -61,7 +61,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
     setIsLoading,
     imageUrl,
     setImageUrl,
-  } = useInteraction();
+  } = useModeState();
   const [idea, setIdea] = useState("");
   const [context, setContext] = useState("");
   const [language, setLanguage] = useState<string>(interfaceLanguage);

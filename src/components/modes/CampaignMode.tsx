@@ -10,7 +10,7 @@ import commonStyles from "@/styles/commonStyles";
 import OutputDisplay, {
   type OutputCopy,
 } from "@/components/common/OutputDisplay";
-import { useInteraction } from "@/context/InteractionContext";
+import { useModeState } from "@/context/useContextSelectors";
 
 interface CampaignCopy {
   ideaLabel: string;
@@ -50,7 +50,7 @@ const CampaignMode: React.FC<CampaignModeProps> = ({
     setIsLoading,
     imageUrl,
     setImageUrl,
-  } = useInteraction();
+  } = useModeState();
   const [idea, setIdea] = useState("");
   const [context, setContext] = useState("");
   const [language, setLanguage] = useState("es");

@@ -11,7 +11,7 @@ import { formatCounterText } from "@/utils/text";
 import OutputDisplay, {
   type OutputCopy,
 } from "@/components/common/OutputDisplay";
-import { useInteraction } from "@/context/InteractionContext";
+import { useModeState } from "@/context/useContextSelectors";
 
 interface RecycleCopy {
   originalLabel: string;
@@ -61,7 +61,7 @@ const RecycleMode: React.FC<RecycleModeProps> = ({
     setIsLoading,
     imageUrl,
     setImageUrl,
-  } = useInteraction();
+  } = useModeState();
   const [inputText, setInputText] = useState("");
   const [context, setContext] = useState("");
   const [format, setFormat] = useState("summary");
