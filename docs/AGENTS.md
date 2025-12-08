@@ -17,7 +17,7 @@
 
 Anclora-Adapt es un **SPA modular refactorizada** (Diciembre 2025) con estructura `src/`:
 
-```
+```bash
 .
 ├── index.html          # DOM root, CSS variables (tema), favicon inline
 ├── src/
@@ -45,6 +45,7 @@ Anclora-Adapt es un **SPA modular refactorizada** (Diciembre 2025) con estructur
 ```
 
 **Arquitectura (Fases 1-7 completadas)**:
+
 - ✅ Contextos especializados (70-80% menos re-renders)
 - ✅ Componentes modularizados (58-68% menos líneas en archivos principales)
 - ✅ Custom hooks para gestión de estado por modo
@@ -188,7 +189,7 @@ Cualquier nueva cadena debe agregarse en AMBOS idiomas.
 
 **Ejemplo:**
 
-```
+```bash
 feat: add voice mode STT support with Whisper model
 
 - Integrate Ollama Whisper model for speech-to-text
@@ -231,7 +232,7 @@ git push --force-with-lease origin <branch>  # Seguro, no sobrescribe trabajo aj
 
 **Configuración:**
 
-```bash
+````bash
 # Instalar Ollama desde https://ollama.ai
 
 # Descargar modelo (ej: Llama 2, ~4GB)
@@ -239,7 +240,7 @@ ollama pull llama2
 
 # Ejecutar servidor
 ollama serve
-```
+```bash
 
 **Modelos Recomendados:**
 
@@ -252,10 +253,10 @@ ollama serve
 
 **Variables de Configuración:**
 
-```
+```bash
 VITE_OLLAMA_BASE_URL=http://localhost:11434  # URL del servidor Ollama
 VITE_TEXT_MODEL_ID=llama2                     # Modelo a usar
-```
+````
 
 **Imagen/TTS/STT:**
 Ollama solo soporta texto nativamente. Para imagen/TTS/STT:
