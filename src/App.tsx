@@ -3,8 +3,8 @@ import React, {
   useEffect,
   useMemo,
   useState,
-  Suspense,
   lazy,
+  startTransition,
 } from "react";
 
 // ===== PERFORMANCE: Code splitting with lazy loading =====
@@ -450,8 +450,17 @@ const App: React.FC = () => {
     }
   }, [selectedModel, setSelectedModel]);
 
+  // ===== PERFORMANCE: Defer model list fetch to after initial render =====
+  // Don't block initial page load waiting for Ollama response
+  // This prevents 15-second timeout from blocking Time to Interactive (TTI)
   useEffect(() => {
-    void refreshAvailableModels();
+    // Use a timeout to ensure this runs AFTER the initial render is complete
+    const timeoutId = setTimeout(() => {
+      startTransition(() => {
+        void refreshAvailableModels();
+      });
+    }, 0);
+    return () => clearTimeout(timeoutId);
   }, [refreshAvailableModels]);
 
   const scoreModelForContext = useCallback(
@@ -1055,24 +1064,7 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
       onReset={handleReset}
       help={helpConfig}
     >
-      <Suspense
-        fallback={
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              height: "400px",
-              fontSize: "16px",
-              color: "#666",
-            }}
-          >
-            {language === "es" ? "Cargando modo..." : "Loading mode..."}
-          </div>
-        }
-      >
-        {renderActiveMode()}
-      </Suspense>
+      {renderActiveMode()}
     </MainLayout>
   );
 };
