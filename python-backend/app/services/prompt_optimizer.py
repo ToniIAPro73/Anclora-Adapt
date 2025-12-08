@@ -109,8 +109,13 @@ def improve_prompt(
         },
     )
 
-    # response.message.content es un string JSON que cumple el esquema
-    return PromptImprovement.model_validate_json(response.message.content)
+    # Manejo flexible de la respuesta (puede ser dict o objeto)
+    if isinstance(response, dict):
+        content = response.get("message", {}).get("content", "")
+    else:
+        content = response.message.content
+
+    return PromptImprovement.model_validate_json(content)
 
 
 if __name__ == "__main__":

@@ -179,35 +179,6 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
           </div>
         </div>
       )}
-      {generatedJSON && onDownloadJSON && (
-        <div style={{ marginTop: "12px" }}>
-          <div style={commonStyles.outputCard}>
-            <strong>Respuesta JSON Completa</strong>
-            <textarea
-              value={JSON.stringify(generatedJSON, null, 2)}
-              readOnly
-              spellCheck={false}
-              style={{
-                ...commonStyles.outputTextarea,
-                backgroundColor: "var(--input-bg)",
-                marginTop: "8px",
-                maxHeight: "200px",
-              }}
-            />
-            <button
-              type="button"
-              style={{
-                ...commonStyles.copyButton,
-                marginTop: "8px",
-                width: "100%",
-              }}
-              onClick={onDownloadJSON}
-            >
-              📥 Descargar inteligente.json
-            </button>
-          </div>
-        </div>
-      )}
     </section>
   );
 };

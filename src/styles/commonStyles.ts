@@ -155,7 +155,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     gap: "10px",
     minHeight: 0,
     flex: 1,
-    overflow: "visible",
+    overflow: "auto",
     boxSizing: "border-box",
   },
   inputFrameMobile: {

@@ -3,10 +3,13 @@ prompt_optimization.py
 Rutas FastAPI para optimización de prompts usando Qwen2.5 + Ollama.
 """
 
+import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.services.prompt_optimizer import improve_prompt, PromptImprovement
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/prompts", tags=["prompts"])
 
@@ -39,12 +42,14 @@ async def optimize_prompt(payload: PromptOptimizeRequest) -> PromptOptimizeRespo
     Devuelve un prompt mejorado siguiendo mejores prácticas de prompt engineering.
     """
     try:
+        logger.info(f"Optimizing prompt with model: {payload.model}, deep_thinking: {payload.deep_thinking}")
         result: PromptImprovement = improve_prompt(
             raw_prompt=payload.prompt,
             deep_thinking=payload.deep_thinking,
             model=payload.model,
         )
 
+        logger.info("Prompt optimization successful")
         return PromptOptimizeResponse(
             success=True,
             improved_prompt=result.improved_prompt,
@@ -53,12 +58,14 @@ async def optimize_prompt(payload: PromptOptimizeRequest) -> PromptOptimizeRespo
         )
 
     except Exception as e:
+        error_msg = f"Error al optimizar prompt: {str(e)}"
+        logger.error(f"{error_msg}", exc_info=True)
         return PromptOptimizeResponse(
             success=False,
             improved_prompt="",
             rationale="",
             checklist=[],
-            error=f"Error al optimizar prompt: {str(e)}",
+            error=error_msg,
         )
 
 
