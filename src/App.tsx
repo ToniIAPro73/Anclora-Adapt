@@ -295,10 +295,12 @@ const App: React.FC = () => {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [resetCounter, setResetCounter] = useState(0);
 
-  // Memoizar objeto de traducciones para evitar re-renders innecesarios en componentes hijos
+  // ===== PERFORMANCE: Selective memoization =====
+  // Only memoize expensive operations and objects passed to many children
   const copy = useMemo(() => translations[language], [language]);
 
-  const installedModels = useMemo(() => {
+  // Build installed models list - small operation, no memo needed
+  const installedModels = (() => {
     const set = new Set<string>();
     availableModels.forEach((model) => set.add(model));
     if (selectedModel) {
@@ -306,13 +308,13 @@ const App: React.FC = () => {
     }
     set.add(DEFAULT_TEXT_MODEL_ID);
     return Array.from(set);
-  }, [availableModels, selectedModel]);
+  })();
 
-  const languageOptions: LanguageOptionAvailability[] = useMemo(
-    () => buildLanguageOptions(selectedModel, installedModels),
-    [selectedModel, installedModels]
-  );
+  // Build language options - small operation, no memo needed
+  const languageOptions: LanguageOptionAvailability[] =
+    buildLanguageOptions(selectedModel, installedModels);
 
+  // Extract and normalize hardware recommendations - moderate operation, keep memo
   const recommendedTextKeywords = useMemo(
     () =>
       hardwareProfile?.recommendations?.text?.map((rec) =>
@@ -321,6 +323,7 @@ const App: React.FC = () => {
     [hardwareProfile]
   );
 
+  // Build hardware mode availability map - moderate operation, keep memo
   const hardwareModeAvailability = useMemo(() => {
     if (!hardwareProfile?.mode_support) return null;
     const record: Partial<
@@ -336,19 +339,17 @@ const App: React.FC = () => {
     return record;
   }, [hardwareProfile]);
 
-  const tabs: { id: AppMode; label: string }[] = useMemo(
-    () => [
-      { id: "basic", label: copy.tabs.basic },
-      { id: "intelligent", label: copy.tabs.intelligent },
-      { id: "campaign", label: copy.tabs.campaign },
-      { id: "recycle", label: copy.tabs.recycle },
-      { id: "chat", label: copy.tabs.chat },
-      { id: "tts", label: copy.tabs.tts },
-      { id: "live", label: copy.tabs.live },
-      { id: "image", label: copy.tabs.image },
-    ],
-    [copy.tabs]
-  );
+  // Build tabs array - simple literal, no memo needed
+  const tabs: { id: AppMode; label: string }[] = [
+    { id: "basic", label: copy.tabs.basic },
+    { id: "intelligent", label: copy.tabs.intelligent },
+    { id: "campaign", label: copy.tabs.campaign },
+    { id: "recycle", label: copy.tabs.recycle },
+    { id: "chat", label: copy.tabs.chat },
+    { id: "tts", label: copy.tabs.tts },
+    { id: "live", label: copy.tabs.live },
+    { id: "image", label: copy.tabs.image },
+  ];
 
   useEffect(() => {
     if (!hardwareModeAvailability) return;
@@ -362,22 +363,20 @@ const App: React.FC = () => {
     }
   }, [hardwareModeAvailability, activeMode, tabs, setActiveMode]);
 
-  const rawModelOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          [
-            AUTO_TEXT_MODEL_ID,
-            selectedModel,
-            ...availableModels,
-            DEFAULT_TEXT_MODEL_ID,
-          ].filter(Boolean)
-        )
-      ),
-    [availableModels, selectedModel]
+  // Build model options list - small operation, no memo needed
+  const rawModelOptions = Array.from(
+    new Set(
+      [
+        AUTO_TEXT_MODEL_ID,
+        selectedModel,
+        ...availableModels,
+        DEFAULT_TEXT_MODEL_ID,
+      ].filter(Boolean)
+    )
   );
 
-  const filteredModelOptions = useMemo(() => {
+  // Filter model options by recommendations - small operation, no memo needed
+  const filteredModelOptions = (() => {
     const uniqueList = rawModelOptions;
     if (!recommendedTextKeywords.length) {
       return uniqueList;
@@ -402,7 +401,7 @@ const App: React.FC = () => {
         ].filter(Boolean) as string[]
       )
     );
-  }, [rawModelOptions, recommendedTextKeywords, selectedModel]);
+  })();
 
   const availableModelPool = useMemo(
     () =>
