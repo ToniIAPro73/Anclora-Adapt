@@ -103,6 +103,8 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
     setGeneratedJSON,
     executedPrompt,
     setExecutedPrompt,
+    improvePrompt,
+    setImprovePrompt,
   } = useIntelligentModeState(interfaceLanguage, languageOptions);
 
   const downloadJSON = () => {
@@ -231,6 +233,8 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
         deepThinking={deepThinking}
         onDeepThinkingChange={setDeepThinking}
         deepThinkingLabel={copy.deepThinkingLabel}
+        improvePrompt={improvePrompt}
+        onImprovePromptChange={setImprovePrompt}
         includeImage={includeImage}
         onIncludeImageChange={setIncludeImage}
         imagePrompt={imagePrompt}

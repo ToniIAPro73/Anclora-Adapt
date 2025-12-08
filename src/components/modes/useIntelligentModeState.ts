@@ -34,6 +34,7 @@ export const useIntelligentModeState = (
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [generatedJSON, setGeneratedJSON] = useState<object | null>(null);
   const [executedPrompt, setExecutedPrompt] = useState<string | null>(null);
+  const [improvePrompt, setImprovePrompt] = useState(false);
 
   // Handle window resize
   useEffect(() => {
@@ -121,6 +122,8 @@ export const useIntelligentModeState = (
     setGeneratedJSON,
     executedPrompt,
     setExecutedPrompt,
+    improvePrompt,
+    setImprovePrompt,
     // Computed
     normalizedLanguageOptions,
     // Handlers
