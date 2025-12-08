@@ -58,8 +58,27 @@ Mantén el idioma del prompt original. Sé directo, profesional y útil.
 """.strip()
 
 
-def build_optimizer_messages(raw_prompt: str, deep_thinking: bool = False) -> list[dict]:
+def build_optimizer_messages(raw_prompt: str, deep_thinking: bool = False, language: str = None) -> list[dict]:
     """Construye el array de mensajes para ollama.chat()."""
+    # Si no se especifica idioma, usar español por defecto
+    if not language:
+        language = "es"
+
+    # Mapeo de códigos de idioma a nombres legibles
+    language_names = {
+        "es": "español",
+        "en": "inglés",
+        "fr": "francés",
+        "de": "alemán",
+        "it": "italiano",
+        "pt": "portugués",
+        "ja": "japonés",
+        "zh": "chino",
+        "ar": "árabe",
+    }
+
+    language_name = language_names.get(language, "español")
+
     detail_instruction = ""
     if deep_thinking:
         detail_instruction = """
@@ -96,12 +115,13 @@ Tu tarea:
 }}
 
 REGLAS OBLIGATORIAS:
-- ✓ Mantén EXACTAMENTE el idioma del PROMPT_ORIGINAL (español en este caso)
+- ✓ Mantén EXACTAMENTE el idioma del PROMPT_ORIGINAL ({language_name} en este caso)
 - ✓ Preserva la intención fundamental del usuario
 - ✓ El "improved_prompt" debe ser PROFESIONAL, DETALLADO y LISTO PARA PRODUCCIÓN
 - ✓ NO abrevies ni simplifiques - EXPANDE y ENRIQUECE
 - ✓ Si hay lagunas, menciónalo en la checklist para que el usuario las complete
-- ✓ Devuelve SOLO el JSON, sin explicaciones adicionales{detail_instruction}
+- ✓ Devuelve SOLO el JSON, sin explicaciones adicionales
+- ✓ IMPORTANTE: Genera la respuesta SIEMPRE en {language_name.upper()}, no en otro idioma{detail_instruction}
 
 PROMPT_ORIGINAL:
 \"\"\"{raw_prompt}\"\"\"
@@ -117,6 +137,7 @@ def improve_prompt(
     raw_prompt: str,
     deep_thinking: bool = False,
     model: str = None,
+    language: str = None,
 ) -> PromptImprovement:
     """
     Llama al modelo local vía Ollama (HTTP) y devuelve un PromptImprovement.
@@ -125,12 +146,13 @@ def improve_prompt(
     deep_thinking: si True, pide un prompt más detallado y exhaustivo.
     model: nombre del modelo en Ollama. Si es None, usa la mejor opción disponible.
            Prioridad: mistral > qwen2.5:14b > qwen2.5:7b-instruct
+    language: idioma de salida del prompt (e.g., 'es', 'en', 'fr'). Si es None, usa español.
     """
     # Si no se especifica modelo, usar el mejor disponible
     if not model:
         model = "mistral:latest"  # Mistral es excelente para prompt engineering
 
-    messages = build_optimizer_messages(raw_prompt, deep_thinking)
+    messages = build_optimizer_messages(raw_prompt, deep_thinking, language)
 
     try:
         logger.info(f"Calling Ollama API at {OLLAMA_API_URL}")

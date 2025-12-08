@@ -29,7 +29,8 @@ except Exception as e:
 async def analyze_image(
     image: UploadFile = File(...),
     user_prompt: Optional[str] = Form(default=""),
-    deep_thinking: bool = Form(default=False)
+    deep_thinking: bool = Form(default=False),
+    language: Optional[str] = Form(default="es")
 ):
     """
     Analyzes uploaded image and generates improved prompt
@@ -38,6 +39,7 @@ async def analyze_image(
     - image: Image file (required)
     - user_prompt: Optional user input for prompt refinement
     - deep_thinking: If true, generates more detailed analysis
+    - language: Output language code (es, en, fr, etc.). Default: es
 
     Returns:
     - generatedPrompt: The improved/generated prompt
@@ -68,7 +70,8 @@ async def analyze_image(
         result = analyzer.analyze_image(
             image_bytes=contents,
             user_prompt=user_prompt.strip() if user_prompt else None,
-            deep_thinking=deep_thinking
+            deep_thinking=deep_thinking,
+            language=language
         )
 
         if not result['success']:

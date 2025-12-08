@@ -45,6 +45,7 @@ export const useImageAnalyzer = () => {
       imageFile: File,
       userPrompt?: string,
       deepThinking?: boolean,
+      language?: string,
       useStreaming: boolean = false
     ): Promise<AnalysisResult> => {
       setState((prev) => ({
@@ -62,6 +63,9 @@ export const useImageAnalyzer = () => {
           formData.append("user_prompt", userPrompt);
         }
         formData.append("deep_thinking", deepThinking ? "true" : "false");
+        if (language) {
+          formData.append("language", language);
+        }
 
         if (useStreaming) {
           return await analyzeImageStream(formData);

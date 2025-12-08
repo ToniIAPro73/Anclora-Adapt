@@ -253,6 +253,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           imagePreview={imagePreview}
           onFileChange={onFileChange}
           imagePromptPlaceholder="Describe la imagen que deseas generar..."
+          language={language}
         />
 
         {/* Generate Button */}
