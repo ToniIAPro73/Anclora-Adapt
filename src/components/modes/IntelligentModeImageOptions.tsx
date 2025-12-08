@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import commonStyles from "@/styles/commonStyles";
 
 interface IntelligentModeImageOptionsProps {
@@ -24,6 +24,15 @@ const IntelligentModeImageOptions: React.FC<
   onFileChange,
   imagePromptPlaceholder,
 }) => {
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // Force image to load from blob URL
+  useEffect(() => {
+    if (imgRef.current && imagePreview) {
+      imgRef.current.src = imagePreview;
+    }
+  }, [imagePreview]);
+
   return (
     <div
       style={{
@@ -74,6 +83,7 @@ const IntelligentModeImageOptions: React.FC<
                 fontSize: "0.75em",
                 width: "100%",
                 maxWidth: "100%",
+                color: "transparent",
               }}
             />
             {imagePreview && imageFile && (
@@ -90,7 +100,7 @@ const IntelligentModeImageOptions: React.FC<
                 }}
               >
                 <img
-                  src={imagePreview}
+                  ref={imgRef}
                   alt="preview"
                   style={{
                     width: "40px",
