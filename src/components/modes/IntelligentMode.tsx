@@ -19,6 +19,27 @@ type GenerateImageFn = (
   options: ImageGenerationOptions
 ) => Promise<string>;
 
+interface IntelligentJSON {
+  metadata: {
+    version: string;
+    timestamp: string;
+    mode: "intelligent";
+  };
+  inputs: {
+    idea: string;
+    contexto: string;
+    idioma: string;
+    pensamiento_profundo: boolean;
+    imagen_incluida: boolean;
+    imagen_prompt?: string;
+    imagen_analizada?: boolean;
+  };
+  resultados: {
+    contenido_generado: string;
+    imagen_url?: string;
+  };
+}
+
 interface IntelligentCopy {
   ideaLabel: string;
   ideaPlaceholder: string;
@@ -78,7 +99,24 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
     isMobile,
     normalizedLanguageOptions,
     handleFileChange,
+    generatedJSON,
+    setGeneratedJSON,
   } = useIntelligentModeState(interfaceLanguage, languageOptions);
+
+  const downloadJSON = () => {
+    if (!generatedJSON) return;
+
+    const dataStr = JSON.stringify(generatedJSON, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "inteligente.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const handleGenerate = async () => {
     if (!idea.trim()) {
@@ -107,14 +145,49 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
         targetLanguage: language,
       });
 
+      let generatedImageUrl: string | undefined;
+
       if (includeImage && imagePrompt.trim()) {
         const base64 = imageFile ? await fileToBase64(imageFile) : undefined;
         const imageResult = await onGenerateImage({
           prompt: `${imagePrompt}\nContexto: ${context || "General"}`,
           base64Image: base64,
         });
+        generatedImageUrl = imageResult;
         setImageUrl(imageResult);
       }
+
+      // Create Intelligent Mode JSON with outputs
+      const generatedContent =
+        outputs && outputs.length > 0
+          ? outputs.map((output) => output.content).join("\n\n")
+          : "";
+
+      const languageDisplay =
+        languages.find((l) => l.value === language)?.label || language;
+
+      const intelligentJSON: IntelligentJSON = {
+        metadata: {
+          version: "1.0",
+          timestamp: new Date().toISOString(),
+          mode: "intelligent",
+        },
+        inputs: {
+          idea,
+          contexto: context || "General",
+          idioma: languageDisplay,
+          pensamiento_profundo: deepThinking,
+          imagen_incluida: includeImage,
+          ...(includeImage && { imagen_prompt: imagePrompt }),
+          ...(includeImage && imageFile && { imagen_analizada: !!imageFile }),
+        },
+        resultados: {
+          contenido_generado: generatedContent,
+          ...(generatedImageUrl && { imagen_url: generatedImageUrl }),
+        },
+      };
+
+      setGeneratedJSON(intelligentJSON);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     }
@@ -169,6 +242,8 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
             audioUrl={null}
             imageUrl={imageUrl}
             copy={outputCopy}
+            generatedJSON={generatedJSON}
+            onDownloadJSON={downloadJSON}
           />
         </div>
       </div>

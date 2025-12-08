@@ -18,6 +18,8 @@ interface OutputDisplayProps {
   audioUrl?: string | null;
   imageUrl?: string | null;
   copy: OutputCopy;
+  generatedJSON?: object | null;
+  onDownloadJSON?: () => void;
 }
 
 const GeneratedOutputCard: React.FC<{
@@ -141,6 +143,18 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
             />
           ))}
         </div>
+      )}
+      {generatedJSON && onDownloadJSON && (
+        <button
+          onClick={onDownloadJSON}
+          style={{
+            ...commonStyles.copyButton,
+            marginTop: "12px",
+            width: "100%",
+          }}
+        >
+          📥 Descargar inteligente.json
+        </button>
       )}
     </section>
   );
