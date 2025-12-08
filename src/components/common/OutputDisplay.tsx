@@ -94,31 +94,10 @@ const PromptDisplay: React.FC<{
   onDownloadMarkdown?: () => void;
   onDownloadJSON?: () => void;
 }> = ({ title, prompt, onDownloadMarkdown, onDownloadJSON }) => {
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  useEffect(() => {
-    if (textareaRef.current) {
-      // Reset height to auto to get accurate scrollHeight
-      textareaRef.current.style.height = "auto";
-      // Set to scrollHeight to expand based on content
-      const scrollHeight = textareaRef.current.scrollHeight;
-      textareaRef.current.style.height = `${scrollHeight}px`;
-    }
-  }, [prompt]);
-
-  // Re-calculate height when component mounts
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-    }
-  }, []);
-
   return (
     <div style={commonStyles.outputCard}>
       <strong>{title}</strong>
       <textarea
-        ref={textareaRef}
         value={prompt}
         readOnly
         spellCheck={false}
