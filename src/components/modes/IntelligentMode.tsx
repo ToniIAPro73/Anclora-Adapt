@@ -134,6 +134,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
         : "Responde directo.";
       const languageDisplay =
         languages.find((l) => l.value === language)?.label || language;
+
       const prompt = `Rol: Estratega. Tarea: "${idea}". Contexto: "${
         context || "General"
       }". Idioma: ${languageDisplay}. ${thinking} Salida JSON: ${structuredOutputExample}`;
@@ -162,9 +163,6 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
         outputs && outputs.length > 0
           ? outputs.map((output) => output.content).join("\n\n")
           : "";
-
-      const languageDisplay =
-        languages.find((l) => l.value === language)?.label || language;
 
       const intelligentJSON: IntelligentJSON = {
         metadata: {
