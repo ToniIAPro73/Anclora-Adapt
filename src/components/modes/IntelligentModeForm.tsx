@@ -72,8 +72,8 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          flex: includeImage ? "0 0 auto" : "1 1 35%",
-          height: includeImage ? "140px" : "auto",
+          flex: includeImage ? "0 0 auto" : "0 0 140px",
+          height: includeImage ? "140px" : "100%",
           minHeight: "100px",
           marginBottom: "12px",
           flexShrink: 0,
@@ -95,8 +95,8 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          flex: includeImage ? "0 0 auto" : "1 1 35%",
-          height: includeImage ? "100px" : "auto",
+          flex: includeImage ? "0 0 auto" : "0 0 110px",
+          height: includeImage ? "100px" : "100%",
           minHeight: "80px",
           marginBottom: "12px",
           flexShrink: 0,
