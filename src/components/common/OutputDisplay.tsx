@@ -20,6 +20,12 @@ interface OutputDisplayProps {
   copy: OutputCopy;
   generatedJSON?: object | null;
   onDownloadJSON?: () => void;
+  ideaPrompt?: string | null;
+  imagePrompt?: string | null;
+  onDownloadIdeaPrompt?: () => void;
+  onDownloadIdeaPromptJSON?: () => void;
+  onDownloadImagePrompt?: () => void;
+  onDownloadImagePromptJSON?: () => void;
   executedPrompt?: string | null;
   onDownloadPrompt?: () => void;
   onDownloadPromptJSON?: () => void;
@@ -85,6 +91,65 @@ const GeneratedOutputCard: React.FC<{
   );
 };
 
+const PromptDisplay: React.FC<{
+  title: string;
+  prompt: string;
+  onDownloadMarkdown?: () => void;
+  onDownloadJSON?: () => void;
+}> = ({ title, prompt, onDownloadMarkdown, onDownloadJSON }) => {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [prompt]);
+
+  return (
+    <div style={commonStyles.outputCard}>
+      <strong>{title}</strong>
+      <textarea
+        ref={textareaRef}
+        value={prompt}
+        readOnly
+        spellCheck={false}
+        style={{
+          ...commonStyles.outputTextarea,
+          backgroundColor: "var(--input-bg)",
+          marginTop: "8px",
+        }}
+      />
+      <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+        {onDownloadMarkdown && (
+          <button
+            type="button"
+            style={{
+              ...commonStyles.copyButton,
+              flex: 1,
+            }}
+            onClick={onDownloadMarkdown}
+          >
+            📥 .md
+          </button>
+        )}
+        {onDownloadJSON && (
+          <button
+            type="button"
+            style={{
+              ...commonStyles.copyButton,
+              flex: 1,
+            }}
+            onClick={onDownloadJSON}
+          >
+            📥 .json
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const OutputDisplay: React.FC<OutputDisplayProps> = ({
   generatedOutputs,
   error,
@@ -95,6 +160,12 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
   copy,
   generatedJSON,
   onDownloadJSON,
+  ideaPrompt,
+  imagePrompt,
+  onDownloadIdeaPrompt,
+  onDownloadIdeaPromptJSON,
+  onDownloadImagePrompt,
+  onDownloadImagePromptJSON,
   executedPrompt,
   onDownloadPrompt,
   onDownloadPromptJSON,
@@ -152,6 +223,26 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
           ))}
         </div>
       )}
+      {ideaPrompt && (
+        <div style={{ marginTop: "12px" }}>
+          <PromptDisplay
+            title="Prompt para Idea/Contexto"
+            prompt={ideaPrompt}
+            onDownloadMarkdown={onDownloadIdeaPrompt}
+            onDownloadJSON={onDownloadIdeaPromptJSON}
+          />
+        </div>
+      )}
+      {imagePrompt && (
+        <div style={{ marginTop: "12px" }}>
+          <PromptDisplay
+            title="Prompt para Imagen"
+            prompt={imagePrompt}
+            onDownloadMarkdown={onDownloadImagePrompt}
+            onDownloadJSON={onDownloadImagePromptJSON}
+          />
+        </div>
+      )}
       {executedPrompt && onDownloadPrompt && (
         <div style={{ marginTop: "12px" }}>
           <div style={commonStyles.outputCard}>
@@ -164,7 +255,6 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
                 ...commonStyles.outputTextarea,
                 backgroundColor: "var(--input-bg)",
                 marginTop: "8px",
-                maxHeight: "150px",
               }}
             />
             <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
