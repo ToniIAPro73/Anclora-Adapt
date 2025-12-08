@@ -77,12 +77,14 @@ The application follows a **three-tier context system** with **specialized hooks
 Previously, all state was managed via a single `InteractionContext` with 21 properties, causing cascading re-renders across the entire app. **Refactored into 3 specialized contexts**:
 
 1. **ModelContext** (`src/context/ModelContext.tsx`)
+
    - Manages: `selectedModel`, `lastModelUsed`, `hardwareProfile`
    - Persists `selectedModel` to localStorage
    - Used by: App.tsx (model selection, hardware adjustment)
    - Re-render cost: ~2 components when model changes
 
 2. **UIContext** (`src/context/UIContext.tsx`)
+
    - Manages: `isLoading`, `error`, `outputs`, `imageUrl`, `activeMode`
    - Provides helpers: `addOutput()`, `clearOutputs()` (useCallback-memoized)
    - Used by: Mode components, output display
@@ -113,9 +115,9 @@ const allState = useInteraction();
 
 **Performance Impact**: 70-80% reduction in unnecessary re-renders across the app.
 
-### Historical Architecture (Pre-December 2025)
+### Previous Architecture
 
-Previously, all logic resided in monolithic `index.tsx` (~80KB). The application:
+All logic previously resided in `index.tsx` (~80KB). The application:
 
 1. **Initializes at module load**:
 
@@ -134,9 +136,10 @@ Previously, all logic resided in monolithic `index.tsx` (~80KB). The application
 3. **Makes API calls** through dedicated helper functions:
 
    - `callTextModel(prompt)` → POST to Ollama `/api/generate` endpoint
-  - `callImageModel(options)` → Llama al backend FastAPI `/api/image` (SDXL Lightning)
-  - `callTextToSpeech(text, voicePreset, language?)` → Invoca FastAPI `/api/tts` (Kokoro-82M)
-  - `callSpeechToText(audioBlob)` → Invoca FastAPI `/api/stt` (Faster-Whisper)
+
+- `callImageModel(options)` → Llama al backend FastAPI `/api/image` (SDXL Lightning)
+- `callTextToSpeech(text, voicePreset, language?)` → Invoca FastAPI `/api/tts` (Kokoro-82M)
+- `callSpeechToText(audioBlob)` → Invoca FastAPI `/api/stt` (Faster-Whisper)
 
 4. **Manages Ollama integration**:
 
@@ -220,6 +223,7 @@ const callTextModel = async (prompt: string): Promise<string> => {
 Large mode components have been split into **focused sub-components** with **custom state hooks** for better maintainability:
 
 #### BasicMode (574 → 240 lines in main)
+
 ```
 BasicMode.tsx (main, 240 lines)
 ├── BasicModeForm.tsx (220 lines) - Input textarea, file upload UI
@@ -228,6 +232,7 @@ BasicMode.tsx (main, 240 lines)
 ```
 
 #### IntelligentMode (412 → 180 lines in main)
+
 ```
 IntelligentMode.tsx (main, 180 lines)
 ├── IntelligentModeForm.tsx (160 lines) - Idea/context textareas
@@ -236,6 +241,7 @@ IntelligentMode.tsx (main, 180 lines)
 ```
 
 #### TTSMode (494 → 160 lines in main)
+
 ```
 TTSMode.tsx (main, 160 lines)
 ├── TTSModeForm.tsx (180 lines) - Text input + language/voice selectors
@@ -244,6 +250,7 @@ TTSMode.tsx (main, 160 lines)
 ```
 
 **Benefits**:
+
 - Cleaner component hierarchy (58-68% size reduction in main files)
 - Reusable state logic via custom hooks
 - Easier to test individual sections
