@@ -103,7 +103,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         <textarea
           style={{
             ...commonStyles.textarea,
-            height: includeImage ? "140px" : "120px",
+            height: includeImage ? "110px" : "90px",
             resize: "none",
           }}
           value={idea}
@@ -136,7 +136,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         <textarea
           style={{
             ...commonStyles.textarea,
-            height: includeImage ? "100px" : "100px",
+            height: "80px",
             resize: "none",
           }}
           value={context}
