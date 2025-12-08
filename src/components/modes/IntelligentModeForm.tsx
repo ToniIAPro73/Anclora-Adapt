@@ -161,12 +161,18 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           style={{
             display: "flex",
             alignItems: "flex-end",
-            gap: "12px",
+            gap: "20px",
             width: "100%",
           }}
         >
           {/* Language Section */}
-          <div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+            }}
+          >
             <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
               Idioma
             </label>
@@ -202,6 +208,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
               fontSize: "0.85em",
               cursor: "pointer",
               whiteSpace: "nowrap",
+              marginLeft: "auto",
             }}
           >
             <input
