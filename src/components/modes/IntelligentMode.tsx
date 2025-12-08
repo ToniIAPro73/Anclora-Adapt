@@ -165,9 +165,9 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
       // Step 2: If improvePrompt is checked, optimize the prompt using backend
       if (improvePrompt) {
         try {
-          const response = await fetch(
-            `${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"}/api/prompts/optimize`,
-            {
+          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+          const optimizeUrl = `${API_BASE_URL}/api/prompts/optimize`;
+          const response = await fetch(optimizeUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -188,16 +188,14 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
           if (optimizeResult.success) {
             finalPrompt = optimizeResult.improved_prompt;
           } else {
-            setError(optimizeResult.error || "Error al optimizar el prompt");
-            return;
+            // If optimization fails, use raw prompt and show warning
+            console.warn("Prompt optimization failed, using raw prompt:", optimizeResult.error);
+            setError(`Aviso: No se pudo optimizar el prompt. Usando versión original.`);
           }
         } catch (optimizeErr) {
-          setError(
-            `Error al conectar con el optimizador: ${
-              optimizeErr instanceof Error ? optimizeErr.message : "Error desconocido"
-            }`
-          );
-          return;
+          // If backend is unavailable, use raw prompt with warning
+          console.warn("Prompt optimizer unavailable, using raw prompt:", optimizeErr);
+          // Continue with raw prompt instead of failing
         }
       }
 
