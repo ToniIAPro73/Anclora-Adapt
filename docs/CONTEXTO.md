@@ -89,45 +89,34 @@ Ultima revision: **diciembre 2025** - **Optimizaciones de rendimiento completada
 
 ---
 
-## Camino hasta aqui
+## Camino hasta aqui (Historico)
 
 ### 1. Migracion a Ollama (noviembre 2025)
-El endpoint antiguo de Hugging Face (`/api/hf-text`) quedo obsoleto y se reemplazo por Ollama:
-
-```bash
-ollama pull llama2
-ollama serve            # o scripts/manage-ollama.ps1
-npm run dev             # Vite + FastAPI
-```
-
-`POST /api/generate` usa Ollama, de modo que `.env.local` solo necesita `VITE_OLLAMA_BASE_URL` y un modelo por defecto.
+- Reemplazo del endpoint Hugging Face (`/api/hf-text`) por **Ollama local**
+- Configuración simple: `VITE_OLLAMA_BASE_URL` y modelo por defecto
+- Backend FastAPI para imagen/TTS/STT (APIs ya definidas)
 
 ### 2. Refactor de la SPA
-- Carpeta `src/` organizada por modos y componentes compartidos.
-- Estados globales via contextos para outputs, idioma, tema y ayudas.
-- Prompts y textos centralizados en `src/constants`.
+- Creación de carpeta `src/` organizada por funcionalidad (modos, componentes, contextos, hooks, utils)
+- Estados globales vía contextos: **Completado en Fases 1-5**
+- Constantes centralizadas en `src/constants/` (translations, options, prompts, etc.)
 
-### 3. Heuristica de idioma/modelo
-- `src/constants/modelCapabilities.ts` recoge la matriz de soportes por modelo (llama3.2, Mixtral, Qwen2.5, etc.).
-- `resolveTextModelId` elige el mejor modelo segun idioma, velocidad y si se pide razonamiento; autoprioriza Qwen/Mistral para japones/chino/ruso.
-- El modo **Auto** construye una lista ordenada y `handleGenerate` reintenta con el siguiente elemento cuando el primero falla por JSON invalido o timeout.
-- `lastModelUsed` indica el modelo real usado tras cada generacion, incluso si el usuario habia escogido otro.
+### 3. Heurística de idioma/modelo
+- `modelCapabilities.ts`: matriz de soportes por modelo
+- `resolveTextModelId`: scoring inteligente, prioriza Qwen/Mistral para CJK
+- Modo **Auto**: reintento automático si un modelo devuelve JSON inválido
+- `lastModelUsed`: persiste el modelo realmente usado tras cada generación
 
 ### 4. Ajustes de interfaz y experiencia
-- Botones de modo centrados entre las lineas divisorias y CTA principal visible sin scroll.
-- Toggle de idioma, boton de reinicio y chips de plataformas con contraste adecuado en ambos temas.
-- Checkbox "Forzar traduccion literal" deshabilita campos no necesarios y cambia el CTA a **Generar traduccion** (regresa a **Generar contenido** al desmarcar).
-- Boton "Copiar" y outputs con contraste, iconos y estados de error coherentes.
-- Script `scripts/manage-ollama.ps1` lista modelos (`ollama list`), permite precargar uno, cierra procesos en el puerto 11434 y arranca `ollama serve` limpio.
+- Layout optimizado: CTA visible sin scroll, contraste en temas claro/oscuro
+- Checkbox "Forzar traducción literal": CTA dinámico y campos contextuales
+- Boton "Copiar", outputs con feedback consistente
+- Script `manage-ollama.ps1` para gestión de Ollama (listar, precargar, servir)
 
-### 5. Deteccion de hardware y recomendaciones
-- `python-backend/hardware_profiles.py` expone `detect_hardware_profile()` usado por `/api/system/capabilities`.
-- La deteccion primero usa `torch.cuda.is_available()`; si no encuentra GPU recurre a `nvidia-smi` (via `subprocess` + `shutil.which`) y convierte la memoria de MiB a GB para mostrar valores reales (ejemplo: RTX 3050 -> 4.0 GB).
-- Se devuelven:
-  - Datos base (cores, hilos, RAM, VRAM, almacenamiento, flag CUDA).
-  - `recommendations.text`: lista ordenada de modelos sugeridos con razon y requisitos.
-  - `mode_support`: modos habilitados/deshabilitados con motivo (voz, live chat, imagen dependen de VRAM/RAM).
-- El boton "Ajuste hardware" guarda el resultado en contexto, actualiza el selector de modelos (los recomendados van primero), desactiva tabs no soportados y muestra el resumen detectado bajo el boton.
+### 5. Detección de hardware y recomendaciones
+- `hardware_profiles.py`: detección real de CPU/RAM/VRAM vía torch o nvidia-smi
+- Endpoint `/api/system/capabilities`: lista ordenada de modelos recomendados + modos habilitados
+- Integración con UI: selector de modelos ordenado + tabs desactivados según hardware
 
 ---
 
