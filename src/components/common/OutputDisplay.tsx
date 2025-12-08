@@ -20,6 +20,8 @@ interface OutputDisplayProps {
   copy: OutputCopy;
   generatedJSON?: object | null;
   onDownloadJSON?: () => void;
+  executedPrompt?: string | null;
+  onDownloadPrompt?: () => void;
 }
 
 const GeneratedOutputCard: React.FC<{
@@ -92,6 +94,8 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
   copy,
   generatedJSON,
   onDownloadJSON,
+  executedPrompt,
+  onDownloadPrompt,
 }) => {
   return (
     <section style={commonStyles.outputSection}>
@@ -146,17 +150,63 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
           ))}
         </div>
       )}
+      {executedPrompt && onDownloadPrompt && (
+        <div style={{ marginTop: "12px" }}>
+          <div style={commonStyles.outputCard}>
+            <strong>Prompt Ejecutado</strong>
+            <textarea
+              value={executedPrompt}
+              readOnly
+              spellCheck={false}
+              style={{
+                ...commonStyles.outputTextarea,
+                backgroundColor: "var(--input-bg)",
+                marginTop: "8px",
+                maxHeight: "150px",
+              }}
+            />
+            <button
+              type="button"
+              style={{
+                ...commonStyles.copyButton,
+                marginTop: "8px",
+                width: "100%",
+              }}
+              onClick={onDownloadPrompt}
+            >
+              📥 Descargar como prompt.md
+            </button>
+          </div>
+        </div>
+      )}
       {generatedJSON && onDownloadJSON && (
-        <button
-          onClick={onDownloadJSON}
-          style={{
-            ...commonStyles.copyButton,
-            marginTop: "12px",
-            width: "100%",
-          }}
-        >
-          📥 Descargar inteligente.json
-        </button>
+        <div style={{ marginTop: "12px" }}>
+          <div style={commonStyles.outputCard}>
+            <strong>Respuesta JSON Completa</strong>
+            <textarea
+              value={JSON.stringify(generatedJSON, null, 2)}
+              readOnly
+              spellCheck={false}
+              style={{
+                ...commonStyles.outputTextarea,
+                backgroundColor: "var(--input-bg)",
+                marginTop: "8px",
+                maxHeight: "200px",
+              }}
+            />
+            <button
+              type="button"
+              style={{
+                ...commonStyles.copyButton,
+                marginTop: "8px",
+                width: "100%",
+              }}
+              onClick={onDownloadJSON}
+            >
+              📥 Descargar inteligente.json
+            </button>
+          </div>
+        </div>
       )}
     </section>
   );
