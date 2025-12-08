@@ -60,8 +60,8 @@ const IntelligentModeImageOptions: React.FC<
           <div
             style={{
               display: "flex",
+              flexDirection: "column",
               gap: "6px",
-              alignItems: "center",
               width: "100%",
             }}
           >
@@ -76,27 +76,36 @@ const IntelligentModeImageOptions: React.FC<
               }}
             />
             {imagePreview && (
-              <img
-                src={imagePreview}
-                alt="mini"
+              <div
                 style={{
-                  width: "30px",
-                  height: "30px",
-                  objectFit: "cover",
-                  borderRadius: "4px",
-                  flexShrink: 0,
+                  display: "flex",
+                  justifyContent: "center",
+                  paddingBottom: "4px",
                 }}
-              />
+              >
+                <img
+                  src={imagePreview}
+                  alt="selected image preview"
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "120px",
+                    objectFit: "contain",
+                    borderRadius: "8px",
+                    border: "1px solid var(--panel-border, #e0e0e0)",
+                  }}
+                />
+              </div>
             )}
           </div>
-          <input
-            type="text"
+          <textarea
             style={{
-              ...commonStyles.select,
+              ...commonStyles.textarea,
               padding: "6px",
               fontSize: "0.9em",
               width: "100%",
               boxSizing: "border-box",
+              height: "100px",
+              resize: "none",
             }}
             value={imagePrompt}
             onChange={(e) => onImagePromptChange(e.target.value)}
