@@ -43,6 +43,19 @@ import {
   LanguageOptionAvailability,
 } from "@/constants/modelCapabilities";
 
+// ===== PERFORMANCE: Regex patterns compiled once at module level =====
+const MODEL_PATTERNS = {
+  qwenMistralLlama3: /qwen|mistral|llama3/i,
+  qwenYiDeepseek: /qwen|yi|deepseek/i,
+  mistralGemma: /mistral|gemma/i,
+  llama: /llama/i,
+  llama3: /llama3/i,
+  llama2: /llama2/i,
+  phiMiniChatOrca: /phi|mini|chat|orca|gemma/i,
+  qwen: /qwen/i,
+  mistral: /mistral/i,
+};
+
 const extractJsonPayload = (raw: string) => {
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
@@ -248,7 +261,8 @@ const App: React.FC = () => {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [resetCounter, setResetCounter] = useState(0);
 
-  const copy = translations[language];
+  // Memoizar objeto de traducciones para evitar re-renders innecesarios en componentes hijos
+  const copy = useMemo(() => translations[language], [language]);
 
   const installedModels = useMemo(() => {
     const set = new Set<string>();
@@ -422,12 +436,12 @@ const App: React.FC = () => {
       // incluso si VRAM es limitada (pueden ejecutarse bien en RAM)
       if (hardwareProfile?.hardware.ram_gb && hardwareProfile.hardware.ram_gb >= 24) {
         // Con >= 24 GB RAM, los modelos 7B pueden ejecutarse bien incluso con VRAM baja
-        if (/qwen|mistral|llama3/.test(normalized)) {
+        if (MODEL_PATTERNS.qwenMistralLlama3.test(normalized)) {
           score += 8; // Bonus significativo por capacidad en RAM
         }
       } else if (hardwareProfile?.hardware.ram_gb && hardwareProfile.hardware.ram_gb >= 16) {
         // Con 16-24 GB RAM, todavía buen soporte
-        if (/qwen|mistral|llama3/.test(normalized)) {
+        if (MODEL_PATTERNS.qwenMistralLlama3.test(normalized)) {
           score += 5;
         }
       }
@@ -443,31 +457,31 @@ const App: React.FC = () => {
 
         // Bonus por modelos especialmente buenos en idiomas específicos
         if (["ja", "zh", "ko"].includes(context.targetLanguage)) {
-          if (/qwen|yi|deepseek/.test(normalized)) score += 8;
-          if (/mistral|gemma/.test(normalized)) score += 3;
-          if (/llama/.test(normalized)) score -= 2;
+          if (MODEL_PATTERNS.qwenYiDeepseek.test(normalized)) score += 8;
+          if (MODEL_PATTERNS.mistralGemma.test(normalized)) score += 3;
+          if (MODEL_PATTERNS.llama.test(normalized)) score -= 2;
         }
 
         if (["es", "pt", "fr", "it"].includes(context.targetLanguage)) {
-          if (/qwen/.test(normalized)) score += 5;
-          if (/mistral/.test(normalized)) score += 4;
-          if (/llama3/.test(normalized)) score += 2;
+          if (MODEL_PATTERNS.qwen.test(normalized)) score += 5;
+          if (MODEL_PATTERNS.mistral.test(normalized)) score += 4;
+          if (MODEL_PATTERNS.llama3.test(normalized)) score += 2;
         }
 
         if (context.targetLanguage === "ru") {
-          if (/qwen|mistral/.test(normalized)) score += 5;
-          if (/llama3/.test(normalized)) score += 2;
-          if (/llama2/.test(normalized)) score -= 2;
+          if (MODEL_PATTERNS.qwenMistralLlama3.test(normalized)) score += 5;
+          if (MODEL_PATTERNS.llama3.test(normalized)) score += 2;
+          if (MODEL_PATTERNS.llama2.test(normalized)) score -= 2;
         }
       }
 
       // ========== MODO TRADUCCIÓN LITERAL ==========
       if (context?.isLiteralTranslation) {
         // La traducción requiere precisión lingüística
-        if (/qwen|mistral|llama3/.test(normalized)) {
+        if (MODEL_PATTERNS.qwenMistralLlama3.test(normalized)) {
           score += 6;
         }
-        if (/llama2/.test(normalized)) {
+        if (MODEL_PATTERNS.llama2.test(normalized)) {
           score -= 3;
         }
       }
@@ -476,56 +490,56 @@ const App: React.FC = () => {
       if (context?.numberOfPlatforms && context.numberOfPlatforms > 1) {
         // Múltiples plataformas requieren mejor control del output
         // Qwen y Mistral son mejores para generar múltiples outputs
-        if (/qwen/.test(normalized)) score += 4;
-        if (/mistral/.test(normalized)) score += 3;
-        if (/llama2/.test(normalized)) score -= 2;
+        if (MODEL_PATTERNS.qwen.test(normalized)) score += 4;
+        if (MODEL_PATTERNS.mistral.test(normalized)) score += 3;
+        if (MODEL_PATTERNS.llama2.test(normalized)) score -= 2;
       }
 
       // ========== VELOCIDAD Y RAZONAMIENTO ==========
       if (context?.preferChat || context?.preferSpeed) {
-        if (/phi|mini|chat|orca|gemma/.test(normalized)) score += 3;
+        if (MODEL_PATTERNS.phiMiniChatOrca.test(normalized)) score += 3;
       }
 
       if (context?.preferReasoning) {
-        if (/qwen|mistral|llama3/.test(normalized)) score += 4;
+        if (MODEL_PATTERNS.qwenMistralLlama3.test(normalized)) score += 4;
       }
 
       // ========== CONTENIDO EXTENSO ==========
       if (context?.minChars && context.minChars > 500) {
         // Contenido extenso requiere modelos capaces
-        if (/qwen/.test(normalized)) {
+        if (MODEL_PATTERNS.qwen.test(normalized)) {
           score += 7; // Qwen es excelente para contenido largo
-        } else if (/mistral/.test(normalized)) {
+        } else if (MODEL_PATTERNS.mistral.test(normalized)) {
           score += 6; // Mistral también muy bueno
-        } else if (/llama3/.test(normalized)) {
+        } else if (MODEL_PATTERNS.llama3.test(normalized)) {
           score += 2;
         }
         // Llama2 es débil para contenido extenso
-        if (/llama2/.test(normalized)) {
+        if (MODEL_PATTERNS.llama2.test(normalized)) {
           score -= 5;
         }
       } else if (context?.maxChars && context.maxChars > 0) {
         // Si hay límite máximo pero sin mínimo específico
-        if (/mistral|qwen/.test(normalized)) score += 2;
+        if (MODEL_PATTERNS.mistralGemma.test(normalized) || MODEL_PATTERNS.qwen.test(normalized)) score += 2;
       }
 
       // ========== MODELO POR DEFECTO Y CALIDAD GENERAL ==========
       // Base de puntuación por calidad general
-      if (/qwen/.test(normalized)) {
+      if (MODEL_PATTERNS.qwen.test(normalized)) {
         score += 4; // Mejor modelo multilingüe
-      } else if (/mistral/.test(normalized)) {
+      } else if (MODEL_PATTERNS.mistral.test(normalized)) {
         score += 3; // Muy bueno para múltiples idiomas
-      } else if (/llama3/.test(normalized)) {
+      } else if (MODEL_PATTERNS.llama3.test(normalized)) {
         score += 1; // Aceptable
       }
 
-      if (/llama2/.test(normalized)) {
+      if (MODEL_PATTERNS.llama2.test(normalized)) {
         score -= 3; // Menos bueno en comparativa
       }
 
       return score;
     },
-    []
+    [hardwareProfile]
   );
 
   const getModelCandidates = useCallback(
@@ -849,8 +863,13 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
     setImageUrl(null);
     setError(null);
     setIsLoading(false);
+    // Si el modelo seleccionado es AUTO, limpiar el último modelo usado
+    // para que no se muestre en la línea de información
+    if (selectedModel === AUTO_TEXT_MODEL_ID) {
+      setLastModelUsed(null);
+    }
     setResetCounter((prev) => prev + 1);
-  }, [clearOutputs, setError, setImageUrl, setIsLoading]);
+  }, [clearOutputs, selectedModel, setError, setImageUrl, setIsLoading, setLastModelUsed]);
 
   const handleTabChange = useCallback(
     (mode: AppMode) => {
