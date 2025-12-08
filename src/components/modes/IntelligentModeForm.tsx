@@ -156,50 +156,61 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           backgroundColor: "var(--panel-bg)",
         }}
       >
-        {/* Language Section */}
-        <div>
-          <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
-            Idioma
-          </label>
-          <select
-            style={{
-              ...commonStyles.select,
-              padding: "6px 10px",
-              fontSize: "0.9em",
-              width: "100%",
-            }}
-            value={language}
-            onChange={(e) => onLanguageChange(e.target.value)}
-          >
-            {languageOptions.map((lang) => (
-              <option
-                key={lang.value}
-                value={lang.value}
-                disabled={lang.disabled}
-                title={lang.disabled ? lang.reason : undefined}
-              >
-                {lang.label}
-                {lang.disabled ? " (no disponible)" : ""}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Deep Thinking Checkbox */}
-        <label
+        {/* Language and Deep Thinking Row */}
+        <div
           style={{
-            ...commonStyles.checkboxLabel,
-            fontSize: "0.85em",
-            cursor: "pointer",
+            display: "flex",
+            alignItems: "flex-end",
+            gap: "12px",
+            width: "100%",
           }}
         >
-          <input
-            type="checkbox"
-            checked={deepThinking}
-            onChange={(e) => onDeepThinkingChange(e.target.checked)}
-          />{" "}
-          {deepThinkingLabel}
-        </label>
+          {/* Language Section */}
+          <div style={{ flex: 1 }}>
+            <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
+              Idioma
+            </label>
+            <select
+              style={{
+                ...commonStyles.select,
+                padding: "6px 10px",
+                fontSize: "0.9em",
+                width: "100%",
+              }}
+              value={language}
+              onChange={(e) => onLanguageChange(e.target.value)}
+            >
+              {languageOptions.map((lang) => (
+                <option
+                  key={lang.value}
+                  value={lang.value}
+                  disabled={lang.disabled}
+                  title={lang.disabled ? lang.reason : undefined}
+                >
+                  {lang.label}
+                  {lang.disabled ? " (no disponible)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Deep Thinking Checkbox */}
+          <label
+            style={{
+              ...commonStyles.checkboxLabel,
+              fontSize: "0.85em",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={deepThinking}
+              onChange={(e) => onDeepThinkingChange(e.target.checked)}
+            />{" "}
+            {deepThinkingLabel}
+          </label>
+        </div>
 
         {/* Image Options */}
         <IntelligentModeImageOptions
