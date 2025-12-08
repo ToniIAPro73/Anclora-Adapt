@@ -166,7 +166,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           }}
         >
           {/* Language Section */}
-          <div style={{ flex: 1 }}>
+          <div>
             <label style={{ ...commonStyles.label, fontSize: "0.8em" }}>
               Idioma
             </label>
@@ -175,7 +175,8 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
                 ...commonStyles.select,
                 padding: "6px 10px",
                 fontSize: "0.9em",
-                width: "100%",
+                width: "auto",
+                minWidth: "100px",
               }}
               value={language}
               onChange={(e) => onLanguageChange(e.target.value)}
