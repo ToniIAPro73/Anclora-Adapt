@@ -16,7 +16,7 @@ const IMAGE_ENDPOINT = (
 ).trim();
 const TTS_MODEL_ID = (env.VITE_TTS_MODEL_ID || "").trim();
 const TTS_ENDPOINT = (env.VITE_TTS_ENDPOINT || "").trim();
-const STT_MODEL_ID = (env.VITE_STT_MODEL_ID || "").trim();
+const _STT_MODEL_ID = (env.VITE_STT_MODEL_ID || "").trim();
 const STT_ENDPOINT = (env.VITE_STT_ENDPOINT || "").trim();
 const API_KEY = (
   env.VITE_MODEL_API_KEY ||
@@ -143,9 +143,9 @@ export const listAvailableTextModels = async (): Promise<string[]> => {
     const payload = await response.json();
     const models = Array.isArray(payload?.models) ? payload.models : [];
     return models
-      .map((item: any) => item?.name)
-      .filter((name: any): name is string => Boolean(name));
-  } catch (e) {
+      .map((item: Record<string, unknown>) => item?.name)
+      .filter((name: unknown): name is string => Boolean(name));
+  } catch {
     return [];
   }
 };
@@ -188,9 +188,11 @@ export const callImageModel = async (
       // Intentar limpiar el mensaje si viene como JSON de error
       let message = detail;
       try {
-        const json = JSON.parse(detail);
-        if (json.error) message = json.error;
-      } catch (e) {}
+        const json = JSON.parse(detail) as Record<string, unknown>;
+        if (json.error) message = String(json.error);
+      } catch {
+        // Continue with original message
+      }
 
       throw new Error(
         `Fallo en imagen (${response.status}): ${
@@ -307,26 +309,27 @@ export const fetchAvailableTtsVoices = async (
       : [];
 
     return voices
-      .map((voice: any): VoiceInfo | null => {
+      .map((voice: unknown): VoiceInfo | null => {
         if (typeof voice !== "object" || voice === null) return null;
-        const id = String(voice.id || voice.voice || voice.name || "");
+        const voiceObj = voice as Record<string, unknown>;
+        const id = String(voiceObj.id || voiceObj.voice || voiceObj.name || "");
         if (!id) return null;
-        const languages = Array.isArray(voice.languages)
-          ? voice.languages
-          : voice.language
-          ? [voice.language]
+        const languages = Array.isArray(voiceObj.languages)
+          ? voiceObj.languages
+          : voiceObj.language
+          ? [voiceObj.language]
           : [];
 
         return {
           id,
-          name: String(voice.name || id),
-          languages,
-          language: languages[0]?.slice(0, 2),
-          gender: voice.gender,
+          name: String(voiceObj.name || id),
+          languages: languages as string[],
+          language: (languages[0] as string)?.slice(0, 2),
+          gender: voiceObj.gender as "male" | "female" | "neutral" | undefined,
         };
       })
       .filter((voice): voice is VoiceInfo => Boolean(voice?.id));
-  } catch (error) {
+  } catch {
     return [];
   }
 };

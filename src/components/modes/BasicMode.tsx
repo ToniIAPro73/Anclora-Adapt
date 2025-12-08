@@ -54,9 +54,9 @@ const BasicMode: React.FC<BasicModeProps> = ({
     error,
     outputs,
     setError,
-    setIsLoading,
-    imageUrl,
-    setImageUrl,
+    setIsLoading: _setIsLoading,
+    imageUrl: _imageUrl,
+    setImageUrl: _setImageUrl,
   } = useInteraction();
   const [idea, setIdea] = useState("");
   const [language, setLanguage] = useState("es");
@@ -65,7 +65,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
     "LinkedIn",
     "Instagram",
   ]);
-  const [speed, setSpeed] = useState<"detailed" | "flash">("detailed");
+  const [speed, _setSpeed] = useState<"detailed" | "flash">("detailed");
   const [literalTranslation, setLiteralTranslation] = useState(false);
   const [minChars, setMinChars] = useState("");
   const [maxChars, setMaxChars] = useState("");
@@ -74,7 +74,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
   const [uploadedText, setUploadedText] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => setImageUrl(null), [setImageUrl]);
+  useEffect(() => _setImageUrl(null), [_setImageUrl]);
   useEffect(() => setLanguage(interfaceLanguage), [interfaceLanguage]);
 
   const normalizedLanguageOptions =
@@ -559,7 +559,7 @@ const BasicMode: React.FC<BasicModeProps> = ({
             isLoading={isLoading}
             onCopy={onCopy}
             audioUrl={null}
-            imageUrl={imageUrl}
+            imageUrl={_imageUrl}
             copy={outputCopy}
           />
         </div>

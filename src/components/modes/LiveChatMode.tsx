@@ -73,7 +73,7 @@ const LiveChatMode: React.FC<LiveChatModeProps> = ({
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
       setError(null);
-    } catch (err) {
+    } catch {
       setError(copy.errors.microphone);
     }
   };
