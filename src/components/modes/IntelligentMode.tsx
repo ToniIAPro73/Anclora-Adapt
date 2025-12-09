@@ -6,7 +6,6 @@ import type {
 } from "@/types";
 import { languages } from "@/constants/options";
 import type { LanguageOptionAvailability } from "@/constants/modelCapabilities";
-import { structuredOutputExample } from "@/constants/prompts";
 import commonStyles from "@/styles/commonStyles";
 import { fileToBase64 } from "@/utils/files";
 import OutputDisplay, {
@@ -19,7 +18,7 @@ type GenerateImageFn = (
   options: ImageGenerationOptions
 ) => Promise<string>;
 
-interface IntelligentJSON {
+interface GeneratedJSON {
   metadata: {
     version: string;
     timestamp: string;
@@ -32,10 +31,10 @@ interface IntelligentJSON {
     pensamiento_profundo: boolean;
     imagen_incluida: boolean;
     imagen_prompt?: string;
-    imagen_analizada?: boolean;
   };
   resultados: {
-    contenido_generado: string;
+    prompt_idea: string;
+    prompt_imagen?: string;
     imagen_url?: string;
   };
 }
@@ -57,7 +56,6 @@ interface IntelligentCopy {
 
 type IntelligentModeProps = {
   interfaceLanguage: InterfaceLanguage;
-  onGenerate: (prompt: string, context?: AutoModelContext) => Promise<void>;
   onCopy: (text: string) => void;
   copy: IntelligentCopy;
   outputCopy: OutputCopy;
@@ -66,7 +64,6 @@ type IntelligentModeProps = {
 };
 
 const IntelligentMode: React.FC<IntelligentModeProps> = ({
-  onGenerate,
   onCopy,
   interfaceLanguage,
   copy,
@@ -311,7 +308,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
       }
 
       // Store both prompts for download
-      setGeneratedJSON({
+      const generatedData: GeneratedJSON = {
         metadata: {
           version: "1.0",
           timestamp: new Date().toISOString(),
@@ -330,7 +327,8 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
           ...(imagePromptFinalValue && { prompt_imagen: imagePromptFinalValue }),
           ...(generatedImageUrl && { imagen_url: generatedImageUrl }),
         },
-      } as any);
+      };
+      setGeneratedJSON(generatedData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
