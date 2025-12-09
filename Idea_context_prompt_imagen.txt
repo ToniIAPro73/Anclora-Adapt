@@ -1,0 +1,299 @@
+Te dejo un diseño completo pero compacto para que, al subir una imagen en tu app, el backend en Python genere un “context image prompt” súper detallado.
+
+1. Enfoque general
+
+Pipeline que te propongo:
+
+Usuario sube imagen → tu frontend la envía al backend.
+
+Backend guarda el archivo (o lo pasa en memoria).
+
+Un módulo en Python llama a un modelo visión-lenguaje open source:
+
+Recomiendo Qwen3-VL:8b vía Ollama (multimodal, open source, muy fuerte en comprensión visual y multilingüe). 
+Labellerr
++5
+GitHub
++5
+ollama.com
++5
+
+El modelo devuelve un JSON estructurado con:
+
+Caption breve
+
+Descripción larga
+
+Objetos, personas, estilo, mood, colores, texto en la imagen…
+
+Un prompt generativo final optimizado para texto-a-imagen (en inglés, por compatibilidad con SD/MJ, si quieres).
+
+Tu app guarda ese JSON y lo usa como:
+
+Contexto para otros prompts
+
+Prompt para regenerar imágenes
+
+Metadatos de catálogo, etc.
+
+Opcionalmente, puedes combinar esto con CLIP Interrogator si quieres un prompt más “estilo Stable Diffusion clásico”. 
+
+2. Stack open source recomendado
+
+Motor multimodal:
+
+Qwen3-VL:8b (HF + Ollama).
+
+Vision-language SOTA, open source, con muy buen rendimiento en captioning y razonamiento visual. 
+
+Servidor de modelos:
+
+Ollama (local, open source, HTTP + SDK Python). 
+
+Python libs:
+
+ollama (cliente Python oficial). 
+
+pydantic para structured outputs.
+
+Opcional para prompts “estilo SD”:
+
+clip-interrogator (CLIP + BLIP → prompt optimizado para Stable Diffusion). 
+
+3. Instalación mínima
+3.1. Modelo visión-lenguaje con Ollama
+# Instalar cliente Python
+pip install ollama pydantic
+
+# En la máquina donde corra el backend:
+ollama pull Qwen3-VL:8b
+
+
+Ollama ya soporta modelos de visión como LLaVA y Qwen3-VL:8b; las imágenes se pasan en el parámetro images del mensaje. 
+
+3.2. (Opcional) CLIP Interrogator
+# Necesitas torch + torchvision (idealmente con soporte GPU)
+pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu118
+pip install clip-interrogator
+
+
+Uso básico desde Python es trivial: cargas un Interrogator y llamas ci.interrogate(image). 
+
+
+4. Esquema del “context image prompt”
+
+Te propongo esta estructura de salida (JSON):
+
+{
+  "brief_caption": "...",
+  "detailed_description": "...",
+  "objects": ["...", "..."],
+  "people": ["..."],
+  "setting": "...",
+  "mood": "...",
+  "style": "...",
+  "colors": ["...", "..."],
+  "text_in_image": "...",
+  "generative_prompt": "..."
+}
+
+
+Todo en español, salvo generative_prompt que te lo dejo en inglés para máximo rendimiento con modelos de imagen (pero se puede cambiar a español con una frase en el prompt).
+
+Esto cubre contexto semántico + prompt listo para reutilizar.
+
+5. Script núcleo en Python (image_context_prompt.py)
+
+Este módulo hace:
+
+Recibe la ruta de una imagen.
+
+Llama a Qwen3-VL:8b vía Ollama con instrucciones de ingeniería de prompt modernas.
+
+Devuelve un objeto ImageContext (Pydantic) con el JSON estructurado.
+
+"""
+image_context_prompt.py
+Genera un context image prompt detallado a partir de una imagen,
+usando un modelo visión-lenguaje open source vía Ollama (p.ej. Qwen3-VL:8b).
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import List
+
+import ollama
+from pydantic import BaseModel
+
+
+# 1) Esquema de salida
+class ImageContext(BaseModel):
+    brief_caption: str            # resumen de 1–2 frases (español)
+    detailed_description: str     # descripción larga y narrativa (español)
+    objects: List[str]            # objetos relevantes
+    people: List[str]             # descripciones breves de personas / personajes
+    setting: str                  # lugar/escenario (interior, exterior, ciudad, playa...)
+    mood: str                     # emoción/atmósfera
+    style: str                    # estilo visual (foto realista, ilustración, minimal, cyberpunk, etc.)
+    colors: List[str]             # paleta de colores principales (texto, no códigos hex)
+    text_in_image: str            # texto legible que aparezca en la imagen (si lo hay)
+    generative_prompt: str        # prompt largo en inglés, optimizado para Stable Diffusion / Midjourney
+
+
+def _build_messages(image_path: str) -> list[dict]:
+    """
+    Construye los mensajes para el modelo visión-lenguaje.
+    """
+    system_msg = (
+        "Eres un experto en análisis de imágenes y en creación de prompts "
+        "para modelos de texto-a-imagen (Stable Diffusion, Midjourney, DALL·E, etc.). "
+        "Tu tarea es describir la imagen con mucho detalle y después sintetizar "
+        "un único prompt largo y usable para generar imágenes similares."
+    )
+
+    user_instructions = """
+Analiza la imagen adjunta y devuelve EXCLUSIVAMENTE un JSON válido
+con el siguiente esquema (no añadas texto fuera del JSON):
+
+{
+  "brief_caption": "frase corta en ESPAÑOL que resuma la imagen",
+  "detailed_description": "descripción larga en ESPAÑOL de la escena, composición, elementos y contexto",
+  "objects": ["lista de objetos importantes en ESPAÑOL"],
+  "people": ["descripción breve de cada persona/personaje si los hay, en ESPAÑOL"],
+  "setting": "tipo de escenario (interior/exterior, ciudad/naturaleza, oficina, playa, etc.), en ESPAÑOL",
+  "mood": "sensación emocional general (sereno, corporativo, épico, íntimo, futurista...), en ESPAÑOL",
+  "style": "estilo visual (fotografía realista, ilustración digital, minimalista, cyberpunk, acuarela...), en ESPAÑOL",
+  "colors": ["lista de colores predominantes y combinaciones (‘azules fríos’, ‘dorados cálidos’...), en ESPAÑOL"],
+  "text_in_image": "texto que aparezca en la imagen (si hay), respétalo lo mejor posible",
+  "generative_prompt": "prompt largo en INGLÉS, en una sola línea, muy descriptivo, listo para usar en Stable Diffusion o Midjourney (incluye tipo de plano, iluminación, estilo, nivel de detalle, etc.)"
+}
+
+Reglas IMPORTANTES:
+- Respeta estrictamente la estructura y los nombres de campos.
+- No expliques tu razonamiento, solo devuelve el JSON.
+- Sé muy concreto y visual en la descripción.
+- La salida debe ser un JSON válido (comillas dobles, sin comentarios).
+""".strip()
+
+    return [
+        {"role": "system", "content": system_msg},
+        {
+            "role": "user",
+            "content": user_instructions,
+            "images": [image_path],  # Ollama: ruta a la imagen local
+        },
+    ]
+
+
+def generate_image_context(
+    image_path: str,
+    model: str = "qwen2.5vl",
+) -> ImageContext:
+    """
+    Genera un ImageContext a partir de una imagen usando un modelo visión-lenguaje en Ollama.
+
+    image_path: ruta al fichero de imagen (jpg/png...).
+    model: nombre del modelo en Ollama (qwen2.5vl, llava, llama3.2-vision, etc.).
+    """
+    image_path = str(Path(image_path).expanduser().resolve())
+    messages = _build_messages(image_path)
+
+    response = ollama.chat(
+        model=model,
+        messages=messages,
+        # Structured outputs: pedimos JSON que siga el esquema de ImageContext
+        format=ImageContext.model_json_schema(),
+        options={
+            "temperature": 0.2,  # baja creatividad → más consistencia descriptiva
+        },
+    )
+
+    raw_json = response["message"]["content"]
+    return ImageContext.model_validate_json(raw_json)
+
+
+if __name__ == "__main__":
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser(
+        description="Generar un context image prompt detallado a partir de una imagen."
+    )
+    parser.add_argument("image", help="Ruta a la imagen (jpg/png).")
+    parser.add_argument(
+        "--model",
+        default="qwen2.5vl",
+        help="Nombre del modelo en Ollama (por defecto: qwen2.5vl).",
+    )
+    args = parser.parse_args()
+
+    ctx = generate_image_context(args.image, model=args.model)
+
+    print("\n=== BRIEF CAPTION ===\n")
+    print(ctx.brief_caption)
+
+    print("\n=== DESCRIPCIÓN DETALLADA ===\n")
+    print(ctx.detailed_description)
+
+    print("\n=== PROMPT GENERATIVO (EN) ===\n")
+    print(ctx.generative_prompt)
+
+    print("\n=== JSON COMPLETO ===\n")
+    print(json.dumps(ctx.model_dump(), ensure_ascii=False, indent=2))
+
+
+Este script ya es “drop-in” para tu backend: lo importas y llamas generate_image_context(path) cuando el usuario suba algo.
+
+Nota rápida de sesgos: los modelos de visión pueden inventar detalles (sesgo de completitud / “alucinación”). Para cosas críticas (texto exacto, logotipos), mejor validar manualmente o con otra capa de comprobación.
+
+6. Exponerlo como endpoint (ejemplo con FastAPI)
+
+Para integrarlo en tu backend:
+
+# api_image_context.py
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import JSONResponse
+from tempfile import NamedTemporaryFile
+from typing import Annotated
+
+from image_context_prompt import generate_image_context, ImageContext
+
+app = FastAPI()
+
+
+@app.post("/image-context", response_model=ImageContext)
+async def image_context_endpoint(
+    file: Annotated[UploadFile, File(...)]
+):
+    # Guardar temporalmente la imagen subida
+    with NamedTemporaryFile(delete=False, suffix=file.filename) as tmp:
+        content = await file.read()
+        tmp.write(content)
+        tmp_path = tmp.name
+
+    ctx = generate_image_context(tmp_path, model="qwen2.5vl")
+    return JSONResponse(content=ctx.model_dump())
+
+
+Con esto, desde el frontend solo tienes que hacer un POST /image-context con un FormData que contenga el archivo, y obtienes el JSON con el context image prompt.
+
+7. Variante opcional con CLIP Interrogator (prompts “muy SD”)
+
+Si quieres un campo extra más “agresivo” para Stable Diffusion/Midjourney, puedes añadir algo así:
+
+from PIL import Image
+from clip_interrogator import Config, Interrogator  # pip install clip-interrogator
+
+_ci = None
+
+def interrogate_with_clip(image_path: str) -> str:
+    global _ci
+    if _ci is None:
+        cfg = Config(clip_model_name="ViT-L-14/openai")
+        _ci = Interrogator(cfg)
+    image = Image.open(image_path).convert("RGB")
+    return _ci.interrogate(image)
+
+
+La idea sería añadir un campo extra en tu esquema, por ejemplo clip_prompt, y rellenarlo con el resultado de esta función. 

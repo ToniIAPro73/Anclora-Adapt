@@ -34,6 +34,7 @@ async def analyze_image(
 ):
     """
     Analyzes uploaded image and generates improved prompt
+    Includes security validation, caching, and fallback models
 
     Parameters:
     - image: Image file (required)
@@ -42,47 +43,39 @@ async def analyze_image(
     - language: Output language code (es, en, fr, etc.). Default: es
 
     Returns:
-    - generatedPrompt: The improved/generated prompt
-    - analysis: Visual analysis breakdown
     - success: Whether operation succeeded
+    - image_context: Complete visual analysis (ImageContext schema)
+    - metadata: Analysis process metadata
+    - cached: Whether result was from cache
+    - error: Error message if failed
     """
 
     if not analyzer:
         raise HTTPException(status_code=500, detail="Image analyzer not initialized")
 
     try:
-        # Validate file type
-        if not image.content_type or not image.content_type.startswith('image/'):
-            raise HTTPException(status_code=400, detail="Only images are allowed")
-
-        # Read and validate size (20MB max)
+        # Read and validate size
         contents = await image.read()
-        if len(contents) > 20 * 1024 * 1024:
-            raise HTTPException(status_code=413, detail="Image too large (max 20MB)")
 
-        # Validate it's a readable image
-        try:
-            Image.open(io.BytesIO(contents))
-        except Exception:
-            raise HTTPException(status_code=400, detail="Invalid image format")
-
-        # Analyze image
+        # Analyze image with full pipeline (validation, cache, fallback)
         result = analyzer.analyze_image(
             image_bytes=contents,
+            content_type=image.content_type,
             user_prompt=user_prompt.strip() if user_prompt else None,
             deep_thinking=deep_thinking,
             language=language
         )
 
-        if not result['success']:
-            raise HTTPException(status_code=500, detail=result.get('error'))
+        if not result.success:
+            raise HTTPException(status_code=500, detail=result.error)
 
+        # Return new extended schema
         return result
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in /analyze: {str(e)}")
+        logger.error(f"Error in /analyze: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -272,13 +265,56 @@ async def analyze_image_detailed(
 @router.get("/health")
 async def health_check():
     """Health check for image analyzer service"""
+    cache_stats = {}
+    if analyzer and analyzer.cache:
+        cache_stats = analyzer.cache.get_stats()
+
     return {
         "status": "ok" if analyzer else "error",
         "service": "image-analyzer",
         "analyzer_initialized": analyzer is not None,
+        "cache_enabled": analyzer.cache is not None if analyzer else False,
+        "cache_stats": cache_stats,
         "endpoints": {
-            "/analyze": "Basic prompt generation",
+            "/analyze": "Basic prompt generation with validation and caching",
             "/analyze-stream": "Streaming analysis with SSE",
-            "/analyze-detailed": "Detailed JSON for external model use"
+            "/analyze-detailed": "Detailed JSON for external model use",
+            "/cache-stats": "Cache performance statistics"
         }
     }
+
+
+@router.get("/cache-stats")
+async def get_cache_stats():
+    """Get cache performance statistics"""
+    if not analyzer or not analyzer.cache:
+        raise HTTPException(status_code=501, detail="Cache not enabled")
+
+    try:
+        stats = analyzer.cache.get_stats()
+        return {
+            "status": "ok",
+            "cache_stats": stats,
+            "cache_location": str(analyzer.cache.db_path)
+        }
+    except Exception as e:
+        logger.error(f"Error getting cache stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/cache-clear-expired")
+async def clear_expired_cache():
+    """Clear expired cache entries (older than max_age_days)"""
+    if not analyzer or not analyzer.cache:
+        raise HTTPException(status_code=501, detail="Cache not enabled")
+
+    try:
+        deleted_count = analyzer.cache.clear_expired()
+        return {
+            "status": "ok",
+            "deleted_entries": deleted_count,
+            "message": f"Cleared {deleted_count} expired cache entries"
+        }
+    except Exception as e:
+        logger.error(f"Error clearing cache: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

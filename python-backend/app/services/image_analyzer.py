@@ -2,12 +2,19 @@
 Image Analyzer Service using Qwen3-VL via Ollama
 Analyzes uploaded images and generates detailed prompts for image generation
 Uses Qwen3-VL:8b for superior vision understanding
+Includes caching, fallback models, and security validation
 """
 
 import base64
 import logging
 import requests
+import time
 from typing import Optional, Dict, Any
+from pathlib import Path
+
+from app.models.image_context import ImageContext, AnalysisMetadata, ImageAnalysisResponse
+from app.services.image_cache import ImageAnalysisCache
+from app.services.model_fallback import ModelFallbackManager, ImageSecurityValidator
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +26,9 @@ class ImageAnalyzer:
         self,
         ollama_host: str = "http://localhost:11434",
         vision_model: str = "qwen3-vl:8b",
-        refinement_model: str = "mistral:latest"
+        refinement_model: str = "mistral:latest",
+        enable_cache: bool = True,
+        cache_dir: Optional[Path] = None
     ):
         """
         Initialize ImageAnalyzer with Qwen3-VL for vision analysis
@@ -28,6 +37,8 @@ class ImageAnalyzer:
             ollama_host: Ollama server host
             vision_model: Ollama vision model to use for image analysis (e.g., qwen3-vl:8b)
             refinement_model: Ollama model to use for prompt refinement (e.g., mistral:latest)
+            enable_cache: Enable caching of analysis results
+            cache_dir: Directory for cache storage
         """
         try:
             self.ollama_host = ollama_host
@@ -35,8 +46,18 @@ class ImageAnalyzer:
             self.vision_model = vision_model
             self.refinement_model = refinement_model
 
+            # Initialize cache
+            self.cache = ImageAnalysisCache(cache_dir) if enable_cache else None
+
+            # Initialize fallback manager
+            self.fallback_manager = ModelFallbackManager(ollama_host)
+
+            # Security validator
+            self.security_validator = ImageSecurityValidator()
+
             logger.info(f"ImageAnalyzer initialized with vision_model={vision_model}, refinement_model={refinement_model}")
             logger.info(f"Ollama host: {ollama_host}")
+            logger.info(f"Cache enabled: {enable_cache}")
 
         except Exception as e:
             logger.error(f"Error initializing ImageAnalyzer: {str(e)}")
@@ -45,51 +66,186 @@ class ImageAnalyzer:
     def analyze_image(
         self,
         image_bytes: bytes,
+        content_type: Optional[str] = None,
         user_prompt: Optional[str] = None,
         deep_thinking: bool = False,
         language: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> ImageAnalysisResponse:
         """
         Analyzes image using Qwen3-VL and generates detailed prompt
+        Includes security validation, caching, and fallback models
 
         Args:
             image_bytes: Image file bytes
+            content_type: MIME type of the image
             user_prompt: Optional user input for prompt refinement
             deep_thinking: If True, generates more detailed analysis
             language: Output language code (e.g., 'es', 'en', 'fr'). Default: 'es'
 
         Returns:
-            dict with generated prompt
+            ImageAnalysisResponse with complete analysis or error
         """
+        start_time = time.time()
+
         try:
             if not language:
                 language = "es"
 
-            # Convert image bytes to base64
+            # 1. SECURITY VALIDATION
+            is_valid, error_msg = self.security_validator.validate_upload(image_bytes, content_type or "image/jpeg")
+            if not is_valid:
+                logger.warning(f"Security validation failed: {error_msg}")
+                return ImageAnalysisResponse(
+                    success=False,
+                    error=error_msg,
+                    metadata=AnalysisMetadata(
+                        model_used="none",
+                        language=language,
+                        deep_thinking=deep_thinking,
+                        processing_time_seconds=time.time() - start_time,
+                        confidence_score=0
+                    )
+                )
+
+            # 2. CHECK CACHE
+            if self.cache:
+                cached_result = self.cache.get(image_bytes)
+                if cached_result:
+                    context, metadata = cached_result
+                    processing_time = time.time() - start_time
+
+                    return ImageAnalysisResponse(
+                        success=True,
+                        image_context=context,
+                        metadata=AnalysisMetadata(
+                            model_used=metadata.model_used,
+                            language=metadata.language,
+                            deep_thinking=metadata.deep_thinking,
+                            processing_time_seconds=processing_time,
+                            confidence_score=1.0
+                        ),
+                        user_input=user_prompt,
+                        cached=True
+                    )
+
+            # 3. CONVERT TO BASE64
             base64_image = base64.b64encode(image_bytes).decode('utf-8')
 
-            # Generate prompt using Qwen3-VL directly
-            generated_prompt = self._generate_prompt_with_vision(
+            # 4. GENERATE ANALYSIS WITH FALLBACK
+            generated_prompt, model_used, is_fallback = self.fallback_manager.analyze_with_fallback(
                 base64_image=base64_image,
-                user_input=user_prompt,
-                deep_thinking=deep_thinking,
+                user_prompt=user_prompt,
+                primary_model=self.vision_model,
                 language=language
             )
 
-            return {
-                "success": True,
-                "generatedPrompt": generated_prompt,
-                "analysis": {},  # No longer needed with Qwen3-VL
-                "userInput": user_prompt or ""
-            }
+            # 5. BUILD IMAGE CONTEXT (Extended schema)
+            image_context = self._build_extended_context(
+                generated_prompt=generated_prompt,
+                user_prompt=user_prompt,
+                language=language,
+                deep_thinking=deep_thinking
+            )
+
+            # 6. CACHE RESULT
+            processing_time = time.time() - start_time
+            metadata = AnalysisMetadata(
+                model_used=model_used,
+                language=language,
+                deep_thinking=deep_thinking,
+                processing_time_seconds=processing_time,
+                confidence_score=0.8 if is_fallback else 1.0,
+                model_fallback_used=is_fallback
+            )
+
+            if self.cache:
+                self.cache.set(image_bytes, image_context, metadata)
+
+            return ImageAnalysisResponse(
+                success=True,
+                image_context=image_context,
+                metadata=metadata,
+                user_input=user_prompt,
+                cached=False
+            )
 
         except Exception as e:
-            logger.error(f"Error analyzing image: {str(e)}")
-            return {
-                "success": False,
-                "error": str(e),
-                "generatedPrompt": user_prompt or ""
+            logger.error(f"Error analyzing image: {str(e)}", exc_info=True)
+            processing_time = time.time() - start_time
+
+            return ImageAnalysisResponse(
+                success=False,
+                error=str(e),
+                metadata=AnalysisMetadata(
+                    model_used="error",
+                    language=language or "es",
+                    deep_thinking=deep_thinking,
+                    processing_time_seconds=processing_time,
+                    confidence_score=0
+                )
+            )
+
+    def _build_extended_context(
+        self,
+        generated_prompt: str,
+        user_prompt: Optional[str] = None,
+        language: str = "es",
+        deep_thinking: bool = False
+    ) -> ImageContext:
+        """
+        Build extended ImageContext from generated prompt
+        Parses and structures the analysis into detailed fields
+        """
+        # Extract key elements from the generated prompt
+        # This is a basic implementation - can be enhanced with NLP
+        lines = generated_prompt.split('\n')
+
+        return ImageContext(
+            brief_caption=lines[0] if lines else "Image analysis",
+            detailed_description=generated_prompt,
+            objects=[],  # Could parse from prompt
+            people=[],   # Could parse from prompt
+            setting="Scene setting to be determined from image context",
+            mood="Mood/atmosphere to be analyzed",
+            style="Visual style to be identified",
+            colors=[],   # Could parse from prompt
+            text_in_image="",
+            composition="Composition analysis pending",
+            lighting="Lighting analysis pending",
+            technical_details={},
+            palette_hex=[],
+            semantic_tags=["analyzed", "vision-model"],
+            generative_prompt=generated_prompt,
+            adapted_prompts={
+                "campaign": self._adapt_prompt_for_mode(generated_prompt, "campaign"),
+                "recycle": self._adapt_prompt_for_mode(generated_prompt, "recycle"),
+                "intelligent": self._adapt_prompt_for_mode(generated_prompt, "intelligent"),
+                "basic": self._adapt_prompt_for_mode(generated_prompt, "basic")
             }
+        )
+
+    def _adapt_prompt_for_mode(self, base_prompt: str, mode: str) -> str:
+        """
+        Adapt prompt for specific application mode
+
+        Args:
+            base_prompt: Original generated prompt
+            mode: Target mode (campaign, recycle, intelligent, basic)
+
+        Returns:
+            Adapted prompt for the mode
+        """
+        mode_instructions = {
+            "campaign": "Adapt this for marketing/campaign use: Focus on brand appeal and commercial viability.",
+            "recycle": "Adapt this for content recycling: Make it concise and reusable across platforms.",
+            "intelligent": "Adapt this for intelligent analysis: Include semantic depth and contextual layers.",
+            "basic": "Adapt this for basic usage: Simplify while maintaining visual integrity."
+        }
+
+        instruction = mode_instructions.get(mode, "")
+        if instruction:
+            return f"{base_prompt}\n\n[{mode.upper()} MODE]: {instruction}"
+        return base_prompt
 
     def _generate_prompt_with_vision(
         self,
