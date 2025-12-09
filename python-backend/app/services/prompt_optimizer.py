@@ -191,8 +191,16 @@ def improve_prompt(
         try:
             json_data = json.loads(content)
         except json.JSONDecodeError as e:
-            logger.error(f"Could not parse JSON from content: {content}")
-            raise ValueError(f"La respuesta no es un JSON válido: {str(e)}")
+            # Si falla, intentar sanitizar los saltos de línea sin escapar
+            logger.warning(f"First JSON parse failed: {str(e)}. Attempting to sanitize...")
+            try:
+                # Reemplazar saltos de línea literales dentro del JSON por espacios
+                sanitized_content = content.replace('\n', ' ').replace('\r', ' ')
+                json_data = json.loads(sanitized_content)
+                logger.info("Successfully parsed JSON after sanitization")
+            except json.JSONDecodeError as e2:
+                logger.error(f"Could not parse JSON even after sanitization: {sanitized_content[:500]}")
+                raise ValueError(f"La respuesta no es un JSON válido: {str(e2)}")
 
         # Validar que tiene los campos requeridos
         improved_prompt = json_data.get("improved_prompt", "")
