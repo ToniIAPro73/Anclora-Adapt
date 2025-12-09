@@ -84,33 +84,188 @@ const buildIdeaPromptFallback = ({
   idea,
   context,
   languageLabel,
+  languageCode,
   deepThinking,
   platformHints,
 }: {
   idea: string;
   context: string;
   languageLabel: string;
+  languageCode: string;
   deepThinking: boolean;
   platformHints: string[];
 }): string => {
-  const platformSentence = platformHints.length
-    ? `Plataformas prioritarias: ${platformHints.join(
-        ", "
-      )}. Ajusta narrativa, ritmo, formato y CTA para cada una.`
-    : "Elige la mezcla de plataformas más efectiva y justifica brevemente por qué potencian el mensaje.";
-  const depthDirective = deepThinking
-    ? "Modo pensamiento profundo activo: analiza riesgos reputacionales, objeciones latentes, dependencias operativas y oportunidades de co-creación. Propón ideas accionables a corto, medio y largo plazo."
-    : "Modo estándar: prioriza claridad estratégica, foco en diferenciación y velocidad de ejecución.";
+  const locale = languageCode?.startsWith("en") ? "en" : "es";
+  const normalizedContext = context || (locale === "en" ? "General context" : "Contexto general");
+
+  const ageMatch = normalizedContext.match(/(\d{2})\s*-\s*(\d{2})/);
+  const ageDescriptor = ageMatch
+    ? locale === "en"
+      ? `${ageMatch[1]}-${ageMatch[2]} years old`
+      : `${ageMatch[1]}-${ageMatch[2]} años`
+    : locale === "en"
+    ? "35-55 years old decision makers"
+    : "35-55 años tomadores de decisión";
+
+  const executiveAudience =
+    /ceo|founder|emprendedor|entrepreneur|director/i.test(normalizedContext);
+  const audienceRole = executiveAudience
+    ? locale === "en"
+      ? "founders, CEOs and serial entrepreneurs"
+      : "fundadores, CEO y emprendedores seriales"
+    : locale === "en"
+    ? "business decision makers seeking premium advisory"
+    : "decisores de negocio que buscan asesoría premium";
+
+  const platformSentence =
+    platformHints.length > 0
+      ? locale === "en"
+        ? `Priority platforms: ${platformHints.join(
+            ", "
+          )}. Adapt angle, pacing, CTA and creative assets to each format.`
+        : `Plataformas prioritarias: ${platformHints.join(
+            ", "
+          )}. Ajusta ángulo, ritmo, CTA y recursos creativos a cada formato.`
+      : locale === "en"
+      ? "Select the most effective platform mix and justify how each channel reinforces the core story."
+      : "Selecciona la mezcla de canales más efectiva y justifica cómo cada uno refuerza la narrativa.";
+
+  const toneDescriptor = locale === "en"
+    ? "premium, consultative, culturally bilingual, confident yet empathetic"
+    : "premium, consultivo, bilingüe cultural, seguro pero empático";
+
+  const keyMessages = locale === "en"
+    ? [
+        "Highlight bespoke advisory, deep knowledge of UAE regulations, and bilingual negotiation",
+        "Contrast personal touch versus impersonal large firms",
+        "Showcase credibility (success stories, certifications, network in Dubai/Abu Dhabi)",
+      ]
+    : [
+        "Destaca el acompañamiento a medida, dominio regulatorio en EAU y capacidad de negociación bilingüe",
+        "Contrasta el trato personal frente a firmas impersonales",
+        "Refuerza credenciales (casos de éxito, certificaciones, red en Dubái/Abu Dabi)",
+      ];
+
+  const objectives = locale === "en"
+    ? [
+        "Position the advisor as the go-to Spanish-speaking expert for premium real estate moves in UAE",
+        "Generate qualified leads via high-intent storytelling tailored to each social format",
+        "Drive private consultations or discovery calls with affluent prospects",
+      ]
+    : [
+        "Posicionar al asesor como referente hispanohablante para inversiones inmobiliarias premium en EAU",
+        "Generar leads cualificados con relato de alto interés ajustado a cada formato social",
+        "Impulsar sesiones privadas o llamadas exploratorias con prospectos de alto patrimonio",
+      ];
+
+  const restrictions = locale === "en"
+    ? [
+        "Avoid generic motivational clichés or empty luxury buzzwords",
+        "Do not promise guaranteed returns; focus on strategic guidance",
+        "Keep every platform output within its character and style constraints",
+      ]
+    : [
+        "Evita clichés motivacionales genéricos o palabras vacías sobre lujo",
+        "No prometas retornos garantizados; enfócate en la guía estratégica",
+        "Mantén cada plataforma dentro de sus límites de estilo y caracteres",
+      ];
+
+  const kpis = locale === "en"
+    ? [
+        "Qualified leads captured per platform",
+        "DMs or calls booked with affluent prospects",
+        "Engagement rate lift on Stories/Reels compared to last month",
+      ]
+    : [
+        "Leads cualificados captados por plataforma",
+        "DM/calendly agendados con prospectos de alto patrimonio",
+        "Incremento de engagement en Stories/Reels vs. mes anterior",
+      ];
+
+  const checklist = locale === "en"
+    ? [
+        "Does each platform have a clear hook, proof point, and CTA?",
+        "Are cultural nuances for ES/LATAM audiences respected while referencing UAE context?",
+        "Is there a differentiated angle versus large, impersonal competitors?",
+      ]
+    : [
+        "¿Cada plataforma tiene gancho, prueba y CTA claros?",
+        "¿Se respetan los matices culturales ES/LATAM al hablar de EAU?",
+        "¿Se evidencia un ángulo distintivo frente a competidores impersonales?",
+      ];
+
+  const depthSentence =
+    locale === "en"
+      ? deepThinking
+        ? "Deep thinking mode: map hidden objections (trust, legal risk, relocation stress), propose mitigation tactics and cascade ideas for short, mid and long term content."
+        : "Standard mode: prioritize clarity, authority and fast execution."
+      : deepThinking
+      ? "Modo pensamiento profundo: mapea objeciones latentes (confianza, riesgo legal, estrés de reubicación), propone tácticas de mitigación e ideas a corto, mediano y largo plazo."
+      : "Modo estándar: prioriza claridad, autoridad y velocidad de ejecución.";
+
+  const platformCTA =
+    locale === "en"
+      ? `Primary CTA: "Schedule a private strategy call". Secondary CTA: "Download the UAE entry checklist" (Stories swipe-up or WhatsApp).`
+      : `CTA principal: "Agenda una sesión estratégica privada". CTA secundario: "Descarga el checklist de entrada a EAU" (swipe-up en Stories o WhatsApp).`;
+
+  const sections = [
+    {
+      title: locale === "en" ? "Role" : "Rol",
+      content:
+        locale === "en"
+          ? `Act as a senior multilingual content strategist who writes in ${languageLabel}, blending strategic rigor with creative storytelling.`
+          : `Actúa como estratega senior de contenido multimodal que redacta en ${languageLabel}, combinando rigor estratégico con narrativa creativa.`,
+    },
+    {
+      title: locale === "en" ? "Context" : "Contexto",
+      content: locale === "en"
+        ? `Core mission: ${idea}. Context: ${normalizedContext}. ${platformSentence}`
+        : `Misión central: ${idea}. Contexto: ${normalizedContext}. ${platformSentence}`,
+    },
+    {
+      title: locale === "en" ? "Audience" : "Audiencia",
+      content: locale === "en"
+        ? `Segment: ${audienceRole}, ${ageDescriptor}. Needs: reliable partner to invest/relocate in UAE without losing cultural nuances or transparency.`
+        : `Segmento: ${audienceRole}, ${ageDescriptor}. Necesidades: aliado confiable para invertir/reubicarse en EAU sin perder matices culturales ni transparencia.`,
+    },
+    {
+      title: locale === "en" ? "Objectives" : "Objetivos",
+      content: objectives.map((obj, index) => `${index + 1}) ${obj}`).join(" "),
+    },
+    {
+      title: locale === "en" ? "Key Messages" : "Mensajes clave",
+      content: keyMessages.map((msg, index) => `${index + 1}) ${msg}`).join(" "),
+    },
+    {
+      title: locale === "en" ? "Tone & Style" : "Tono/Estilo",
+      content:
+        locale === "en"
+          ? `${toneDescriptor}. Balance data-driven insight with aspirational storytelling.`
+          : `${toneDescriptor}. Equilibra insight basado en datos con relato aspiracional.`,
+    },
+    {
+      title: "CTA",
+      content: platformCTA,
+    },
+    {
+      title: locale === "en" ? "Restrictions" : "Restricciones",
+      content: restrictions.map((item, index) => `${index + 1}) ${item}`).join(" "),
+    },
+    {
+      title: "KPIs",
+      content: kpis.map((kpi, index) => `${index + 1}) ${kpi}`).join(" "),
+    },
+    {
+      title: locale === "en" ? "Checklist" : "Checklist",
+      content: checklist.map((item, index) => `${index + 1}) ${item}`).join(" "),
+    },
+  ];
 
   return [
-    `Rol: actúa como estratega senior de contenido multimodal que escribe instrucciones en ${languageLabel}.`,
-    `Objetivo central del cliente: ${idea}.`,
-    `Contexto ampliado: ${context}. ${platformSentence}`,
-    "Define la audiencia ideal (demografía + psicografía), el tono que genere confianza premium y los pain points que deben resolverse para posicionar al asesor como referente.",
-    "Entregable obligatorio: redacta un prompt maestro listo para un LLM que incluya misión, enfoque narrativo, estructura sugerida por plataforma, propuestas de valor, CTA principal/secundario, diferenciadores competitivos y métricas de éxito.",
-    "Incluye también: lista de ideas de apoyo, ángulos creativos alternos, hashtags o etiquetas sugeridas (si aplican) y bloque de errores a evitar.",
-    depthDirective,
-    'Formato final: usa secciones numeradas "Rol", "Contexto", "Audiencia", "Objetivos", "Mensajes clave", "Tono/Estilo", "CTA", "Restricciones", "KPIs" y "Checklist". Devuelve únicamente el prompt final listo para copiar/pegar.',
+    sections
+      .map((section, index) => `${index + 1}. ${section.title}: ${section.content}`)
+      .join("\n\n"),
+    depthSentence,
   ].join("\n\n");
 };
 
@@ -386,6 +541,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
         idea: sanitizedIdea,
         context: normalizedContext,
         languageLabel: languageDisplay,
+        languageCode: language,
         deepThinking,
         platformHints,
       });
