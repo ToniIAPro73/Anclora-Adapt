@@ -12,6 +12,7 @@ interface IntelligentModeImageOptionsProps {
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   imagePromptPlaceholder: string;
   language?: string;
+  deepThinking?: boolean;
 }
 
 const IntelligentModeImageOptions: React.FC<
@@ -26,6 +27,7 @@ const IntelligentModeImageOptions: React.FC<
   onFileChange,
   imagePromptPlaceholder,
   language,
+  deepThinking,
 }) => {
   const imgRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,7 +45,12 @@ const IntelligentModeImageOptions: React.FC<
     if (imageFile && !imagePrompt) {
       const analyzeImageFile = async () => {
         try {
-          const result = await analyzeImage(imageFile, undefined, undefined, language);
+          const result = await analyzeImage(
+            imageFile,
+            undefined,
+            deepThinking,
+            language
+          );
           if (result.success && result.generatedPrompt) {
             onImagePromptChange(result.generatedPrompt);
           }
@@ -54,7 +61,14 @@ const IntelligentModeImageOptions: React.FC<
       };
       analyzeImageFile();
     }
-  }, [imageFile, imagePrompt, language, analyzeImage, onImagePromptChange]);
+  }, [
+    imageFile,
+    imagePrompt,
+    language,
+    analyzeImage,
+    onImagePromptChange,
+    deepThinking,
+  ]);
 
   return (
     <div
