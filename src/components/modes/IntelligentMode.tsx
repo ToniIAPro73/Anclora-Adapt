@@ -1,7 +1,6 @@
 import React from "react";
 import type {
   InterfaceLanguage,
-  AutoModelContext,
   ImageGenerationOptions,
 } from "@/types";
 import { languages } from "@/constants/options";
