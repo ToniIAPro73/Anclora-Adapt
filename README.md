@@ -108,28 +108,34 @@ Perfiles ejemplo:
 - **Solo CPU** → `orca-mini`, imagen deshabilitada, TTS pyttsx3.
 - **Texto únicamente** → define solo `VITE_OLLAMA_BASE_URL` y `VITE_TEXT_MODEL_ID`.
 
-**Nota sobre el Analizador de Imágenes (Qwen3-VL)**:
+**Nota sobre el Analizador de Imágenes (Llava)**:
 
-El modo **Inteligente** incluye análisis automático de imágenes usando el modelo Qwen3-VL:8b (8 GB VRAM). Cuando subes una imagen:
+El modo **Inteligente** incluye análisis automático de imágenes usando el modelo **Llava:latest** (más rápido y estable que Qwen3-VL). Cuando subes una imagen:
 
-1. El backend analiza visualmente cada elemento (objetos, colores, estilos, composición, iluminación, atmósfera)
-2. Genera un prompt detallado y específico que captura los detalles de la imagen
-3. Soporta 9 idiomas (ES, EN, FR, DE, IT, PT, JA, ZH, AR)
-4. El modo "Pensamiento Profundo" produce prompts más exhaustivos
+1. El backend genera un prompt genérico para la imagen
+2. Si proporcionas tu propio prompt, se usa directamente
+3. Soporta múltiples idiomas (ES, EN, FR, DE, IT)
+4. Respuesta inmediata sin timeouts
 
 Para usar esta funcionalidad:
 
-```bash
-ollama pull qwen3-vl:8b    # Descarga el modelo
+````bash
+ollama pull Llava:latest   # Descarga el modelo de visión
 # El backend debe estar corriendo en http://localhost:8000
 python python-backend/main.py
-```
+```text
+
+**Características técnicas**:
+
+- Caché inteligente con deduplicación MD5
+- Fallback automático a prompts genéricos si hay problemas
+- SQLite para persistencia de análisis previos (30 días TTL)
 
 ---
 
 ## Flujo de desarrollo
 
-1. **Instala dependencias**  
+1. **Instala dependencias**
    `npm install`
 
 2. **Backend FastAPI (python-backend/)**
@@ -144,9 +150,9 @@ python python-backend/main.py
    huggingface-cli download hexgrad/Kokoro-82M kokoro.onnx --local-dir models --local-dir-use-symlinks False
    huggingface-cli download hexgrad/Kokoro-82M voices.json --local-dir models --local-dir-use-symlinks False
    python main.py
-   ```
+````
 
-   El backend expone `/api/tts`, `/api/stt`, `/api/image`, `/api/voices` y `/api/images/analyze` (Qwen3-VL para análisis visual).
+El backend expone `/api/tts`, `/api/stt`, `/api/image`, `/api/voices` y `/api/images/analyze` (Qwen3-VL para análisis visual).
 
 3. **Arranca Ollama**  
    `ollama pull llama2` → `ollama serve`

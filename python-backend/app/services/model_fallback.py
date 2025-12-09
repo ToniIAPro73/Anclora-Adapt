@@ -121,16 +121,18 @@ class ModelFallbackManager:
 
         # Try to analyze with selected model
         try:
+            logger.info(f"Calling _call_vision_model with model={selected_model}, language={language}")
             prompt = self._call_vision_model(
                 selected_model,
                 base64_image,
                 user_prompt,
                 language
             )
+            logger.info(f"Success! Generated prompt length: {len(prompt)}")
             return prompt, selected_model, is_fallback
 
         except Exception as e:
-            logger.error(f"Error with {selected_model}: {e}")
+            logger.error(f"Error with {selected_model}: {e}", exc_info=True)
 
             # Try next fallback
             if is_fallback:
