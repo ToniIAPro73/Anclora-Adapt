@@ -72,7 +72,7 @@ deep_thinking_bool = deep_thinking.lower() == "true" if isinstance(deep_thinking
 
 ## 📁 Estructura de Carpetas Crítica
 
-```
+```text
 src/
 ├── components/modes/
 │   ├── IntelligentMode.tsx           ← Main component for intelligent mode
@@ -137,7 +137,7 @@ VITE_TEXT_MODEL_ID=mistral:latest
 
 ### Image Analysis
 
-```
+```bash
 POST /api/images/analyze
 Content-Type: multipart/form-data
 
@@ -162,7 +162,7 @@ Respuesta:
 
 ### Prompt Optimization
 
-```
+```bash
 POST /api/prompts/optimize
 
 Body: {
