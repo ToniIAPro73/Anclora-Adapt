@@ -25,7 +25,7 @@ class ImageAnalyzer:
     def __init__(
         self,
         ollama_host: str = "http://localhost:11434",
-        vision_model: str = "qwen3-vl:8b",
+        vision_model: str = "Llava:latest",
         refinement_model: str = "mistral:latest",
         enable_cache: bool = True,
         cache_dir: Optional[Path] = None
