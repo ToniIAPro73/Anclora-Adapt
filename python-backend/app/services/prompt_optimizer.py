@@ -58,7 +58,7 @@ Mantén el idioma del prompt original. Sé directo, profesional y útil.
 """.strip()
 
 
-def build_optimizer_messages(raw_prompt: str, deep_thinking: bool = False, language: str = None) -> list[dict]:
+def build_optimizer_messages(raw_prompt: str, deep_thinking: bool = False, better_prompt: bool = False, language: str = None) -> list[dict]:
     """Construye el array de mensajes para ollama.chat()."""
     # Si no se especifica idioma, usar español por defecto
     if not language:
@@ -80,12 +80,29 @@ def build_optimizer_messages(raw_prompt: str, deep_thinking: bool = False, langu
     language_name = language_names.get(language, "español")
 
     detail_instruction = ""
-    if deep_thinking:
+    if deep_thinking and better_prompt:
+        # Ambos activados: profundidad Y mejora
+        detail_instruction = """
+
+⚠️ IMPORTANTE - PENSAMIENTO PROFUNDO + MEJORAR PROMPT ACTIVADOS:
+El usuario ha marcado ambas opciones. Esto significa:
+- AMPLÍA el prompt sustancialmente (5-7x más detallado que el original)
+- OPTIMIZA para máxima claridad, pasos accionables y coherencia narrativa
+- AÑADE secciones completas sobre: público objetivo detallado, buyer personas, pain points, objections, CTAs específicos
+- INCLUYE ejemplos concretos de salida esperada
+- DETALLA restricciones y "pitfalls" a evitar
+- ESPECIFICA KPIs, métricas y objetivos de negocio
+- PROPORCIONA guía completa sobre tono, lenguaje, estilo de redacción
+- ESTRUCTURA el contenido de forma clara, escalable y profesional
+
+El prompt resultante debe ser 5-7 veces más extenso, detallado Y completamente optimizado para producción."""
+    elif deep_thinking:
+        # Solo pensamiento profundo
         detail_instruction = """
 
 ⚠️ IMPORTANTE - PENSAMIENTO PROFUNDO ACTIVADO:
 El usuario ha marcado 'Pensamiento profundo'. Esto significa:
-- AMPLÍA el prompt sustancialmente (5-7x más detallado que el original)
+- AMPLÍA el prompt sustancialmente (4-5x más detallado que el original)
 - AÑADE secciones completas sobre: público objetivo detallado, buyer personas, pain points, objections, CTAs específicos
 - INCLUYE ejemplos concretos de salida esperada
 - DETALLA restricciones y "pitfalls" a evitar
@@ -94,6 +111,19 @@ El usuario ha marcado 'Pensamiento profundo'. Esto significa:
 - ESTRUCTURA el contenido de forma clara y escalable
 
 El prompt resultante debe ser 4-5 veces más extenso y detallado que el original."""
+    elif better_prompt:
+        # Solo mejorar prompt
+        detail_instruction = """
+
+⚠️ IMPORTANTE - MEJORAR PROMPT ACTIVADO:
+El usuario ha marcado 'Mejorar prompt'. Esto significa:
+- OPTIMIZA el prompt para máxima claridad, pasos accionables y coherencia narrativa
+- MEJORA la estructura sin amplificar excesivamente la extensión
+- REFINA el lenguaje para mayor precisión y profesionalismo
+- AÑADE instrucciones claras sobre tono y formato esperado
+- DEFINE restricciones explícitas para evitar ambigüedad
+
+El prompt resultante debe ser mejorado y optimizado, pero manteniendo una longitud razonable."""
 
     user_content = f"""
 Vas a recibir un PROMPT_ORIGINAL escrito por el usuario. Este es un brief o resumen que NECESITA ser transformado en un prompt profesional completo.
@@ -136,6 +166,7 @@ PROMPT_ORIGINAL:
 def improve_prompt(
     raw_prompt: str,
     deep_thinking: bool = False,
+    better_prompt: bool = False,
     model: str = None,
     language: str = None,
 ) -> PromptImprovement:
@@ -143,7 +174,8 @@ def improve_prompt(
     Llama al modelo local vía Ollama (HTTP) y devuelve un PromptImprovement.
 
     raw_prompt: prompt original escrito por el usuario.
-    deep_thinking: si True, pide un prompt más detallado y exhaustivo.
+    deep_thinking: si True, añade análisis profundo y detallado.
+    better_prompt: si True, optimiza y mejora el prompt para producción.
     model: nombre del modelo en Ollama. Si es None, usa la mejor opción disponible.
            Prioridad: mistral > qwen2.5:14b > qwen2.5:7b-instruct
     language: idioma de salida del prompt (e.g., 'es', 'en', 'fr'). Si es None, usa español.
@@ -152,7 +184,7 @@ def improve_prompt(
     if not model:
         model = "mistral:latest"  # Mistral es excelente para prompt engineering
 
-    messages = build_optimizer_messages(raw_prompt, deep_thinking, language)
+    messages = build_optimizer_messages(raw_prompt, deep_thinking, better_prompt, language)
 
     try:
         logger.info(f"Calling Ollama API at {OLLAMA_API_URL}")
