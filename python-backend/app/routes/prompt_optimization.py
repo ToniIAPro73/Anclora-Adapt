@@ -7,7 +7,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.services.prompt_optimizer import improve_prompt, PromptImprovement
+from app.services.prompt_optimizer import improve_prompt, PromptImprovement, build_fallback_improvement
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,7 @@ async def optimize_prompt(payload: PromptOptimizeRequest) -> PromptOptimizeRespo
 
     Devuelve un prompt mejorado siguiendo mejores prácticas de prompt engineering.
     El prompt resultante será 3-7x más detallado si deep_thinking está activado.
+    Si Ollama no está disponible, devuelve el prompt original sin error.
     """
     try:
         logger.info(f"Optimizing prompt with model: {payload.model}, deep_thinking: {payload.deep_thinking}, language: {payload.language}")
@@ -64,13 +65,15 @@ async def optimize_prompt(payload: PromptOptimizeRequest) -> PromptOptimizeRespo
 
     except Exception as e:
         error_msg = f"Error al optimizar prompt: {str(e)}"
-        logger.error(f"{error_msg}", exc_info=True)
+        logger.warning(f"Optimization failed, using fallback: {error_msg}")
+
+        # Usar fallback: devolver el prompt original con estado success=True
+        fallback_result = build_fallback_improvement(payload.prompt)
         return PromptOptimizeResponse(
-            success=False,
-            improved_prompt="",
-            rationale="",
-            checklist=[],
-            error=error_msg,
+            success=True,
+            improved_prompt=fallback_result.improved_prompt,
+            rationale=fallback_result.rationale,
+            checklist=fallback_result.checklist,
         )
 
 

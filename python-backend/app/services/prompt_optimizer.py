@@ -169,7 +169,7 @@ def improve_prompt(
 
         logger.debug(f"Payload: {json.dumps(payload, indent=2, ensure_ascii=False)[:200]}...")
 
-        response = requests.post(OLLAMA_API_URL, json=payload, timeout=120)
+        response = requests.post(OLLAMA_API_URL, json=payload, timeout=300)
         response.raise_for_status()
 
         response_data = response.json()
@@ -219,6 +219,22 @@ def improve_prompt(
     except Exception as e:
         logger.error(f"Error in improve_prompt: {str(e)}", exc_info=True)
         raise
+
+
+def build_fallback_improvement(raw_prompt: str) -> PromptImprovement:
+    """
+    Construye un PromptImprovement fallback cuando Ollama no está disponible.
+    Devuelve el prompt original como fallback garantizando estructura JSON válida.
+    """
+    return PromptImprovement(
+        improved_prompt=raw_prompt,
+        rationale="Backend de optimización no disponible. Se devuelve el prompt original.",
+        checklist=[
+            "Verifica que Ollama esté corriendo (ollama serve)",
+            "Considera usar el prompt tal cual o refinarlo manualmente",
+            "El prompt original es funcional pero podría mejorarse con optimización"
+        ]
+    )
 
 
 if __name__ == "__main__":
