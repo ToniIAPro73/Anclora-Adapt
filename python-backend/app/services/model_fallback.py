@@ -73,11 +73,15 @@ class ModelFallbackManager:
             logger.info(f"Using primary model: {primary}")
             return primary, False
 
-        # Fallback order
+        # Fallback order: Llava first (faster) then Qwen2.5 models, then Llama2-vision
         fallback_order = [
+            "Llava:latest",
             "llava:latest",
             "llava:13b",
             "llava-phi",
+            "qwen3-vl:8b",
+            "qwen2.5:14b",
+            "qwen2.5:7b",
             "llama2-vision"
         ]
 
@@ -176,7 +180,7 @@ Provide a comprehensive, detailed prompt suitable for image generation models.""
             }
         }
 
-        response = requests.post(self.ollama_chat_url, json=payload, timeout=120)
+        response = requests.post(self.ollama_chat_url, json=payload, timeout=300)
         response.raise_for_status()
 
         response_data = response.json()

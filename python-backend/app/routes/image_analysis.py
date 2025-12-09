@@ -29,7 +29,7 @@ except Exception as e:
 async def analyze_image(
     image: UploadFile = File(...),
     user_prompt: Optional[str] = Form(default=""),
-    deep_thinking: bool = Form(default=False),
+    deep_thinking: Optional[str] = Form(default="false"),
     language: Optional[str] = Form(default="es")
 ):
     """
@@ -57,12 +57,15 @@ async def analyze_image(
         # Read and validate size
         contents = await image.read()
 
+        # Convert deep_thinking string to boolean
+        deep_thinking_bool = deep_thinking.lower() == "true" if isinstance(deep_thinking, str) else deep_thinking
+
         # Analyze image with full pipeline (validation, cache, fallback)
         result = analyzer.analyze_image(
             image_bytes=contents,
             content_type=image.content_type,
             user_prompt=user_prompt.strip() if user_prompt else None,
-            deep_thinking=deep_thinking,
+            deep_thinking=deep_thinking_bool,
             language=language
         )
 
