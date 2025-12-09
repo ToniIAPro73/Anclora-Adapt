@@ -131,13 +131,14 @@ class ImageAnalyzer:
             # 3. CONVERT TO BASE64
             base64_image = base64.b64encode(image_bytes).decode('utf-8')
 
-            # 4. GENERATE ANALYSIS WITH FALLBACK
-            generated_prompt, model_used, is_fallback = self.fallback_manager.analyze_with_fallback(
-                base64_image=base64_image,
-                user_prompt=user_prompt,
-                primary_model=self.vision_model,
-                language=language
-            )
+        # 4. GENERATE ANALYSIS WITH FALLBACK
+        generated_prompt, model_used, is_fallback = self.fallback_manager.analyze_with_fallback(
+            base64_image=base64_image,
+            user_prompt=user_prompt,
+            primary_model=self.vision_model,
+            language=language,
+            deep_thinking=deep_thinking
+        )
 
             # 5. BUILD IMAGE CONTEXT (Extended schema)
             image_context = self._build_extended_context(

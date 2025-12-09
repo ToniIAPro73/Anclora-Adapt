@@ -272,9 +272,24 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
       };
 
       // PROMPT 1: Idea/Context Prompt
-      const ideaPromptRaw = `Rol: Estratega. Tarea: "${sanitizeInput(idea)}". Contexto: "${
-        sanitizeInput(context) || "General"
-      }". Idioma: ${languageDisplay}.`;
+      const deepThinkingDirective = deepThinking
+        ? "Aplica pensamiento profundo: identifica público objetivo, objetivos de negocio, riesgos y oportunidades latentes, dependencias y tono adecuado."
+        : "Mantén claridad y foco sin extenderte innecesariamente.";
+      const improvementDirective = improvePrompt
+        ? "Optimiza el prompt para máxima claridad, pasos accionables y coherencia narrativa."
+        : "";
+
+      const ideaPromptRaw = [
+        "Rol: Estratega senior de contenido multimodal.",
+        `Objetivo principal: "${sanitizeInput(idea)}".`,
+        `Contexto adicional: "${sanitizeInput(context) || "General"}".`,
+        `Idioma de salida: ${languageDisplay}.`,
+        deepThinkingDirective,
+        improvementDirective,
+        "Devuelve un único prompt listo para LLM que combine mensaje clave, tono, formato sugerido, CTA y puntos diferenciales, evitando ambigüedad."
+      ]
+        .filter(Boolean)
+        .join(" ");
 
       const ideaPromptFinalValue = await optimizePromptViaBackend(ideaPromptRaw);
       setIdeaPromptFinal(ideaPromptFinalValue);
@@ -284,7 +299,17 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
       let generatedImageUrl: string | undefined;
 
       if (includeImage && imagePrompt.trim()) {
-        const imagePromptRaw = sanitizeInput(imagePrompt);
+        const imagePromptRaw = [
+          sanitizeInput(imagePrompt),
+          deepThinking
+            ? "Detalla composición, iluminación, óptica/cámara, materiales y atmósfera para recrear fielmente la escena."
+            : "",
+          improvePrompt
+            ? "Optimiza para estabilidad en modelos de difusión, con descriptores de calidad y nivel de detalle alto."
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
         imagePromptFinalValue = await optimizePromptViaBackend(imagePromptRaw);
         setImagePromptFinal(imagePromptFinalValue);
 

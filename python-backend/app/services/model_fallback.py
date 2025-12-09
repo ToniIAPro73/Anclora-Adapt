@@ -6,7 +6,6 @@ Supports: Qwen3-VL -> LLaVA -> CLIP Interrogator
 
 import logging
 from typing import Optional, Tuple
-from pathlib import Path
 import base64
 import requests
 
@@ -98,7 +97,8 @@ class ModelFallbackManager:
         base64_image: str,
         user_prompt: Optional[str] = None,
         primary_model: str = "qwen3-vl:8b",
-        language: str = "es"
+        language: str = "es",
+        deep_thinking: bool = False
     ) -> Tuple[str, str, bool]:
         """
         Analyze image with automatic fallback
@@ -117,7 +117,10 @@ class ModelFallbackManager:
 
         if selected_model is None:
             logger.error("No vision models available for fallback")
-            return user_prompt or "Image analysis unavailable", "none", True
+            raise RuntimeError(
+                "Image analysis unavailable with current backend or models. "
+                "Please ensure LLaVA/qwen3-vl is running on Ollama and retry."
+            )
 
         # Try to analyze with selected model
         try:
@@ -126,7 +129,8 @@ class ModelFallbackManager:
                 selected_model,
                 base64_image,
                 user_prompt,
-                language
+                language,
+                deep_thinking
             )
             logger.info(f"Success! Generated prompt length: {len(prompt)}")
             return prompt, selected_model, is_fallback
@@ -138,7 +142,9 @@ class ModelFallbackManager:
             if is_fallback:
                 # Already on fallback, no more options
                 logger.error("All vision models failed")
-                return user_prompt or "Image analysis failed", selected_model, True
+                raise RuntimeError(
+                    "Image analysis failed after trying available vision models"
+                ) from e
 
             # Try manual CLIP fallback
             try:
@@ -147,33 +153,60 @@ class ModelFallbackManager:
                 return prompt, "clip-interrogator", True
             except Exception as clip_error:
                 logger.error(f"CLIP fallback also failed: {clip_error}")
-                return user_prompt or "Image analysis unavailable", "none", True
+                raise RuntimeError(
+                    "Image analysis unavailable; install a vision model (llava/qwen3-vl) "
+                    "or enable CLIP Interrogator."
+                ) from clip_error
 
     def _call_vision_model(
         self,
         model: str,
         base64_image: str,
         user_prompt: Optional[str] = None,
-        language: str = "es"
+        language: str = "es",
+        deep_thinking: bool = False
     ) -> str:
         """Call vision model via Ollama"""
-        # NOTE: Ollama has issues with base64 image encoding timing out
-        # Returning a default prompt until image handling is fixed
-
-        # If user provided a prompt, use it directly
         if user_prompt:
             return user_prompt
 
-        # Default fallback prompts for different languages
-        fallback_prompts = {
-            "es": "Imagen procesada. Contenido visual genérico para generación de contenido.",
-            "en": "Image processed. Generic visual content for content generation.",
-            "fr": "Image traitée. Contenu visuel générique pour la génération de contenu.",
-            "de": "Bild verarbeitet. Generischer visueller Inhalt zur Inhaltserstellung.",
-            "it": "Immagine elaborata. Contenuto visivo generico per la generazione di contenuti."
+        system_message = self._get_system_message(language, deep_thinking)
+        user_instructions = (
+            "Describe every relevant visual element with precise detail. "
+            "Return a single, cohesive prompt optimized for image generation "
+            "covering subjects, setting, composition, lighting, camera/lens style, "
+            "textures, mood, and color palette."
+        )
+
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_message},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image", "image": base64_image},
+                        {"type": "text", "text": user_instructions},
+                    ],
+                },
+            ],
+            "stream": False,
         }
 
-        return fallback_prompts.get(language, fallback_prompts["es"])
+        response = requests.post(
+            self.ollama_chat_url,
+            json=payload,
+            timeout=300,
+        )
+        response.raise_for_status()
+
+        data = response.json()
+        prompt_text = data.get("message", {}).get("content")
+
+        if not prompt_text:
+            raise ValueError("Vision model returned empty content")
+
+        return prompt_text
 
     def _clip_interrogator_fallback(self, base64_image: str) -> str:
         """
@@ -207,13 +240,13 @@ class ModelFallbackManager:
             raise
 
     @staticmethod
-    def _get_system_message(language: str = "es") -> str:
+    def _get_system_message(language: str = "es", deep_thinking: bool = False) -> str:
         """Get language-specific system message"""
         messages = {
-            "es": "Eres un experto en análisis de imágenes. Analiza cuidadosamente los elementos visuales y crea un prompt detallado en español para generar imágenes similares.",
-            "en": "You are an expert in image analysis. Carefully analyze the visual elements and create a detailed prompt in English for generating similar images.",
-            "fr": "Vous êtes un expert en analyse d'images. Analysez attentivement les éléments visuels et créez un prompt détaillé en français pour générer des images similaires.",
-            "de": "Sie sind ein Experte in der Bildanalyse. Analysieren Sie die visuellen Elemente sorgfältig und erstellen Sie eine detaillierte deutsche Anweisung zum Generieren ähnlicher Bilder.",
+            "es": "Eres un experto senior en análisis de imágenes. Devuelve un único prompt en inglés listo para modelos generativos que incluya sujeto, entorno, composición, iluminación, óptica/cámara, estilo visual, texturas y paleta. Usa pensamiento profundo para cubrir matices y relaciones entre elementos." if deep_thinking else "Eres un experto en análisis de imágenes. Devuelve un prompt en inglés que resuma con claridad sujeto, contexto, iluminación y estilo para recrear la escena.",
+            "en": "You are a senior image analysis expert. Return a single English prompt ready for generative models covering subject, environment, composition, lighting, camera/lens, visual style, textures, and palette. Use deep reasoning to capture subtle relationships." if deep_thinking else "You are an expert in image analysis. Provide an English prompt summarizing subject, context, lighting, and style to recreate the scene.",
+            "fr": "Vous êtes un expert en analyse d'images. Renvoyez un prompt anglais unique prêt pour la génération, couvrant sujet, décor, composition, éclairage, optique, style et palette." if not deep_thinking else "Vous êtes un expert senior en analyse d'images. Créez un prompt unique en anglais pour la génération incluant sujet, environnement, composition, éclairage, optique/caméra, style visuel, textures et palette, avec un raisonnement approfondi.",
+            "de": "Sie sind Experte für Bildanalyse. Geben Sie einen einzigen englischen Prompt zurück, der Motiv, Umgebung, Komposition, Beleuchtung, Optik, Stil und Palette abdeckt." if not deep_thinking else "Sie sind ein Senior-Experte für Bildanalyse. Erstellen Sie einen einzigen englischen Prompt für Generatormodelle mit Motiv, Umgebung, Komposition, Licht, Kamera/Objektiv, Stil, Texturen und Palette und nutzen Sie tiefes Nachdenken.",
         }
         return messages.get(language, messages["es"])
 
@@ -295,6 +328,4 @@ class ImageSecurityValidator:
 
         return True, ""
 
-
-import base64
 
