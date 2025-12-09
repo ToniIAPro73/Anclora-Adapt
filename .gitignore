@@ -54,4 +54,4 @@ wheels/
 # Database files
 *.db
 *.sqlite
-*.sqlite3
+*.sqlite3python-backend/cache/
