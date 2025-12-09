@@ -57,6 +57,7 @@ curl -X POST http://localhost:8000/api/images/analyze \
 ```
 
 **✅ Criterios de éxito:**
+
 - Rechaza archivos no-imagen
 - Rechaza archivos > 50MB
 - Acepta formatos válidos (JPEG, PNG, WEBP, GIF, TIFF)
@@ -100,6 +101,7 @@ time curl -X POST http://localhost:8000/api/images/analyze \
 ```
 
 **✅ Criterios de éxito:**
+
 - Primera análisis: cached=false, ~3s
 - Segunda análisis (misma): cached=true, ~10-50ms
 - Tercera análisis (diferente): cached=false, ~3s
@@ -142,6 +144,7 @@ curl -X POST http://localhost:8000/api/images/analyze \
 ```
 
 **✅ Criterios de éxito:**
+
 - Si Qwen3-VL no disponible, usa fallback
 - Análisis sigue siendo exitosa (no error 500)
 - confidence_score más bajo en fallback
@@ -184,6 +187,7 @@ curl http://localhost:8000/api/images/health | jq .cache_stats
 ```
 
 **✅ Criterios de éxito:**
+
 - Endpoint `/cache-stats` retorna JSON válido
 - total_entries == número de imágenes únicas
 - total_accesses == número de llamadas
@@ -241,6 +245,7 @@ cat response.json | jq '
 ```
 
 **✅ Criterios de éxito:**
+
 - image_context contiene TODOS los campos nuevos
 - adapted_prompts tiene 4 variantes
 - metadata documenta el proceso
@@ -278,6 +283,7 @@ diff campaign.txt basic.txt
 ```
 
 **✅ Criterios de éxito:**
+
 - Cada modo genera variante diferente
 - campaign: enfocado en marketing
 - intelligent: con profundidad semántica
@@ -310,6 +316,7 @@ curl http://localhost:8000/api/images/cache-stats | jq '.cache_stats.total_entri
 ```
 
 **✅ Criterios de éxito:**
+
 - Endpoint `/cache-clear-expired` es accesible
 - Retorna número de borrados
 - No borra entradas recientes
@@ -351,6 +358,7 @@ fi
 ```
 
 **✅ Criterios de éxito:**
+
 - Responde en idioma solicitado
 - Captions diferentes para cada idioma
 - No hay errores 500
@@ -399,6 +407,7 @@ echo "Speedup: $((time_first / time_cached))x más rápido"
 ```
 
 **✅ Criterios de éxito:**
+
 - Primera análisis: 2500-3500ms
 - Segunda análisis: <100ms
 - Speedup: >25x
@@ -409,17 +418,17 @@ echo "Speedup: $((time_first / time_cached))x más rápido"
 
 Completa esta tabla después de testear:
 
-| Test | Status | Resultado | Observaciones |
-|------|--------|-----------|---------------|
-| 1. Validación de Seguridad | ✅/❌ | | |
-| 2. Caché Hit/Miss | ✅/❌ | | |
-| 3. Fallback Models | ✅/❌ | | |
-| 4. Estadísticas de Caché | ✅/❌ | | |
-| 5. Esquema Extendido | ✅/❌ | | |
-| 6. Prompts Adaptados | ✅/❌ | | |
-| 7. Limpiar Caché | ✅/❌ | | |
-| 8. Múltiples Idiomas | ✅/❌ | | |
-| 9. Performance Benchmark | ✅/❌ | | |
+| Test                       | Status | Resultado | Observaciones |
+| -------------------------- | ------ | --------- | ------------- |
+| 1. Validación de Seguridad | ✅/❌  |           |               |
+| 2. Caché Hit/Miss          | ✅/❌  |           |               |
+| 3. Fallback Models         | ✅/❌  |           |               |
+| 4. Estadísticas de Caché   | ✅/❌  |           |               |
+| 5. Esquema Extendido       | ✅/❌  |           |               |
+| 6. Prompts Adaptados       | ✅/❌  |           |               |
+| 7. Limpiar Caché           | ✅/❌  |           |               |
+| 8. Múltiples Idiomas       | ✅/❌  |           |               |
+| 9. Performance Benchmark   | ✅/❌  |           |               |
 
 ---
 
@@ -452,6 +461,7 @@ python python-backend/main.py
 Si todos los tests pasan (✅), las mejoras están lista para producción.
 
 **Checkpoints clave:**
+
 - ✅ Security validation funciona
 - ✅ Caché mejora rendimiento 90%+
 - ✅ Fallback mantiene disponibilidad
