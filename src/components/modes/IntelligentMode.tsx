@@ -62,6 +62,82 @@ type IntelligentModeProps = {
   languageOptions: LanguageOptionAvailability[];
 };
 
+const PLATFORM_HINTS = [
+  { regex: /instagram|reels|stories/i, label: "Instagram (Stories/Reels)" },
+  { regex: /linkedin/i, label: "LinkedIn" },
+  { regex: /\b(x|twitter)\b/i, label: "X / Twitter" },
+  { regex: /whatsapp/i, label: "WhatsApp" },
+  { regex: /email|newsletter/i, label: "Email Marketing" },
+  { regex: /youtube|video|shorts/i, label: "YouTube" },
+  { regex: /podcast/i, label: "Podcast" },
+  { regex: /tiktok/i, label: "TikTok" },
+];
+
+const detectPlatformHints = (text: string): string[] => {
+  if (!text) return [];
+  return PLATFORM_HINTS.filter(({ regex }) => regex.test(text)).map(
+    ({ label }) => label
+  );
+};
+
+const buildIdeaPromptFallback = ({
+  idea,
+  context,
+  languageLabel,
+  deepThinking,
+  platformHints,
+}: {
+  idea: string;
+  context: string;
+  languageLabel: string;
+  deepThinking: boolean;
+  platformHints: string[];
+}): string => {
+  const platformSentence = platformHints.length
+    ? `Plataformas prioritarias: ${platformHints.join(
+        ", "
+      )}. Ajusta narrativa, ritmo, formato y CTA para cada una.`
+    : "Elige la mezcla de plataformas más efectiva y justifica brevemente por qué potencian el mensaje.";
+  const depthDirective = deepThinking
+    ? "Modo pensamiento profundo activo: analiza riesgos reputacionales, objeciones latentes, dependencias operativas y oportunidades de co-creación. Propón ideas accionables a corto, medio y largo plazo."
+    : "Modo estándar: prioriza claridad estratégica, foco en diferenciación y velocidad de ejecución.";
+
+  return [
+    `Rol: actúa como estratega senior de contenido multimodal que escribe instrucciones en ${languageLabel}.`,
+    `Objetivo central del cliente: ${idea}.`,
+    `Contexto ampliado: ${context}. ${platformSentence}`,
+    "Define la audiencia ideal (demografía + psicografía), el tono que genere confianza premium y los pain points que deben resolverse para posicionar al asesor como referente.",
+    "Entregable obligatorio: redacta un prompt maestro listo para un LLM que incluya misión, enfoque narrativo, estructura sugerida por plataforma, propuestas de valor, CTA principal/secundario, diferenciadores competitivos y métricas de éxito.",
+    "Incluye también: lista de ideas de apoyo, ángulos creativos alternos, hashtags o etiquetas sugeridas (si aplican) y bloque de errores a evitar.",
+    depthDirective,
+    'Formato final: usa secciones numeradas "Rol", "Contexto", "Audiencia", "Objetivos", "Mensajes clave", "Tono/Estilo", "CTA", "Restricciones", "KPIs" y "Checklist". Devuelve únicamente el prompt final listo para copiar/pegar.',
+  ].join("\n\n");
+};
+
+const buildImagePromptFallback = ({
+  description,
+  languageLabel,
+  deepThinking,
+}: {
+  description: string;
+  languageLabel: string;
+  deepThinking: boolean;
+}): string => {
+  const depthDirective = deepThinking
+    ? "Describe microdetalles, simbolismos, capas narrativas y contrastes de materiales para reforzar la historia visual."
+    : "Mantén la descripción con lenguaje claro pero específico para evitar ambigüedades.";
+
+  return [
+    `Prompt maestro para generador de imágenes (${languageLabel}).`,
+    `Escena deseada: ${description}.`,
+    "Detalla composición (punto de vista, distancia focal, distribución de planos), elementos principales/secundarios y narrativa implícita.",
+    "Especifica iluminación (tipo, intensidad, temperatura), paleta cromática predominante con acentos, texturas y materiales dominantes.",
+    "Añade parámetros técnicos: formato final, tipo de lente/cámara, nivel de realismo, calidad (8K, ultra-detailed) y motores/filtros sugeridos.",
+    depthDirective,
+    "Devuelve un único prompt continuo listo para usar en Stable Diffusion / Midjourney.",
+  ].join("\n\n");
+};
+
 const IntelligentMode: React.FC<IntelligentModeProps> = ({
   onCopy,
   interfaceLanguage,
@@ -225,20 +301,35 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
       setError(copy.errors.imagePrompt);
       return;
     }
+    setError(null);
     setIsProcessing(true);
     try {
       const languageDisplay =
         languages.find((l) => l.value === language)?.label || language;
 
       // Sanitize inputs by removing newlines to prevent JSON parsing issues
-      const sanitizeInput = (text: string) => text.replace(/\n/g, " ").replace(/\r/g, "").trim();
+      const sanitizeInput = (text: string) =>
+        text.replace(/\n/g, " ").replace(/\r/g, "").trim();
+      const sanitizedIdea = sanitizeInput(idea);
+      const sanitizedContext = sanitizeInput(context);
+      const normalizedContext = sanitizedContext || "General";
+      const platformHints = detectPlatformHints(
+        `${sanitizedIdea} ${normalizedContext}`
+      );
 
       // Helper function to optimize a prompt
-      const optimizePromptViaBackend = async (rawPrompt: string): Promise<string> => {
-        if (!improvePrompt) return rawPrompt;
+      const optimizePromptViaBackend = async (
+        rawPrompt: string,
+        fallbackPrompt: string,
+        options?: { returnRawWhenBypassed?: boolean }
+      ): Promise<string> => {
+        if (!improvePrompt) {
+          return options?.returnRawWhenBypassed ? rawPrompt : fallbackPrompt;
+        }
 
         try {
-          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+          const API_BASE_URL =
+            import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
           const optimizeUrl = `${API_BASE_URL}/api/prompts/optimize`;
           const response = await fetch(optimizeUrl, {
             method: "POST",
@@ -247,7 +338,6 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
               prompt: rawPrompt,
               deep_thinking: deepThinking,
               language: language,
-              // No especificamos modelo - el backend usa el mejor disponible (mistral > qwen2.5:14b)
             }),
           });
 
@@ -258,16 +348,17 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
           const optimizeResult = await response.json();
           if (optimizeResult.success && optimizeResult.improved_prompt) {
             return optimizeResult.improved_prompt;
-          } else {
-            const errorMsg = optimizeResult.error || "Error desconocido";
-            console.warn("Prompt optimization failed, using raw prompt:", errorMsg);
-            setError(`Aviso: No se pudo optimizar el prompt. Usando versión original.`);
-            return rawPrompt;
           }
+
+          const errorMsg = optimizeResult.error || "Error desconocido";
+          console.warn("Prompt optimization failed, using fallback prompt:", errorMsg);
+          setError("Aviso: No se pudo optimizar el prompt. Usando versión original.");
+          return fallbackPrompt;
         } catch (optimizeErr) {
           const errorMsg = optimizeErr instanceof Error ? optimizeErr.message : String(optimizeErr);
-          console.warn("Prompt optimizer unavailable, using raw prompt:", errorMsg);
-          return rawPrompt;
+          console.warn("Prompt optimizer unavailable, using fallback prompt:", errorMsg);
+          setError("Aviso: No se pudo optimizar el prompt. Usando versión original.");
+          return fallbackPrompt;
         }
       };
 
@@ -281,8 +372,8 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
 
       const ideaPromptRaw = [
         "Rol: Estratega senior de contenido multimodal.",
-        `Objetivo principal: "${sanitizeInput(idea)}".`,
-        `Contexto adicional: "${sanitizeInput(context) || "General"}".`,
+        `Objetivo principal: "${sanitizedIdea}".`,
+        `Contexto adicional: "${normalizedContext}".`,
         `Idioma de salida: ${languageDisplay}.`,
         deepThinkingDirective,
         improvementDirective,
@@ -291,7 +382,18 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
         .filter(Boolean)
         .join(" ");
 
-      const ideaPromptFinalValue = await optimizePromptViaBackend(ideaPromptRaw);
+      const ideaPromptFallback = buildIdeaPromptFallback({
+        idea: sanitizedIdea,
+        context: normalizedContext,
+        languageLabel: languageDisplay,
+        deepThinking,
+        platformHints,
+      });
+
+      const ideaPromptFinalValue = await optimizePromptViaBackend(
+        ideaPromptRaw,
+        ideaPromptFallback
+      );
       setIdeaPromptFinal(ideaPromptFinalValue);
 
       // PROMPT 2: Image Prompt (if included)
@@ -299,8 +401,9 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
       let generatedImageUrl: string | undefined;
 
       if (includeImage && imagePrompt.trim()) {
+        const sanitizedImagePrompt = sanitizeInput(imagePrompt);
         const imagePromptRaw = [
-          sanitizeInput(imagePrompt),
+          sanitizedImagePrompt,
           deepThinking
             ? "Detalla composición, iluminación, óptica/cámara, materiales y atmósfera para recrear fielmente la escena."
             : "",
@@ -310,7 +413,16 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
         ]
           .filter(Boolean)
           .join(" ");
-        imagePromptFinalValue = await optimizePromptViaBackend(imagePromptRaw);
+        const imagePromptFallback = buildImagePromptFallback({
+          description: sanitizedImagePrompt,
+          languageLabel: languageDisplay,
+          deepThinking,
+        });
+        imagePromptFinalValue = await optimizePromptViaBackend(
+          imagePromptRaw,
+          imagePromptFallback,
+          { returnRawWhenBypassed: true }
+        );
         setImagePromptFinal(imagePromptFinalValue);
 
         // Generate image with the optimized prompt
