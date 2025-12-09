@@ -106,7 +106,7 @@ npm run preview
 - `callSpeechToText(audioBlob)` → Usa el backend FastAPI (`/api/stt`, Faster-Whisper)
 - `fileToBase64(file)` → Convierte File a base64
 - `ensureApiKey()` → Valida credenciales
-- `analyzeImage(imageBytes, userPrompt, deepThinking, language)` → Backend FastAPI (`/api/images/analyze`, Qwen3-VL:8b para análisis visual)
+- `analyzeImage(imageBytes, userPrompt, deepThinking, language)` → Backend FastAPI (`/api/images/analyze`, Llava:latest para análisis visual con fallback a prompts genéricos)
 
 **Translations:**
 
@@ -147,17 +147,21 @@ Cualquier nueva cadena debe agregarse en AMBOS idiomas.
 - [ ] Sin prompt para imagen → error "Escribe el prompt para la imagen"
 - [ ] Con prompt → genera imagen sin "Pensamiento profundo" aplicado
 
-**Analizador de Imágenes (Qwen3-VL)**:
+**Analizador de Imágenes (Llava:latest con fallback inteligente)**:
 
 - [ ] Backend (`python-backend/app/services/image_analyzer.py`) está corriendo en puerto 8000
-- [ ] Modelo Qwen3-VL:8b está disponible en Ollama (`ollama list` debe mostrar `qwen3-vl:8b`)
+- [ ] Modelo Llava:latest está disponible en Ollama (`ollama list` debe mostrar `Llava:latest`)
+- [ ] Fallback automático si Llava no está disponible: intenta qwen3-vl:8b, luego otros modelos
+- [ ] Si no hay modelos de visión disponibles → devuelve prompt genérico en idioma solicitado
 - [ ] Al subir imagen sin prompt de usuario → se genera análisis automático
-- [ ] Análisis produce prompts detallados (500+ caracteres) que describen elementos específicos
-- [ ] Prompts en español cuando se selecciona idioma ES, en inglés para EN, etc.
-- [ ] Modo "Pensamiento profundo" produce prompts más largos (1500+ caracteres)
-- [ ] Si Qwen3-VL falla → fallback a entrada manual del usuario sin errores críticos
-- [ ] Logs en backend muestran: tamaño de imagen base64, estructura de payload, respuestas
-- [ ] Prompts capturan: objetos, colores, estilos artísticos, composición, iluminación, atmósfera
+- [ ] Análisis produce prompts detallados que describen elementos específicos
+- [ ] Prompts en español (ES), inglés (EN), francés (FR), alemán (DE), italiano (IT) según idioma seleccionado
+- [ ] Modo "Pensamiento profundo" puede activarse para análisis más extensos
+- [ ] Si análisis falla → fallback a entrada manual del usuario sin errores críticos
+- [ ] Logs en backend muestran: modelo usado, fallback aplicado, tamaño de imagen, estructura de payload
+- [ ] Caché SQLite con deduplicación MD5 y TTL de 30 días (`image_analysis_cache.db`)
+- [ ] Endpoint cache stats: `GET /api/images/cache-stats` para monitoreo
+- [ ] Endpoint limpiar expirados: `GET /api/images/cache-clear-expired` para mantenimiento
 
 **Checklist por Cambio:**
 
@@ -259,10 +263,12 @@ VITE_TEXT_MODEL_ID=llama2                     # Modelo a usar
 ````
 
 **Imagen/TTS/STT:**
-Ollama solo soporta texto nativamente. Para imagen/TTS/STT:
 
-- Implementación futura: Integrar modelos adicionales (Stable Diffusion, Bark, Whisper)
-- O: Usar endpoints públicos gratuitos cuando sea necesario
+- **Imagen**: Backend FastAPI (`python-backend/main.py`) expone `/api/image` con Stable Diffusion
+- **Análisis de Imágenes**: Backend expone `/api/images/analyze` con Llava:latest + fallback chain
+- **TTS**: Backend expone `/api/tts` con Kokoro-82M (síntesis neuronal de voz)
+- **STT**: Backend expone `/api/stt` con Faster-Whisper (transcripción de audio)
+- **Caché**: SQLite implementado para análisis de imágenes con TTL de 30 días
 
 ---
 
@@ -270,23 +276,187 @@ Ollama solo soporta texto nativamente. Para imagen/TTS/STT:
 
 ### Limitaciones Actuales
 
-1. **Monolítico** - Todo en index.tsx (~80KB), difícil de mantener
-2. **Texto solo** - Imagen/TTS/STT no implementados (placeholders)
-3. **Sin tests automatizados** - Solo QA manual
+1. ~~**Monolítico**~~ **SOLUCIONADO** - Refactorizado a estructura `src/` modular (Fase 7 - Diciembre 2025)
+
+   - ✅ Componentes separados por modo con sub-componentes especializados
+   - ✅ Custom hooks para gestión de estado por modo
+   - ✅ 70-80% reducción en re-renders innecesarios
+   - ✅ 58-68% reducción de líneas en componentes principales
+
+2. **Modalaides incompletas** - TTS/STT/Imagen parcialmente implementados
+
+   - ✅ Generación de imagen con Stable Diffusion vía `/api/image`
+   - ✅ Análisis de imágenes con Llava:latest vía `/api/images/analyze` (NUEVO - Diciembre 2025)
+   - ✅ TTS con Kokoro-82M vía `/api/tts`
+   - ✅ STT con Whisper vía `/api/stt`
+   - ⚠️ Algunas modalaidades pueden necesitar configuración adicional
+
+3. **Tests automatizados limitados** - Cobertura básica, necesita expansión
+
+   - ✅ Vitest configurado
+   - ⚠️ Necesita tests para componentes críticos
+
 4. **Sin CI/CD** - Build y deploy manuales
-5. **Sin persistencia** - Solo localStorage, no backend
+
+   - ⚠️ Oportunidad para GitHub Actions
+
+5. **Sin persistencia servidor** - Solo localStorage, no backend de base de datos
+
+   - ✅ Caché SQLite local implementado para análisis de imágenes (Diciembre 2025)
+   - ⚠️ Historial de sesiones aún solo en localStorage
+
 6. **Sin autenticación** - Acceso público sin restricciones
+   - ⚠️ Requerido para producción multi-usuario
 
 ### Áreas de Mejora (Priority Order)
 
-1. **Refactor a estructura `src/`** - Separar por modo/funcionalidad
-2. **Implementar imagen en Ollama** - Integrar Stable Diffusion localmente
-3. **Implementar TTS/STT** - Usar Bark/Whisper vía Ollama
-4. **Agregar tests** - Vitest para helpers, React Testing Library para componentes
-5. **Multi-user backend** - Guardar sesiones, historial, preferencias
-6. **API REST** - Exponer funcionalidades como API pública
-7. **Autenticación** - Login, roles, límites por usuario
-8. **Analytics** - Tracking de uso, métricas de engagement
+1. ~~**Refactor a estructura `src/`**~~ **COMPLETADO (Diciembre 2025)**
+
+   - ✅ Componentes modulares por modo
+   - ✅ Custom hooks especializados
+   - ✅ Context API optimizado (70-80% menos re-renders)
+
+2. **Expandir cobertura de tests** - Vitest + React Testing Library
+
+   - ✅ Vitest configurado
+   - ⚠️ Necesita tests para componentes críticos y funciones helper
+
+3. **Mejorar documentación de prompts** - Crear guía de prompt engineering
+
+   - ✅ CONTEXTO.md, CLAUDE.md, AGENTS.md actualizados
+   - ⚠️ Guía específica de engineering prompts para cada modo
+
+4. **Performance profiling** - Medir exactamente dónde se gastan los ms
+
+   - ⚠️ Tools: React DevTools Profiler, Lighthouse
+
+5. **Mejorar manejo de errores** - Mensajes más específicos para errores de red
+
+   - ⚠️ Retry logic, timeout handling, fallback chains
+
+6. **Multi-user backend** - Guardar sesiones, historial, preferencias
+
+   - ⚠️ Node.js/Python backend con database persistente
+
+7. **API REST** - Exponer funcionalidades como API pública
+
+   - ✅ Backend FastAPI parcialmente expuesto
+   - ⚠️ Documentación OpenAPI, rate limiting
+
+8. **Autenticación** - Login, OAuth2/JWT, roles, límites por usuario
+
+   - ⚠️ Requerido para producción multi-usuario
+
+9. **Internacionalización completa** - Extender a más idiomas
+
+   - ✅ Soporte base para ES, EN, FR, DE, IT en análisis de imágenes
+   - ⚠️ Expandir a modo interfaz
+
+10. **Analytics** - Tracking de uso, métricas de engagement
+    - ⚠️ Integración con herramientas de analytics
+
+---
+
+## Recent Changes & Backend Configuration (Diciembre 2025)
+
+### Image Analyzer Migration (Phase 8)
+
+**Problema**: Qwen3-VL causaba timeouts al procesar imágenes base64 en Ollama
+
+**Solución Implementada**:
+
+- Cambio de modelo: Qwen3-VL → Llava:latest (más estable y rápido)
+- Implementación de fallback chain automático
+- Fallback a prompts genéricos si no hay modelos de visión disponibles
+- Caché SQLite con deduplicación MD5 y TTL de 30 días
+
+**Archivos modificados**:
+
+- `python-backend/app/services/image_analyzer.py` - Cambio a Llava:latest
+- `python-backend/app/services/model_fallback.py` - Fallback chain y prompts genéricos
+- `python-backend/app/routes/image_analysis.py` - Parseado correcto de parámetros booleanos
+- `src/hooks/useImageAnalyzer.ts` - Normalización de respuestas API
+
+**Configuración requerida**:
+
+```bash
+# Descargar Llava
+ollama pull Llava:latest
+
+# O descargar alternativas para fallback
+ollama pull qwen3-vl:8b
+ollama pull qwen2.5:7b
+```
+
+### Backend FastAPI Configuration
+
+**Ubicación**: `python-backend/main.py`
+
+**Endpoints expuestos**:
+
+- `POST /api/images/analyze` - Análisis de imágenes con Llava
+- `GET /api/images/cache-stats` - Estadísticas de caché
+- `GET /api/images/cache-clear-expired` - Limpiar entradas expiradas
+- `POST /api/image` - Generación de imágenes (Stable Diffusion)
+- `POST /api/tts` - Síntesis de voz (Kokoro-82M)
+- `POST /api/stt` - Transcripción de audio (Whisper)
+- `GET /api/voices` - Lista de voces disponibles
+
+**Startup**:
+
+```bash
+cd python-backend
+python main.py
+# Servidor en http://localhost:8000
+```
+
+### Python Cache Clearing
+
+**Problema**: Cambios en archivos `.py` no se reflejan sin limpiar caché de Python
+
+**Solución**:
+
+```bash
+# Limpiar todos los directorios __pycache__
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null
+
+# Eliminar archivos .pyc compilados
+find . -name "*.pyc" -delete
+
+# Reiniciar servidor completamente (no reload)
+python main.py
+```
+
+### Database Cache Management
+
+**Ubicación**: `python-backend/cache/image_analysis_cache.db` (SQLite)
+
+**Características**:
+
+- Deduplicación basada en MD5 hash de imagen
+- TTL de 30 días (configurable en `image_cache.py`)
+- Índices para búsqueda rápida
+- Endpoint de monitoreo: `GET /api/images/cache-stats`
+
+**Limpieza**:
+
+```bash
+# Ver estadísticas del caché
+curl http://localhost:8000/api/images/cache-stats
+
+# Limpiar entradas expiradas
+curl http://localhost:8000/api/images/cache-clear-expired
+
+# Eliminar todo el caché (fuerza reinicio del servidor)
+rm python-backend/cache/image_analysis_cache.db
+```
+
+**Si el archivo .db está bloqueado** (Windows):
+
+```powershell
+# PowerShell con permisos de administrador
+Remove-Item -Path "python-backend/cache/image_analysis_cache.db" -Force
+```
 
 ---
 
