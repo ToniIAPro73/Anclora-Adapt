@@ -1,7 +1,9 @@
 fastapi==0.109.0
 uvicorn==0.27.0
 python-multipart==0.0.9
-# torch==2.5.1 --index-url https://download.pytorch.org/whl/cu121
+torch>=2.0.0
+# Para instalación con CUDA 12.1 específico, usar:
+# pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cu121
 diffusers==0.26.3
 transformers==4.37.2
 accelerate==0.27.2
@@ -12,3 +14,4 @@ kokoro-onnx==0.3.1
 numpy<2.0.0
 Pillow==10.1.0
 pydantic==2.5.0
+ollama>=0.0.1

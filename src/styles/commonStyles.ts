@@ -155,7 +155,7 @@ const commonStyles: Record<string, React.CSSProperties> = {
     gap: "10px",
     minHeight: 0,
     flex: 1,
-    overflow: "visible",
+    overflow: "auto",
     boxSizing: "border-box",
   },
   inputFrameMobile: {
@@ -275,7 +275,6 @@ const commonStyles: Record<string, React.CSSProperties> = {
     backgroundColor: "var(--muted-surface, #f7f9fb)",
   },
   outputTextarea: {
-    flex: 1,
     borderRadius: "12px",
     border: "1px solid var(--panel-border, #d1d5db)",
     padding: "10px",
@@ -284,10 +283,12 @@ const commonStyles: Record<string, React.CSSProperties> = {
     fontSize: "0.95rem",
     fontFamily: "inherit",
     lineHeight: 1.5,
-    resize: "vertical" as const,
-    minHeight: "110px",
+    resize: "none" as const,
+    height: "300px",
+    maxHeight: "300px",
     cursor: "text",
     whiteSpace: "pre-wrap",
+    overflow: "auto",
   },
   copyButtonRow: {
     display: "flex",

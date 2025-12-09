@@ -35,6 +35,18 @@ try:
 except ImportError:
     print("⚠️ Advertencia: Kokoro-ONNX no encontrado.")
 
+try:
+    from app.routes.image_analysis import router as image_analyzer_router
+except ImportError:
+    print("⚠️ Advertencia: Image Analyzer no disponible (faltan dependencias CLIP/Ollama).")
+    image_analyzer_router = None
+
+try:
+    from app.routes.prompt_optimization import router as prompt_optimizer_router
+except ImportError:
+    print("⚠️ Advertencia: Prompt Optimizer no disponible (faltan dependencias Ollama/Pydantic).")
+    prompt_optimizer_router = None
+
 # --- Configuración de Logging ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -257,6 +269,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Registrar router del Image Analyzer si está disponible
+if image_analyzer_router:
+    app.include_router(image_analyzer_router)
+    logger.info("✓ Image Analyzer router registrado")
+
+# Registrar router del Prompt Optimizer si está disponible
+if prompt_optimizer_router:
+    app.include_router(prompt_optimizer_router)
+    logger.info("✓ Prompt Optimizer router registrado")
+
 # --- Modelos de Datos (Pydantic) ---
 class TTSRequest(BaseModel):
     inputs: str
@@ -275,16 +297,23 @@ class ImageRequest(BaseModel):
 
 @app.get("/")
 async def root():
+    endpoints = {
+        "health": "/api/health",
+        "capabilities": "/api/system/capabilities",
+        "tts": "/api/tts",
+        "stt": "/api/stt",
+        "image": "/api/image"
+    }
+    if image_analyzer_router:
+        endpoints.update({
+            "image_analyze": "/api/images/analyze",
+            "image_analyze_stream": "/api/images/analyze-stream",
+            "image_health": "/api/images/health"
+        })
     return {
         "service": "Anclora Local Backend",
         "version": "1.0",
-        "endpoints": {
-            "health": "/api/health",
-            "capabilities": "/api/system/capabilities",
-            "tts": "/api/tts",
-            "stt": "/api/stt",
-            "image": "/api/image"
-        }
+        "endpoints": endpoints
     }
 
 @app.get("/api/health")
