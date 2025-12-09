@@ -254,6 +254,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           onFileChange={onFileChange}
           imagePromptPlaceholder="Describe la imagen que deseas generar..."
           language={language}
+          deepThinking={deepThinking}
         />
 
         {/* Generate Button */}
