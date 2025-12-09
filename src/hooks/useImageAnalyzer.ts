@@ -5,6 +5,19 @@
 
 import { useState, useCallback } from "react";
 
+export interface ImageContextResponse {
+  generative_prompt?: string;
+}
+
+export interface ApiAnalysisResponse {
+  success: boolean;
+  generatedPrompt?: string;
+  image_context?: ImageContextResponse;
+  analysis?: Record<string, Array<{ value: string; score: number }>>;
+  userInput?: string;
+  error?: string;
+}
+
 export interface AnalysisResult {
   success: boolean;
   generatedPrompt: string;
@@ -106,17 +119,30 @@ export const useImageAnalyzer = () => {
         );
       }
 
-      const result = (await response.json()) as AnalysisResult;
+      const apiResponse = (await response.json()) as ApiAnalysisResponse;
+
+      // Handle both old format (generatedPrompt) and new format (image_context.generative_prompt)
+      const generatedPrompt =
+        apiResponse.image_context?.generative_prompt ||
+        apiResponse.generatedPrompt ||
+        "";
+
+      const normalizedResult: AnalysisResult = {
+        success: apiResponse.success || false,
+        generatedPrompt,
+        analysis: apiResponse.analysis || null,
+        error: apiResponse.success ? null : apiResponse.error || "Analysis failed",
+      };
 
       setState((prev) => ({
         ...prev,
         isAnalyzing: false,
-        generatedPrompt: result.generatedPrompt || "",
-        analysis: result.analysis || null,
-        error: result.success ? null : result.error || "Analysis failed",
+        generatedPrompt,
+        analysis: normalizedResult.analysis,
+        error: normalizedResult.error,
       }));
 
-      return result;
+      return normalizedResult;
     },
     []
   );
@@ -167,21 +193,27 @@ export const useImageAnalyzer = () => {
                 }));
                 break;
 
-              case "complete":
+              case "complete": {
+                // Handle both old format (generatedPrompt) and new format (image_context.generative_prompt)
+                const streamGeneratedPrompt =
+                  data.image_context?.generative_prompt ||
+                  data.generatedPrompt ||
+                  "";
                 finalResult = {
                   success: true,
-                  generatedPrompt: data.generatedPrompt || "",
+                  generatedPrompt: streamGeneratedPrompt,
                   analysis: data.analysis,
                 };
                 setState((prev) => ({
                   ...prev,
                   isAnalyzing: false,
-                  generatedPrompt: data.generatedPrompt || "",
+                  generatedPrompt: streamGeneratedPrompt,
                   error: null,
                 }));
                 eventSource.close();
                 resolve(finalResult);
                 break;
+              }
 
               case "error":
                 setState((prev) => ({
