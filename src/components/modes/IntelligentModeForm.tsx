@@ -16,6 +16,8 @@ interface IntelligentModeFormProps {
   deepThinking: boolean;
   onDeepThinkingChange: (value: boolean) => void;
   deepThinkingLabel: string;
+  improvePrompt: boolean;
+  onImprovePromptChange: (value: boolean) => void;
   includeImage: boolean;
   onIncludeImageChange: (value: boolean) => void;
   imagePrompt: string;
@@ -40,6 +42,8 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
   deepThinking,
   onDeepThinkingChange,
   deepThinkingLabel,
+  improvePrompt,
+  onImprovePromptChange,
   includeImage,
   onIncludeImageChange,
   imagePrompt,
@@ -87,7 +91,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          marginBottom: "8px",
+          marginBottom: "4px",
           flexShrink: 0,
         }}
       >
@@ -95,7 +99,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           style={{
             ...commonStyles.label,
             fontSize: "0.8em",
-            marginBottom: "2px",
+            marginBottom: "1px",
           }}
         >
           Idea
@@ -103,7 +107,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         <textarea
           style={{
             ...commonStyles.textarea,
-            height: includeImage ? "140px" : "120px",
+            height: includeImage ? "90px" : "75px",
             resize: "none",
           }}
           value={idea}
@@ -120,7 +124,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          marginBottom: "8px",
+          marginBottom: "4px",
           flexShrink: 0,
         }}
       >
@@ -128,7 +132,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           style={{
             ...commonStyles.label,
             fontSize: "0.8em",
-            marginBottom: "2px",
+            marginBottom: "1px",
           }}
         >
           Contexto
@@ -136,7 +140,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         <textarea
           style={{
             ...commonStyles.textarea,
-            height: includeImage ? "100px" : "100px",
+            height: "65px",
             resize: "none",
           }}
           value={context}
@@ -150,10 +154,10 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
+          gap: "4px",
           flexShrink: 0,
           marginTop: "auto",
-          paddingBottom: "2px",
+          paddingBottom: "0px",
           width: "100%",
           backgroundColor: "var(--panel-bg)",
         }}
@@ -181,7 +185,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
             <select
               style={{
                 ...commonStyles.select,
-                padding: "6px 10px",
+                padding: "4px 8px",
                 fontSize: "0.9em",
                 width: "auto",
                 minWidth: "100px",
@@ -210,7 +214,6 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
               fontSize: "0.85em",
               cursor: "pointer",
               whiteSpace: "nowrap",
-              marginLeft: "auto",
             }}
           >
             <input
@@ -219,6 +222,24 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
               onChange={(e) => onDeepThinkingChange(e.target.checked)}
             />{" "}
             {deepThinkingLabel}
+          </label>
+
+          {/* Improve Prompt Checkbox */}
+          <label
+            style={{
+              ...commonStyles.checkboxLabel,
+              fontSize: "0.85em",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              marginLeft: "auto",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={improvePrompt}
+              onChange={(e) => onImprovePromptChange(e.target.checked)}
+            />{" "}
+            Mejorar prompt
           </label>
         </div>
 
@@ -232,6 +253,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           imagePreview={imagePreview}
           onFileChange={onFileChange}
           imagePromptPlaceholder="Describe la imagen que deseas generar..."
+          language={language}
         />
 
         {/* Generate Button */}
@@ -239,7 +261,7 @@ const IntelligentModeForm: React.FC<IntelligentModeFormProps> = ({
           type="button"
           style={{
             ...commonStyles.generateButton,
-            padding: "12px",
+            padding: "10px",
             width: "100%",
           }}
           onClick={onGenerate}

@@ -17,7 +17,7 @@ Aplicación React 19 + Vite 6 + TypeScript para generar/adaptar contenido estrat
 | Audio (TTS/STT) | Endpoints locales (Whisper/Kokoro/etc.)                     |
 | Tests           | [Vitest](https://vitest.dev/) + React Testing Library       |
 
-**Requisitos previos**
+## Requisitos previos
 
 - Node.js 18+
 - Ollama en local (`ollama serve`)
@@ -28,7 +28,7 @@ Aplicación React 19 + Vite 6 + TypeScript para generar/adaptar contenido estrat
 
 ## Estructura del repositorio
 
-```
+```Tree
 .
 ├── assets/               # Recursos estáticos (capturas, audio demo)
 ├── docs/                 # Documentación viva (AGENTS, ROADMAP, setups, etc.)
@@ -108,11 +108,34 @@ Perfiles ejemplo:
 - **Solo CPU** → `orca-mini`, imagen deshabilitada, TTS pyttsx3.
 - **Texto únicamente** → define solo `VITE_OLLAMA_BASE_URL` y `VITE_TEXT_MODEL_ID`.
 
+**Nota sobre el Analizador de Imágenes (Llava)**:
+
+El modo **Inteligente** incluye análisis automático de imágenes usando el modelo **Llava:latest** (más rápido y estable que Qwen3-VL). Cuando subes una imagen:
+
+1. El backend genera un prompt genérico para la imagen
+2. Si proporcionas tu propio prompt, se usa directamente
+3. Soporta múltiples idiomas (ES, EN, FR, DE, IT)
+4. Respuesta inmediata sin timeouts
+
+Para usar esta funcionalidad:
+
+````bash
+ollama pull Llava:latest   # Descarga el modelo de visión
+# El backend debe estar corriendo en http://localhost:8000
+python python-backend/main.py
+```text
+
+**Características técnicas**:
+
+- Caché inteligente con deduplicación MD5
+- Fallback automático a prompts genéricos si hay problemas
+- SQLite para persistencia de análisis previos (30 días TTL)
+
 ---
 
 ## Flujo de desarrollo
 
-1. **Instala dependencias**  
+1. **Instala dependencias**
    `npm install`
 
 2. **Backend FastAPI (python-backend/)**
@@ -127,9 +150,9 @@ Perfiles ejemplo:
    huggingface-cli download hexgrad/Kokoro-82M kokoro.onnx --local-dir models --local-dir-use-symlinks False
    huggingface-cli download hexgrad/Kokoro-82M voices.json --local-dir models --local-dir-use-symlinks False
    python main.py
-   ```
+````
 
-   El backend expone `/api/tts`, `/api/stt`, `/api/image` y `/api/voices`.
+El backend expone `/api/tts`, `/api/stt`, `/api/image`, `/api/voices` y `/api/images/analyze` (Qwen3-VL para análisis visual).
 
 3. **Arranca Ollama**  
    `ollama pull llama2` → `ollama serve`
@@ -153,7 +176,7 @@ Perfiles ejemplo:
 - El modo **Voz** llama a `GET ${VITE_TTS_ENDPOINT}/voices` (FastAPI expone `/api/voices`) para poblar idiomas/presets. Si la llamada falla, se muestran presets locales como fallback.
 - `npm run check:health` confirma rápidamente que Ollama y los endpoints configurados responden antes de abrir la SPA.
 - El modo **Imagen** permite elegir dimensiones (512–1216), pasos y negative prompt; todo se procesa desde `/api/image` (SDXL Lightning, 4–8 pasos recomendados).
-- El modo **Inteligente** genera contenido estratégico con contexto (ideas + contexto + idioma + pensamiento profundo). Opcionalmente puede generar una imagen complementaria: introduce un prompt para describir la imagen deseada. Si seleccionas una imagen para usar como referencia, el prompt sigue siendo obligatorio para especificar ajustes o variaciones.
+- El modo **Inteligente** genera contenido estratégico con contexto (ideas + contexto + idioma + pensamiento profundo). Opcionalmente puede generar una imagen complementaria: introduce un prompt para describir la imagen deseada. **NUEVO**: Si subes una imagen para análisis, el backend usa Qwen3-VL:8b para analizar automáticamente todos los elementos visuales (objetos, colores, estilos, composición, iluminación, atmósfera) y genera un prompt detallado que captura los detalles específicos de la imagen. Soporta 9 idiomas con prompts específicos por idioma.
 
 ---
 

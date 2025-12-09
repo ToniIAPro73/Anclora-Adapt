@@ -25,16 +25,18 @@ function Get-OllamaModels {
     throw "No se pudo obtener la lista de modelos. ¿Está instalado Ollama?"
   }
 
-  $lines = $raw | Where-Object { $_ -match '\S' } | Select-Object -Skip 2
+  $lines = $raw | Where-Object { $_ -match '\S' } | Select-Object -Skip 1
   $models = @()
 
   foreach ($line in $lines) {
-    $parts = $line -split '\s{2,}' | Where-Object { $_ -ne '' }
-    if ($parts.Count -ge 3) {
+    # Parseo más robusto: nombre modelo, ID, tamaño, fecha modificada
+    # Formato: "nombre    id          tamaño    fecha"
+    if ($line -match '^\s*(\S+)\s+(\S+)\s+(\S+)\s+(.+?)$') {
       $models += [pscustomobject]@{
-        Name     = $parts[0].Trim()
-        Size     = $parts[2].Trim()
-        Modified = $parts[-1].Trim()
+        Name     = $matches[1]
+        Id       = $matches[2]
+        Size     = $matches[3]
+        Modified = $matches[4].Trim()
       }
     }
   }
@@ -47,11 +49,16 @@ function Select-Model {
     [array]$Models
   )
 
-  Write-Host "`nModelos disponibles:`n" -ForegroundColor Cyan
+  Write-Host "`n════════════════════════════════════════════════════════" -ForegroundColor Cyan
+  Write-Host "  MODELOS DISPONIBLES" -ForegroundColor Cyan
+  Write-Host "════════════════════════════════════════════════════════`n" -ForegroundColor Cyan
+
   for ($i = 0; $i -lt $Models.Count; $i++) {
-    Write-Host ("[{0}] {1,-18} {2}" -f $i, $Models[$i].Name, $Models[$i].Size)
+    $color = if ($Models[$i].Name -match "qwen") { "Yellow" } else { "White" }
+    Write-Host ("[{0}] {1,-20} {2,-15} {3}" -f $i, $Models[$i].Name, $Models[$i].Size, $Models[$i].Modified) -ForegroundColor $color
   }
 
+  Write-Host "`n════════════════════════════════════════════════════════" -ForegroundColor Cyan
   $selection = Read-Host "`nSelecciona el número del modelo (o pulsa Enter para omitir)"
   if ([string]::IsNullOrWhiteSpace($selection)) {
     return $null
@@ -115,23 +122,33 @@ function Run-Model {
 }
 
 try {
+  Write-Host "`n╔══════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
+  Write-Host "║         GESTOR DE OLLAMA - ANCLORA ADAPT                  ║" -ForegroundColor Cyan
+  Write-Host "╚══════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+
   $models = Get-OllamaModels
   if (-not $models -or $models.Count -eq 0) {
     throw "No se detectaron modelos instalados. Ejecuta 'ollama pull <modelo>'."
   }
 
+  Write-Host "`n✓ Se encontraron $($models.Count) modelo(s) instalado(s)" -ForegroundColor Green
+
   $selectedModel = Select-Model -Models $models
 
+  Write-Host "`n⏳ Preparando parada de instancias anteriores..." -ForegroundColor Yellow
   Stop-OllamaInstances -PortToFree $Port
 
   if ($selectedModel) {
+    Write-Host "`n📦 Precargando modelo: $selectedModel" -ForegroundColor Cyan
     Run-Model -ModelName $selectedModel
   }
 
   $serveProcess = Start-OllamaServe
 
-  Write-Host "`nDaemon reiniciado correctamente (PID $($serveProcess.Id))." -ForegroundColor Green
-  Write-Host "Para detenerlo pulsa Ctrl+C o cierra esta ventana." -ForegroundColor Gray
+  Write-Host "`n✓ Daemon reiniciado correctamente (PID $($serveProcess.Id))" -ForegroundColor Green
+  Write-Host "  Puerto: $Port" -ForegroundColor Gray
+  Write-Host "  URL:    http://localhost:$Port" -ForegroundColor Gray
+  Write-Host "`n💡 Para detenerlo pulsa Ctrl+C o cierra esta ventana." -ForegroundColor Gray
 } catch {
   Write-Error $_
   exit 1

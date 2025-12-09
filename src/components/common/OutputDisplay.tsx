@@ -18,6 +18,14 @@ interface OutputDisplayProps {
   audioUrl?: string | null;
   imageUrl?: string | null;
   copy: OutputCopy;
+  generatedJSON?: object | null;
+  onDownloadJSON?: () => void;
+  ideaPrompt?: string | null;
+  imagePrompt?: string | null;
+  onDownloadIdeaPrompt?: () => void;
+  onDownloadIdeaPromptJSON?: () => void;
+  onDownloadImagePrompt?: () => void;
+  onDownloadImagePromptJSON?: () => void;
 }
 
 const GeneratedOutputCard: React.FC<{
@@ -80,6 +88,55 @@ const GeneratedOutputCard: React.FC<{
   );
 };
 
+const PromptDisplay: React.FC<{
+  title: string;
+  prompt: string;
+  onDownloadMarkdown?: () => void;
+  onDownloadJSON?: () => void;
+}> = ({ title, prompt, onDownloadMarkdown, onDownloadJSON }) => {
+  return (
+    <div style={commonStyles.outputCard}>
+      <strong>{title}</strong>
+      <textarea
+        value={prompt}
+        readOnly
+        spellCheck={false}
+        style={{
+          ...commonStyles.outputTextarea,
+          backgroundColor: "var(--input-bg)",
+          marginTop: "8px",
+        }}
+      />
+      <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+        {onDownloadMarkdown && (
+          <button
+            type="button"
+            style={{
+              ...commonStyles.copyButton,
+              flex: 1,
+            }}
+            onClick={onDownloadMarkdown}
+          >
+            📥 .md
+          </button>
+        )}
+        {onDownloadJSON && (
+          <button
+            type="button"
+            style={{
+              ...commonStyles.copyButton,
+              flex: 1,
+            }}
+            onClick={onDownloadJSON}
+          >
+            📥 .json
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const OutputDisplay: React.FC<OutputDisplayProps> = ({
   generatedOutputs,
   error,
@@ -88,6 +145,12 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
   audioUrl,
   imageUrl,
   copy,
+  ideaPrompt,
+  imagePrompt,
+  onDownloadIdeaPrompt,
+  onDownloadIdeaPromptJSON,
+  onDownloadImagePrompt,
+  onDownloadImagePromptJSON,
 }) => {
   return (
     <section style={commonStyles.outputSection}>
@@ -140,6 +203,26 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({
               onCopy={onCopy}
             />
           ))}
+        </div>
+      )}
+      {ideaPrompt && (
+        <div style={{ marginTop: "12px" }}>
+          <PromptDisplay
+            title="Prompt para Idea/Contexto"
+            prompt={ideaPrompt}
+            onDownloadMarkdown={onDownloadIdeaPrompt}
+            onDownloadJSON={onDownloadIdeaPromptJSON}
+          />
+        </div>
+      )}
+      {imagePrompt && (
+        <div style={{ marginTop: "12px" }}>
+          <PromptDisplay
+            title="Prompt para Imagen"
+            prompt={imagePrompt}
+            onDownloadMarkdown={onDownloadImagePrompt}
+            onDownloadJSON={onDownloadImagePromptJSON}
+          />
         </div>
       )}
     </section>
