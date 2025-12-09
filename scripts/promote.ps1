@@ -1,119 +1,100 @@
 <#
-.SYNOPSIS
-  🔁 Sincroniza todas las ramas principales del proyecto (development, main, preview, production)
-  usando la más reciente como fuente. Incluye control de autoría, backups automáticos y logs detallados.
+    ANCLORA DEV SHELL — PROMOTE FULL v2.8
+    Autor: Antonio Ballesteros Alonso
+    Descripción:
+      Sincroniza todas las ramas del proyecto con rebase limpio sobre la más actual.
+      Previene commits no autorizados y genera logs detallados.
 
-.DESCRIPTION
-  Este script detecta la rama más actualizada (por commits), sincroniza el resto con ella
-  y genera un log en /logs con los resultados del proceso.
-
-.VERSION
-  v2.7 – Protección de autoría (solo ToniIAPro73 o cuentas autorizadas)
-  Última revisión: 22/11/2025
 #>
 
-# ==========================
-# 🧭 CONFIGURACIÓN BÁSICA
-# ==========================
+param(
+    [switch]$Force
+)
+
+# ======================
+# ⚙️ CONFIGURACIÓN
+# ======================
 $ErrorActionPreference = "Stop"
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $logDir = "logs"
-if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
-$logFile = "$logDir/promote_$timestamp.txt"
-Start-Transcript -Path $logFile -Force | Out-Null
+if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Force -Path $logDir | Out-Null }
+Start-Transcript -Path "$logDir/promote_$timestamp.txt" -Append | Out-Null
 
-Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v2.7`n" -ForegroundColor Cyan
+Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v2.8`n" -ForegroundColor Cyan
 
-# ==========================
-# 🧩 AUTORIZACIÓN DE AUTOR
-# ==========================
+# ======================
+# 🧩 AUTORIZACIÓN
+# ======================
 $allowedAuthors = @(
     "Antonio Ballesteros Alonso <toni@uniestate.co.uk>",
     "ToniIAPro73 <supertoniia@gmail.com>",
     "Toni Ballesteros <antonio@anclora.com>"
 )
 
-$lastCommitAuthor = git log -1 --pretty=format:"%an <%ae>"
-if ($allowedAuthors -notcontains $lastCommitAuthor) {
-    Write-Host "🚫 Bloqueado: autor no autorizado ($lastCommitAuthor)" -ForegroundColor Red
+$currentAuthor = (git config user.name) + " <" + (git config user.email) + ">"
+
+if ($allowedAuthors -notcontains $currentAuthor) {
+    Write-Host "🚫 Bloqueado: autor no autorizado ($currentAuthor)" -ForegroundColor Red
     Stop-Transcript | Out-Null
     exit 1
 }
 
-Write-Host "✅ Autorización verificada: $lastCommitAuthor`n" -ForegroundColor Green
+Write-Host "✅ Autorización verificada: $currentAuthor`n" -ForegroundColor Green
 
-# ==========================
-# 🔄 ACTUALIZACIÓN REMOTA
-# ==========================
-Write-Host "🔄 Actualizando referencias remotas..." -ForegroundColor Cyan
+# ======================
+# 🔄 SINCRONIZACIÓN GLOBAL
+# ======================
+Write-Host "🔄 Actualizando referencias remotas..." -ForegroundColor Yellow
 git fetch --all --prune | Out-Null
 
-# ==========================
-# 📋 DEFINICIÓN DE RAMAS
-# ==========================
+# Determinar la rama más reciente
 $branches = @("development", "main", "preview", "production")
+$latestBranch = ""
+$latestDate = Get-Date "2000-01-01"
 
-# Detecta cuál es la más reciente por fecha de commit
-$latest = $branches |
-    ForEach-Object {
-        [PSCustomObject]@{
-            Name = $_
-            Date = (git log origin/$_ -1 --format="%ci")
-        }
-    } | Sort-Object Date -Descending | Select-Object -First 1
-
-Write-Host "🧭 Último commit detectado:`n   → Rama: $($latest.Name)`n   → Fecha: $($latest.Date)`n" -ForegroundColor Yellow
-
-# ==========================
-# 💾 BACKUP AUTOMÁTICO
-# ==========================
-$uncommitted = git status --porcelain
-if ($uncommitted) {
-    Write-Host "⚠️ Hay cambios sin commit en tu entorno local."
-    $resp = Read-Host "¿Deseas crear un backup automático antes de continuar? (S/N)"
-    if ($resp -eq "S") {
-        $backupBranch = "backup/$($timestamp)"
-        git checkout -b $backupBranch
-        git add .
-        git commit -m "🧩 Backup automático previo al promote ($timestamp)"
-        git push origin $backupBranch
-        Write-Host "✅ Backup creado en rama: $backupBranch`n" -ForegroundColor Green
-    } else {
-        Write-Host "⏭️ Continuando sin backup..." -ForegroundColor Yellow
-    }
-}
-
-# ==========================
-# 🔁 SINCRONIZACIÓN DE RAMAS
-# ==========================
 foreach ($b in $branches) {
-    if ($b -ne $latest.Name) {
-        Write-Host "➡️ Sincronizando '$b' con '$($latest.Name)'..." -ForegroundColor Cyan
-        git checkout $b | Out-Null
-        git pull origin $b | Out-Null
-        git merge origin/$($latest.Name) --no-edit | Out-Null
-
-        # Verifica si hay commits locales pendientes
-        $aheadOutput = git rev-list --left-right --count "$b...origin/$b"
-        $split = $aheadOutput -split "\s+"
-        $ahead = [int]$split[0]
-        $behind = [int]$split[1]
-
-        if ($ahead -gt 0) {
-            Write-Host "⬆️ Subiendo cambios locales de '$b'..." -ForegroundColor Yellow
-            git push origin $b
-        } elseif ($behind -gt 0) {
-            Write-Host "⬇️ Actualizando '$b' desde remoto..." -ForegroundColor Yellow
-            git pull origin $b
-        } else {
-            Write-Host "✅ '$b' ya está sincronizada." -ForegroundColor Green
-        }
+    $commitDate = git log origin/$b -1 --format="%ci" 2>$null
+    if ($commitDate -and ([datetime]$commitDate -gt $latestDate)) {
+        $latestBranch = $b
+        $latestDate = [datetime]$commitDate
     }
 }
 
-# ==========================
-# 🏁 FINALIZACIÓN
-# ==========================
-git checkout $latest.Name | Out-Null
-Write-Host "`n🎯 Promoción completada. Todas las ramas sincronizadas con '$($latest.Name)'.`n" -ForegroundColor Green
+if (-not $latestBranch) {
+    Write-Host "❌ No se pudieron obtener commits remotos válidos." -ForegroundColor Red
+    Stop-Transcript | Out-Null
+    exit 1
+}
+
+Write-Host "`n📍 Rama más reciente detectada: $latestBranch ($latestDate)`n" -ForegroundColor Green
+
+# ======================
+# 🧠 REBASE LIMPIO
+# ======================
+foreach ($branch in $branches) {
+    Write-Host "`n📦 Procesando rama '$branch'..." -ForegroundColor Yellow
+
+    try {
+        git checkout $branch -q
+        git pull origin $branch --rebase | Out-Null
+
+        if ($branch -ne $latestBranch) {
+            Write-Host "🪄 Rebasando sobre '$latestBranch'..." -ForegroundColor Cyan
+            git rebase origin/$latestBranch
+            Write-Host "✅ Rebase completado: $branch ← $latestBranch" -ForegroundColor Green
+        }
+        git push origin $branch --force-with-lease
+        Write-Host "⬆️ Push completado para '$branch'" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "⚠️ Error en '$branch': $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Intenta resolver manualmente y relanza el promote." -ForegroundColor Yellow
+    }
+}
+
+# ======================
+# 🧾 RESUMEN FINAL
+# ======================
+Write-Host "`n🎯 Todas las ramas sincronizadas correctamente (rebase limpio aplicado)."
+Write-Host "🕒 Finalizado: $(Get-Date -Format 'HH:mm:ss')`n" -ForegroundColor Green
 Stop-Transcript | Out-Null
