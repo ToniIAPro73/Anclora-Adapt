@@ -18,6 +18,7 @@ class PromptOptimizeRequest(BaseModel):
     """Solicitud para optimizar un prompt."""
     prompt: str
     deep_thinking: bool = False
+    better_prompt: bool = False  # Si True, mejora y optimiza el prompt
     model: str | None = None  # Si es None, el backend usa el mejor modelo disponible
     language: str | None = None  # Idioma del prompt de salida (es, en, fr, etc.)
 
@@ -45,12 +46,13 @@ async def optimize_prompt(payload: PromptOptimizeRequest) -> PromptOptimizeRespo
     Si Ollama no está disponible, devuelve el prompt original sin error.
     """
     try:
-        logger.info(f"Optimizing prompt with model: {payload.model}, deep_thinking: {payload.deep_thinking}, language: {payload.language}")
+        logger.info(f"Optimizing prompt with model: {payload.model}, deep_thinking: {payload.deep_thinking}, better_prompt: {payload.better_prompt}, language: {payload.language}")
         logger.info(f"Raw prompt: {payload.prompt[:100]}...")
 
         result: PromptImprovement = improve_prompt(
             raw_prompt=payload.prompt,
             deep_thinking=payload.deep_thinking,
+            better_prompt=payload.better_prompt,
             model=payload.model,
             language=payload.language,
         )

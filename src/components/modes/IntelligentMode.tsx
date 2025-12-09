@@ -478,12 +478,12 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
         fallbackPrompt: string,
         options?: { returnRawWhenBypassed?: boolean }
       ): Promise<string> => {
-        // Si "Mejorar Prompt" está OFF, devolver rawPrompt directamente sin ir a backend
-        if (!improvePrompt) {
+        // Si ninguno de los checks está marcado, devolver rawPrompt directamente sin ir a backend
+        if (!improvePrompt && !deepThinking) {
           return options?.returnRawWhenBypassed ? rawPrompt : rawPrompt;
         }
 
-        // "Mejorar Prompt" está ON: enviar a Ollama
+        // Si al menos uno de los checks está marcado (improvePrompt OR deepThinking), enviar a Ollama
         try {
           const API_BASE_URL =
             import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
@@ -494,6 +494,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
             body: JSON.stringify({
               prompt: rawPrompt,
               deep_thinking: deepThinking,
+              better_prompt: improvePrompt,
               language: language,
             }),
           });
