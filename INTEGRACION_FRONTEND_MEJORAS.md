@@ -9,6 +9,7 @@ Guía para integrar las mejoras del sistema de análisis de imágenes en el fron
 La respuesta de `/api/images/analyze` ahora es más extendida. El frontend debe adaptarse:
 
 ### Antes (estructura antigua)
+
 ```javascript
 {
   success: true,
@@ -19,6 +20,7 @@ La respuesta de `/api/images/analyze` ahora es más extendida. El frontend debe 
 ```
 
 ### Después (estructura nueva - EXTENDIDA)
+
 ```javascript
 {
   success: true,
@@ -137,30 +139,28 @@ export async function analyzeImage(
   language?: string
 ): Promise<ImageAnalysisResponse> {
   const formData = new FormData();
-  formData.append('image', imageFile);
-  formData.append('user_prompt', userPrompt || '');
-  formData.append('deep_thinking', deepThinking ? 'true' : 'false');
-  formData.append('language', language || 'es');
+  formData.append("image", imageFile);
+  formData.append("user_prompt", userPrompt || "");
+  formData.append("deep_thinking", deepThinking ? "true" : "false");
+  formData.append("language", language || "es");
 
   const response = await fetch(
     `${import.meta.env.VITE_API_BASE_URL}/api/images/analyze`,
     {
-      method: 'POST',
+      method: "POST",
       body: formData,
       // NO establecer Content-Type (FormData lo maneja)
     }
   );
 
   if (!response.ok) {
-    throw new Error(
-      `Image analysis failed: ${response.statusText}`
-    );
+    throw new Error(`Image analysis failed: ${response.statusText}`);
   }
 
-  const data = await response.json() as ImageAnalysisResponse;
+  const data = (await response.json()) as ImageAnalysisResponse;
 
   if (!data.success) {
-    throw new Error(data.error || 'Unknown error');
+    throw new Error(data.error || "Unknown error");
   }
 
   return data;
@@ -173,7 +173,7 @@ export async function getCacheStats(): Promise<any> {
   );
 
   if (!response.ok) {
-    throw new Error('Could not fetch cache stats');
+    throw new Error("Could not fetch cache stats");
   }
 
   return response.json();
@@ -183,11 +183,11 @@ export async function getCacheStats(): Promise<any> {
 export async function clearExpiredCache(): Promise<any> {
   const response = await fetch(
     `${import.meta.env.VITE_API_BASE_URL}/api/images/cache-clear-expired`,
-    { method: 'POST' }
+    { method: "POST" }
   );
 
   if (!response.ok) {
-    throw new Error('Could not clear cache');
+    throw new Error("Could not clear cache");
   }
 
   return response.json();
@@ -203,8 +203,8 @@ export async function clearExpiredCache(): Promise<any> {
 **archivo: `src/components/modes/IntelligentMode.tsx` (o similar)**
 
 ```typescript
-import { analyzeImage } from '@/api/imageService';
-import type { ImageAnalysisResponse, ImageContext } from '@/types/api';
+import { analyzeImage } from "@/api/imageService";
+import type { ImageAnalysisResponse, ImageContext } from "@/types/api";
 
 // En el manejador de análisis
 async function handleImageAnalysis(imageFile: File) {
@@ -223,14 +223,14 @@ async function handleImageAnalysis(imageFile: File) {
     const context = response.image_context;
 
     // Usar el nuevo campo extendido
-    const mainPrompt = context?.generative_prompt || '';
+    const mainPrompt = context?.generative_prompt || "";
 
     // Mostrar información adicional
-    console.log('Mood:', context?.mood);
-    console.log('Style:', context?.style);
-    console.log('Lighting:', context?.lighting);
-    console.log('Modelo usado:', response.metadata?.model_used);
-    console.log('Desde caché:', response.cached);
+    console.log("Mood:", context?.mood);
+    console.log("Style:", context?.style);
+    console.log("Lighting:", context?.lighting);
+    console.log("Modelo usado:", response.metadata?.model_used);
+    console.log("Desde caché:", response.cached);
 
     // Actualizar estado con la nueva estructura
     setImageAnalysis({
@@ -238,25 +238,26 @@ async function handleImageAnalysis(imageFile: File) {
       prompt: mainPrompt,
       context: context,
       metadata: response.metadata,
-      cached: response.cached
+      cached: response.cached,
     });
 
     // Si fue desde caché, mostrar notificación
     if (response.cached) {
-      showNotification('Resultado recuperado del caché (muy rápido!)');
+      showNotification("Resultado recuperado del caché (muy rápido!)");
     }
 
     // Mostrar confidence_score si es fallback
     if (response.metadata?.model_fallback_used) {
       showNotification(
-        `Usando modelo alternativo (confianza: ${(response.metadata.confidence_score * 100).toFixed(0)}%)`
+        `Usando modelo alternativo (confianza: ${(
+          response.metadata.confidence_score * 100
+        ).toFixed(0)}%)`
       );
     }
-
   } catch (error) {
     // Manejo de error mejorado
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Image analysis error:', errorMsg);
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    console.error("Image analysis error:", errorMsg);
     setError(errorMsg);
   } finally {
     setIsLoading(false);
@@ -278,23 +279,33 @@ interface ImageContextDisplayProps {
 
 export function ImageContextDisplay({
   context,
-  metadata
+  metadata,
 }: ImageContextDisplayProps) {
   return (
     <div className="image-analysis-results">
       {/* Información básica */}
       <section>
         <h3>Análisis Visual</h3>
-        <p><strong>Caption:</strong> {context.brief_caption}</p>
-        <p><strong>Mood:</strong> {context.mood}</p>
-        <p><strong>Style:</strong> {context.style}</p>
+        <p>
+          <strong>Caption:</strong> {context.brief_caption}
+        </p>
+        <p>
+          <strong>Mood:</strong> {context.mood}
+        </p>
+        <p>
+          <strong>Style:</strong> {context.style}
+        </p>
       </section>
 
       {/* NUEVA: Información extendida */}
       <section>
         <h3>Detalles Visuales (NUEVO)</h3>
-        <p><strong>Composition:</strong> {context.composition}</p>
-        <p><strong>Lighting:</strong> {context.lighting}</p>
+        <p>
+          <strong>Composition:</strong> {context.composition}
+        </p>
+        <p>
+          <strong>Lighting:</strong> {context.lighting}
+        </p>
 
         {context.palette_hex.length > 0 && (
           <div>
@@ -321,9 +332,7 @@ export function ImageContextDisplay({
             <details key={mode}>
               <summary>{mode.toUpperCase()}</summary>
               <p>{prompt}</p>
-              <button onClick={() => copyToClipboard(prompt)}>
-                Copiar
-              </button>
+              <button onClick={() => copyToClipboard(prompt)}>Copiar</button>
             </details>
           ))}
         </div>
@@ -355,9 +364,7 @@ export function ImageContextDisplay({
 
       {/* Información de caché */}
       {/* Si fue cached=true, mostrar badge */}
-      <div className="cache-badge">
-        Resultado rápido (desde caché)
-      </div>
+      <div className="cache-badge">Resultado rápido (desde caché)</div>
     </div>
   );
 }
@@ -383,7 +390,7 @@ export function CacheBadge({ cached }: { cached?: boolean }) {
 }
 
 // Uso en componente
-<CacheBadge cached={response.cached} />
+<CacheBadge cached={response.cached} />;
 ```
 
 **Estilos (CSS):**
@@ -394,11 +401,11 @@ export function CacheBadge({ cached }: { cached?: boolean }) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: #E8F5E9;
-  border: 1px solid #4CAF50;
+  background: #e8f5e9;
+  border: 1px solid #4caf50;
   border-radius: 4px;
   font-size: 0.875rem;
-  color: #1B5E20;
+  color: #1b5e20;
   margin-top: 1rem;
 }
 
@@ -435,7 +442,7 @@ Si deseas mostrar el tiempo de procesamiento:
 export function AnalysisProgressBar({
   isLoading,
   processingTime,
-  cached
+  cached,
 }: {
   isLoading: boolean;
   processingTime?: number;
@@ -454,8 +461,9 @@ export function AnalysisProgressBar({
         </>
       ) : (
         <p className="progress-text success">
-          {cached ? '⚡ Análisis rápido' : '✓ Análisis completado'}
-          ({processingTime?.toFixed(2)}s)
+          {cached ? "⚡ Análisis rápido" : "✓ Análisis completado"}({processingTime?.toFixed(
+            2
+          )}s)
         </p>
       )}
     </div>
@@ -477,9 +485,10 @@ const prompt = response.generatedPrompt;
 const prompt = response.image_context?.generative_prompt;
 
 // SAFE: Fallback a antiguo si existe
-const prompt = response.image_context?.generative_prompt
-             || (response as any).generatedPrompt
-             || '';
+const prompt =
+  response.image_context?.generative_prompt ||
+  (response as any).generatedPrompt ||
+  "";
 ```
 
 ---
@@ -489,7 +498,7 @@ const prompt = response.image_context?.generative_prompt
 Puedes mostrar estadísticas de caché en un panel admin:
 
 ```typescript
-import { getCacheStats } from '@/api/imageService';
+import { getCacheStats } from "@/api/imageService";
 
 export function AdminCachePanel() {
   const [stats, setStats] = useState(null);
@@ -501,7 +510,7 @@ export function AdminCachePanel() {
       const data = await getCacheStats();
       setStats(data.cache_stats);
     } catch (error) {
-      console.error('Could not fetch cache stats:', error);
+      console.error("Could not fetch cache stats:", error);
     } finally {
       setLoading(false);
     }
@@ -511,7 +520,7 @@ export function AdminCachePanel() {
     <div className="admin-panel">
       <h3>Cache Statistics</h3>
       <button onClick={fetchStats} disabled={loading}>
-        {loading ? 'Loading...' : 'Refresh Stats'}
+        {loading ? "Loading..." : "Refresh Stats"}
       </button>
 
       {stats && (
@@ -587,7 +596,7 @@ console.log(`
   Modelo: ${metadata.model_used}
   Tiempo: ${metadata.processing_time_seconds}s
   Desde caché: ${fromCache}
-  Confianza: ${(metadata.confidence_score * 100)}%
+  Confianza: ${metadata.confidence_score * 100}%
 `);
 
 // 6. Opcionalmente mostrar información extendida

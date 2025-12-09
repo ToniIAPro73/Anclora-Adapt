@@ -22,12 +22,15 @@ Se han implementado **4 mejoras principales** al servicio de análisis de imáge
 ## 1. Esquema ImageContext Extendido
 
 ### Ubicación
+
 `python-backend/app/models/image_context.py`
 
 ### Qué Cambió
+
 Se extendió el esquema de salida con **campos adicionales** para análisis más rico:
 
 **Campos Nuevos:**
+
 ```python
 composition: str           # Análisis de composición (regla tercios, simetría, etc.)
 lighting: str              # Tipo/dirección de iluminación
@@ -38,6 +41,7 @@ adapted_prompts: Dict[str, str]  # Prompts específicos por modo
 ```
 
 ### Ejemplo de Respuesta
+
 ```json
 {
   "success": true,
@@ -74,9 +78,11 @@ adapted_prompts: Dict[str, str]  # Prompts específicos por modo
 ## 2. Caché Local con SQLite
 
 ### Ubicación
+
 `python-backend/app/services/image_cache.py`
 
 ### Características
+
 - **Almacenamiento persistente** con SQLite en `cache/image_analysis_cache.db`
 - **Deduplicación por hash MD5** de imagen
 - **Expiración automática** de resultados antiguos (configurable, default: 30 días)
@@ -84,17 +90,20 @@ adapted_prompts: Dict[str, str]  # Prompts específicos por modo
 - **Estadísticas de acceso** para monitoreo
 
 ### Implementación en Flujo
+
 1. Usuario sube imagen → Se calcula MD5 hash
 2. Se verifica en caché:
    - ✅ **Si está**: retorna resultado cacheado en ~10ms
    - ❌ **Si no está**: realiza análisis y guarda en caché
 
 ### Beneficios
+
 - Reduce llamadas redundantes a Ollama/Qwen3-VL
 - Mejora latencia en análisis repetidas
 - Monitorable con `/api/images/cache-stats`
 
 ### Ejemplo de Uso
+
 ```python
 # En imagen_analyzer.py, línea 110-129
 if self.cache:
@@ -105,6 +114,7 @@ if self.cache:
 ```
 
 ### Endpoints de Caché
+
 ```bash
 # Ver estadísticas
 GET /api/images/cache-stats
@@ -118,10 +128,12 @@ POST /api/images/cache-clear-expired
 ## 3. Fallback Multimodal
 
 ### Ubicación
+
 `python-backend/app/services/model_fallback.py`
 
 ### Cadena de Fallback
-```
+
+```text
 Primary: Qwen3-VL:8b (recomendado)
     ↓ (si no disponible)
 Fallback 1: LLaVA:latest
@@ -132,12 +144,14 @@ Error: Retorna prompt vacío o fallback del usuario
 ```
 
 ### Ventajas
+
 - **No bloquea** si modelo primario no está disponible
 - **Degrada gracefully** con modelos más ligeros
 - **Mantiene disponibilidad** del servicio
 - Registra **confidence_score** más bajo en fallback
 
 ### Implementación
+
 ```python
 # En imagen_analyzer.py, línea 134-140
 generated_prompt, model_used, is_fallback = self.fallback_manager.analyze_with_fallback(
@@ -159,15 +173,18 @@ metadata = AnalysisMetadata(
 ## 4. Validación de Seguridad
 
 ### Ubicación
+
 `python-backend/app/services/model_fallback.py` (clase `ImageSecurityValidator`)
 
 ### Validaciones Implementadas
+
 1. **MIME Type**: Solo `image/*` permitidos
 2. **File Size**: 100B - 50MB (configurable)
 3. **Magic Bytes**: Verifica firma de archivo (JPEG, PNG, WEBP, GIF, BMP, TIFF)
 4. **Format Validation**: Confirma que el archivo es imagen válida
 
 ### Ejemplo de Validación
+
 ```python
 # En imagen_analyzer.py, línea 94-108
 is_valid, error_msg = self.security_validator.validate_upload(
@@ -183,6 +200,7 @@ if not is_valid:
 ```
 
 ### Respuesta de Error
+
 ```json
 {
   "success": false,
@@ -200,6 +218,7 @@ if not is_valid:
 ## 🔧 Configuración e Integración
 
 ### Requisitos Adicionales
+
 ```bash
 # Ya están en requirements.txt, pero confirmados:
 sqlite3  # Built-in con Python
@@ -212,16 +231,20 @@ pip install clip-interrogator torch torchvision
 ```
 
 ### Instalación
+
 No se requieren cambios en `requirements.txt` (ya compatible).
 
 Simplemente asegúrate de tener:
+
 ```bash
 ollama pull qwen3-vl:8b  # Modelo primario
 ollama pull llava        # Fallback (opcional)
 ```
 
 ### Inicialización
+
 En `main.py`, el `ImageAnalyzer` se inicializa con:
+
 ```python
 analyzer = ImageAnalyzer(
     enable_cache=True,  # ✅ Caché habilitado
@@ -234,12 +257,15 @@ analyzer = ImageAnalyzer(
 ## 📊 Endpoints Actualizados
 
 ### POST /api/images/analyze
+
 **Cambios:**
+
 - Ahora retorna `ImageAnalysisResponse` (esquema extendido)
 - Incluye validación de seguridad automática
 - Usa caché si está disponible
 
 **Request:**
+
 ```bash
 curl -X POST http://localhost:8000/api/images/analyze \
   -F "image=@photo.jpg" \
@@ -249,6 +275,7 @@ curl -X POST http://localhost:8000/api/images/analyze \
 ```
 
 **Response (extendido):**
+
 ```json
 {
   "success": true,
@@ -259,7 +286,9 @@ curl -X POST http://localhost:8000/api/images/analyze \
 ```
 
 ### GET /api/images/health
+
 **Cambios:**
+
 - Ahora incluye estadísticas de caché
 - Reporta disponibilidad de fallback models
 
@@ -276,7 +305,9 @@ curl -X POST http://localhost:8000/api/images/analyze \
 ```
 
 ### GET /api/images/cache-stats
+
 **Nuevo endpoint** para monitoreo:
+
 ```json
 {
   "status": "ok",
@@ -292,7 +323,9 @@ curl -X POST http://localhost:8000/api/images/analyze \
 ```
 
 ### POST /api/images/cache-clear-expired
+
 **Nuevo endpoint** para mantenimiento:
+
 ```json
 {
   "status": "ok",
@@ -306,17 +339,19 @@ curl -X POST http://localhost:8000/api/images/analyze \
 ## 🚀 Mejora de Rendimiento
 
 ### Impacto Estimado
-| Métrica | Antes | Después |
-|---------|-------|---------|
-| Primera análisis | ~3s | ~3s |
-| Análisis repetida (caché) | ~3s | ~10ms |
-| Reducción de cargas GPU | - | 95%+ en imágenes repetidas |
-| Disponibilidad (sin fallback) | 100% si Qwen3 OK | 100% (con degradación) |
+
+| Métrica                       | Antes            | Después                    |
+| ----------------------------- | ---------------- | -------------------------- |
+| Primera análisis              | ~3s              | ~3s                        |
+| Análisis repetida (caché)     | ~3s              | ~10ms                      |
+| Reducción de cargas GPU       | -                | 95%+ en imágenes repetidas |
+| Disponibilidad (sin fallback) | 100% si Qwen3 OK | 100% (con degradación)     |
 
 ### Caso de Uso Típico
+
 **Escenario:** Usuario genera contenido para campaña y reutiliza la misma imagen varias veces.
 
-```
+```text
 1. Primer upload:  3000ms (análisis completo)
 2. Segundo upload: 10ms   (caché hit)
 3. Tercer upload:  10ms   (caché hit)
@@ -330,8 +365,10 @@ Ahorro total: ~2970ms × (N-1) uploads
 ## 🔍 Debugging y Monitoreo
 
 ### Logs
+
 Busca en los logs del servidor:
-```
+
+```log
 # Caché hit
 Cache hit for hash abc123ef
 
@@ -346,12 +383,14 @@ Security validation failed: File too large (max 50MB)
 ```
 
 ### Verificar Cache
-```python
+
+```bash
 # En Python backend
 curl http://localhost:8000/api/images/cache-stats | jq
 ```
 
 ### Limpiar Cache
+
 ```bash
 # Elimina entradas > 30 días
 curl -X POST http://localhost:8000/api/images/cache-clear-expired
