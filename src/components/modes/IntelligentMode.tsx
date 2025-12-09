@@ -478,10 +478,12 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
         fallbackPrompt: string,
         options?: { returnRawWhenBypassed?: boolean }
       ): Promise<string> => {
+        // Si "Mejorar Prompt" está OFF, devolver rawPrompt directamente sin ir a backend
         if (!improvePrompt) {
-          return options?.returnRawWhenBypassed ? rawPrompt : fallbackPrompt;
+          return options?.returnRawWhenBypassed ? rawPrompt : rawPrompt;
         }
 
+        // "Mejorar Prompt" está ON: enviar a Ollama
         try {
           const API_BASE_URL =
             import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
@@ -507,12 +509,12 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
 
           const errorMsg = optimizeResult.error || "Error desconocido";
           console.warn("Prompt optimization failed, using fallback prompt:", errorMsg);
-          setError("Aviso: No se pudo optimizar el prompt. Usando versión original.");
+          setError("Aviso: No se pudo optimizar el prompt. Usando estructura detallada.");
           return fallbackPrompt;
         } catch (optimizeErr) {
           const errorMsg = optimizeErr instanceof Error ? optimizeErr.message : String(optimizeErr);
           console.warn("Prompt optimizer unavailable, using fallback prompt:", errorMsg);
-          setError("Aviso: No se pudo optimizar el prompt. Usando versión original.");
+          setError("Aviso: No se pudo optimizar el prompt. Usando estructura detallada.");
           return fallbackPrompt;
         }
       };
