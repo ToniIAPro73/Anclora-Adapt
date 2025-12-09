@@ -167,9 +167,6 @@ class ModelFallbackManager:
         deep_thinking: bool = False
     ) -> str:
         """Call vision model via Ollama"""
-        if user_prompt:
-            return user_prompt
-
         system_message = self._get_system_message(language, deep_thinking)
         user_instructions = (
             "Describe every relevant visual element with precise detail. "
@@ -178,27 +175,44 @@ class ModelFallbackManager:
             "textures, mood, and color palette."
         )
 
+        if user_prompt:
+            user_instructions = (
+                f"{user_instructions}\nUsuario: {user_prompt.strip()}"
+            )
+
         payload = {
             "model": model,
             "messages": [
                 {"role": "system", "content": system_message},
                 {
                     "role": "user",
-                    "content": [
-                        {"type": "image", "image": base64_image},
-                        {"type": "text", "text": user_instructions},
-                    ],
+                    "content": user_instructions,
+                    "images": [base64_image],
                 },
             ],
             "stream": False,
+            "options": {
+                "temperature": 0.6 if deep_thinking else 0.4,
+                "top_p": 0.9,
+                "num_predict": 2048 if deep_thinking else 1024,
+            },
         }
 
-        response = requests.post(
-            self.ollama_chat_url,
-            json=payload,
-            timeout=300,
-        )
-        response.raise_for_status()
+        try:
+            response = requests.post(
+                self.ollama_chat_url,
+                json=payload,
+                timeout=300,
+            )
+            response.raise_for_status()
+        except Exception as http_error:
+            logger.error(
+                "Vision model request failed for %s: %s",
+                model,
+                http_error,
+                exc_info=True,
+            )
+            raise
 
         data = response.json()
         prompt_text = data.get("message", {}).get("content")
