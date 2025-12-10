@@ -2,6 +2,7 @@ import React from "react";
 import type {
   InterfaceLanguage,
   ImageGenerationOptions,
+  SystemCapabilities,
 } from "@/types";
 import { languages } from "@/constants/options";
 import type { LanguageOptionAvailability } from "@/constants/modelCapabilities";
@@ -60,6 +61,7 @@ type IntelligentModeProps = {
   outputCopy: OutputCopy;
   onGenerateImage: GenerateImageFn;
   languageOptions: LanguageOptionAvailability[];
+  hardwareProfile?: SystemCapabilities;
 };
 
 const PLATFORM_HINTS = [
@@ -300,6 +302,7 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
   outputCopy,
   onGenerateImage,
   languageOptions,
+  hardwareProfile,
 }) => {
   // Use custom hook for local state management
   const {
@@ -496,6 +499,9 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
               deep_thinking: deepThinking,
               better_prompt: improvePrompt,
               language: language,
+              // Pasar información de contexto para selección inteligente de modelo
+              prefer_speed: !deepThinking, // Si deep_thinking, preferir razonamiento. Si no, velocidad
+              target_language: language,
             }),
           });
 
