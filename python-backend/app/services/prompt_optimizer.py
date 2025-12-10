@@ -10,6 +10,7 @@ import json
 import requests
 from typing import List
 from pydantic import BaseModel
+from app.services.model_selector import get_model_candidates
 
 logger = logging.getLogger(__name__)
 
@@ -176,18 +177,21 @@ def improve_prompt(
     raw_prompt: prompt original escrito por el usuario.
     deep_thinking: si True, añade análisis profundo y detallado.
     better_prompt: si True, optimiza y mejora el prompt para producción.
-    model: nombre del modelo en Ollama. Si es None, usa la mejor opción disponible.
-           Prioridad: mistral > qwen2.5:14b > qwen2.5:7b-instruct
+    model: nombre del modelo en Ollama. Si es None, detecta automáticamente los mejores disponibles.
+           Prioridad automática: Qwen2.5:14b > Qwen2.5:7b-instruct > Qwen2.5:7b > Mistral > Llama
     language: idioma de salida del prompt (e.g., 'es', 'en', 'fr'). Si es None, usa español.
     """
-    # Si no se especifica modelo, intentar con una lista de modelos en orden de preferencia
-    model_candidates = [model] if model else [
-        "mistral:latest",
-        "qwen2.5:14b",
-        "qwen2.5:7b",
-        "llama2:latest",
-    ]
+    # Si se especifica modelo, usarlo. Si no, detectar los mejores disponibles
+    if model:
+        model_candidates = [model]
+    else:
+        model_candidates = get_model_candidates(count=3)
+        if not model_candidates:
+            # Fallback si no hay modelos disponibles
+            logger.error("No models available in Ollama")
+            raise ValueError("No models available in Ollama. Please ensure Ollama is running and has models installed.")
 
+    logger.info(f"Model candidates for optimization: {model_candidates}")
     messages = build_optimizer_messages(raw_prompt, deep_thinking, better_prompt, language)
 
     last_error = None
