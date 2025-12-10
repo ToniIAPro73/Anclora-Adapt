@@ -21,7 +21,7 @@
 
 ### Perfil de Rendimiento Esperado
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │  MODO GPU PURO (modelos ≤5GB)     → 25-40 tokens/segundo   │
 │  MODO HÍBRIDO (GPU + offload)     → 8-15 tokens/segundo    │
@@ -205,7 +205,7 @@ Tu RTX 3050 con ~6GB VRAM puede ejecutar generación de imagen local con las opt
 
 **Framework recomendado**: Fooocus (modo Speed) o ComfyUI con --lowvram
 
-```
+```text
 Configuración Fooocus para RTX 3050:
 ├── Performance: Speed (4 steps)
 ├── Aspect Ratio: 1152×896 o inferior
@@ -248,7 +248,7 @@ Estos modelos SD 1.5 funcionan muy rápido (~8-15s) en tu RTX 3050.
 
 #### LTX Video 2B (Con Limitaciones)
 
-```
+```text
 Configuración para 6GB VRAM:
 ├── Resolución: 512×512 (máximo)
 ├── Frames: 25-33 (1-1.5 segundos)
@@ -425,7 +425,7 @@ embeddings = model.encode(["Tu texto aquí"])
 
 ### 6.2 Stack RAG Recomendado
 
-```
+```text
 Tu Stack RAG Local:
 ├── Embeddings: nomic-embed-text-v1.5 o bge-m3
 ├── Vector DB: ChromaDB o LanceDB (locales)
@@ -502,7 +502,7 @@ Tu portátil ultraligero (1.2kg) tiene limitaciones térmicas importantes.
 
 ### 8.2 Señales de Throttling
 
-```
+```text
 Síntomas de throttling térmico:
 ├── Velocidad de generación cae >30% tras 5-10 minutos
 ├── Ventiladores al máximo constante
