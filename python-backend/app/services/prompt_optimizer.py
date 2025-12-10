@@ -186,10 +186,7 @@ def improve_prompt(
         model_candidates = [model]
     else:
         model_candidates = get_model_candidates(count=3)
-        if not model_candidates:
-            # Fallback si no hay modelos disponibles
-            logger.error("No models available in Ollama")
-            raise ValueError("No models available in Ollama. Please ensure Ollama is running and has models installed.")
+        # get_model_candidates siempre retorna al menos una lista de modelos prioritarios como fallback
 
     logger.info(f"Model candidates for optimization: {model_candidates}")
     messages = build_optimizer_messages(raw_prompt, deep_thinking, better_prompt, language)
