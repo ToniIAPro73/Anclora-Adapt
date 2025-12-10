@@ -20,7 +20,7 @@ type ImageEditModeProps = {
   interfaceLanguage: InterfaceLanguage;
   copy: ImageCopy;
   onGenerateImage: (options: ImageGenerationOptions) => Promise<string>;
-  hardwareProfile?: SystemCapabilities;
+  _hardwareProfile?: SystemCapabilities;
 };
 
 const dimensionPresets = [
@@ -37,7 +37,6 @@ const ImageEditMode: React.FC<ImageEditModeProps> = ({
   interfaceLanguage,
   copy,
   onGenerateImage,
-  hardwareProfile,
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [prompt, setPrompt] = useState("");

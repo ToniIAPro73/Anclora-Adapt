@@ -61,7 +61,7 @@ type IntelligentModeProps = {
   outputCopy: OutputCopy;
   onGenerateImage: GenerateImageFn;
   languageOptions: LanguageOptionAvailability[];
-  hardwareProfile?: SystemCapabilities;
+  _hardwareProfile?: SystemCapabilities;
 };
 
 const PLATFORM_HINTS = [
@@ -302,7 +302,6 @@ const IntelligentMode: React.FC<IntelligentModeProps> = ({
   outputCopy,
   onGenerateImage,
   languageOptions,
-  hardwareProfile,
 }) => {
   // Use custom hook for local state management
   const {

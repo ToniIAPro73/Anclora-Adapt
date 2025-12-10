@@ -56,7 +56,6 @@ export const validateModeSupport = (
   const reason = modeSupport.reason || "Hardware insufficient";
   const ramGb = hardwareProfile.hardware.ram_gb;
   const vramGb = hardwareProfile.hardware.gpu_vram_gb;
-  const hasGpu = hardwareProfile.hardware.has_cuda;
 
   let message = "";
 
