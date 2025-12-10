@@ -180,104 +180,121 @@ def improve_prompt(
            Prioridad: mistral > qwen2.5:14b > qwen2.5:7b-instruct
     language: idioma de salida del prompt (e.g., 'es', 'en', 'fr'). Si es None, usa español.
     """
-    # Si no se especifica modelo, usar el mejor disponible
-    if not model:
-        model = "mistral:latest"  # Mistral es excelente para prompt engineering
+    # Si no se especifica modelo, intentar con una lista de modelos en orden de preferencia
+    model_candidates = [model] if model else [
+        "mistral:latest",
+        "qwen2.5:14b",
+        "qwen2.5:7b",
+        "llama2:latest",
+    ]
 
     messages = build_optimizer_messages(raw_prompt, deep_thinking, better_prompt, language)
 
-    try:
-        logger.info(f"Calling Ollama API at {OLLAMA_API_URL}")
+    last_error = None
 
-        # Hacer petición HTTP a Ollama
-        payload = {
-            "model": model,
-            "messages": messages,
-            "stream": False,
-            "options": {
-                "temperature": 0.3,
-            }
-        }
-
-        logger.debug(f"Payload: {json.dumps(payload, indent=2, ensure_ascii=False)[:200]}...")
-
-        response = requests.post(OLLAMA_API_URL, json=payload, timeout=300)
-        response.raise_for_status()
-
-        response_data = response.json()
-        logger.debug(f"Response status: {response.status_code}")
-        logger.debug(f"Response data keys: {response_data.keys()}")
-
-        # Extraer el contenido de la respuesta
-        if "message" not in response_data:
-            raise ValueError(f"La respuesta no contiene 'message': {response_data}")
-
-        message = response_data["message"]
-        if "content" not in message:
-            raise ValueError(f"El message no contiene 'content': {message}")
-
-        content = message["content"]
-        logger.debug(f"Raw content from Ollama:\n{content[:200]}...")
-
-        # Parsear el JSON de la respuesta
-        json_data = None
+    for attempt_model in model_candidates:
         try:
-            json_data = json.loads(content)
-        except json.JSONDecodeError as e:
-            # Si falla, intentar sanitizar de varias formas
-            logger.warning(f"First JSON parse failed: {str(e)}. Attempting to sanitize...")
+            logger.info(f"Attempting to optimize prompt with model: {attempt_model}")
 
-            # Intento 1: Reemplazar saltos de línea literales por espacios dentro de strings
+            # Hacer petición HTTP a Ollama
+            payload = {
+                "model": attempt_model,
+                "messages": messages,
+                "stream": False,
+                "options": {
+                    "temperature": 0.3,
+                }
+            }
+
+            logger.debug(f"Payload: {json.dumps(payload, indent=2, ensure_ascii=False)[:200]}...")
+
+            response = requests.post(OLLAMA_API_URL, json=payload, timeout=300)
+            response.raise_for_status()
+
+            response_data = response.json()
+            logger.debug(f"Response status: {response.status_code}")
+            logger.debug(f"Response data keys: {response_data.keys()}")
+
+            # Extraer el contenido de la respuesta
+            if "message" not in response_data:
+                raise ValueError(f"La respuesta no contiene 'message': {response_data}")
+
+            message = response_data["message"]
+            if "content" not in message:
+                raise ValueError(f"El message no contiene 'content': {message}")
+
+            content = message["content"]
+            logger.debug(f"Raw content from Ollama:\n{content[:200]}...")
+
+            # Parsear el JSON de la respuesta
+            json_data = None
             try:
-                sanitized_content = content.replace('\n', ' ').replace('\r', ' ')
-                json_data = json.loads(sanitized_content)
-                logger.info("Successfully parsed JSON after newline sanitization")
-            except json.JSONDecodeError as e2:
-                logger.warning(f"Newline sanitization failed: {str(e2)}")
+                json_data = json.loads(content)
+            except json.JSONDecodeError as e:
+                # Si falla, intentar sanitizar de varias formas
+                logger.warning(f"First JSON parse failed: {str(e)}. Attempting to sanitize...")
 
-                # Intento 2: Extraer el JSON válido si está embebido en texto
+                # Intento 1: Reemplazar saltos de línea literales por espacios dentro de strings
                 try:
-                    import re
-                    # Buscar el JSON entre { ... }
-                    json_match = re.search(r'\{.*\}', content, re.DOTALL)
-                    if json_match:
-                        potential_json = json_match.group(0)
-                        # Sanitizar también este
-                        potential_json = potential_json.replace('\n', ' ').replace('\r', ' ')
-                        json_data = json.loads(potential_json)
-                        logger.info("Successfully parsed JSON after extraction and sanitization")
-                except Exception as e3:
-                    logger.warning(f"JSON extraction failed: {str(e3)}")
+                    sanitized_content = content.replace('\n', ' ').replace('\r', ' ')
+                    json_data = json.loads(sanitized_content)
+                    logger.info("Successfully parsed JSON after newline sanitization")
+                except json.JSONDecodeError as e2:
+                    logger.warning(f"Newline sanitization failed: {str(e2)}")
 
-            if not json_data:
-                logger.error(f"Could not parse JSON after all attempts. First 500 chars: {content[:500]}")
-                raise ValueError(f"La respuesta no es un JSON válido después de intentar sanitizar")
+                    # Intento 2: Extraer el JSON válido si está embebido en texto
+                    try:
+                        import re
+                        # Buscar el JSON entre { ... }
+                        json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                        if json_match:
+                            potential_json = json_match.group(0)
+                            # Sanitizar también este
+                            potential_json = potential_json.replace('\n', ' ').replace('\r', ' ')
+                            json_data = json.loads(potential_json)
+                            logger.info("Successfully parsed JSON after extraction and sanitization")
+                    except Exception as e3:
+                        logger.warning(f"JSON extraction failed: {str(e3)}")
 
-        # Validar que tiene los campos requeridos
-        improved_prompt = json_data.get("improved_prompt", "")
-        rationale = json_data.get("rationale", "")
-        checklist = json_data.get("checklist", [])
+                if not json_data:
+                    logger.error(f"Could not parse JSON after all attempts. First 500 chars: {content[:500]}")
+                    raise ValueError(f"La respuesta no es un JSON válido después de intentar sanitizar")
 
-        if not improved_prompt:
-            raise ValueError("El JSON no contiene 'improved_prompt' o está vacío")
+            # Validar que tiene los campos requeridos
+            improved_prompt = json_data.get("improved_prompt", "")
+            rationale = json_data.get("rationale", "")
+            checklist = json_data.get("checklist", [])
 
-        logger.info(f"Successfully parsed improved prompt ({len(improved_prompt)} chars)")
+            if not improved_prompt:
+                raise ValueError("El JSON no contiene 'improved_prompt' o está vacío")
 
-        return PromptImprovement(
-            improved_prompt=improved_prompt,
-            rationale=rationale,
-            checklist=checklist if isinstance(checklist, list) else []
-        )
+            logger.info(f"Successfully parsed improved prompt ({len(improved_prompt)} chars) with model {attempt_model}")
 
-    except requests.exceptions.ConnectionError as e:
-        logger.error(f"Cannot connect to Ollama at {OLLAMA_API_URL}: {str(e)}")
+            return PromptImprovement(
+                improved_prompt=improved_prompt,
+                rationale=rationale,
+                checklist=checklist if isinstance(checklist, list) else []
+            )
+
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, ValueError) as e:
+            last_error = e
+            logger.warning(f"Failed with model {attempt_model}: {str(e)}. Trying next model...")
+            continue
+        except Exception as e:
+            last_error = e
+            logger.warning(f"Unexpected error with model {attempt_model}: {str(e)}. Trying next model...")
+            continue
+
+    # Si llegamos aquí, ningún modelo funcionó
+    if isinstance(last_error, requests.exceptions.ConnectionError):
+        logger.error(f"Cannot connect to Ollama at {OLLAMA_API_URL}")
         raise ValueError(f"No se puede conectar a Ollama. ¿Está ejecutándose en {OLLAMA_API_URL}?")
-    except requests.exceptions.Timeout:
-        logger.error("Ollama request timed out")
-        raise ValueError("La solicitud a Ollama expiró")
-    except Exception as e:
-        logger.error(f"Error in improve_prompt: {str(e)}", exc_info=True)
-        raise
+    elif isinstance(last_error, requests.exceptions.Timeout):
+        logger.error("All models timed out")
+        raise ValueError("Todos los modelos tardaron demasiado. Intenta con un modelo más pequeño.")
+    else:
+        logger.error(f"Error in improve_prompt with all candidates: {str(last_error)}", exc_info=True)
+        raise ValueError(f"No se pudo optimizar el prompt con ningún modelo disponible")
 
 
 def build_fallback_improvement(raw_prompt: str) -> PromptImprovement:

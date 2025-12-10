@@ -468,6 +468,27 @@ const App: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [refreshAvailableModels]);
 
+  // ===== Auto-detect hardware on app load =====
+  // Usuario no necesita pulsar "Ajustar Hardware" explícitamente
+  // La app detecta automáticamente las capacidades del sistema
+  useEffect(() => {
+    if (hardwareProfile) return; // Ya fue detectado
+
+    const detectHardware = async () => {
+      try {
+        const profile = await apiService.getCapabilities();
+        setHardwareProfile(profile);
+        console.log("Hardware automatically detected:", profile);
+      } catch (error) {
+        // Silencio el error - no es crítico si no se detecta automáticamente
+        // El usuario puede hacerlo manualmente con el botón si lo necesita
+        console.warn("Auto-detection of hardware failed, user can use Adjust Hardware button", error);
+      }
+    };
+
+    void detectHardware();
+  }, [hardwareProfile, setHardwareProfile]);
+
   const scoreModelForContext = useCallback(
     (modelId: string, context?: AutoModelContext) => {
       const normalized = modelId.toLowerCase();
@@ -959,6 +980,7 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
             onCopy={handleCopy}
             onGenerateImage={callImageModel}
             languageOptions={languageOptions}
+            hardwareProfile={hardwareProfile}
           />
         );
       case "campaign":
@@ -1033,6 +1055,7 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
             interfaceLanguage={language}
             copy={copy.image}
             onGenerateImage={callImageModel}
+            hardwareProfile={hardwareProfile}
           />
         );
       default:

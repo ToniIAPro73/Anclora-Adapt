@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import type {
   InterfaceLanguage,
   ImageGenerationOptions,
+  SystemCapabilities,
 } from "@/types";
 import commonStyles from "@/styles/commonStyles";
 import { formatCounterText } from "@/utils/text";
 import { fileToBase64 } from "@/utils/files";
+import { validateImageGeneration } from "@/utils/hardwareValidator";
 
 interface ImageCopy {
   promptLabel: string;
@@ -19,6 +21,7 @@ type ImageEditModeProps = {
   interfaceLanguage: InterfaceLanguage;
   copy: ImageCopy;
   onGenerateImage: (options: ImageGenerationOptions) => Promise<string>;
+  hardwareProfile?: SystemCapabilities;
 };
 
 const dimensionPresets = [
@@ -35,6 +38,7 @@ const ImageEditMode: React.FC<ImageEditModeProps> = ({
   interfaceLanguage,
   copy,
   onGenerateImage,
+  hardwareProfile,
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [prompt, setPrompt] = useState("");
@@ -62,6 +66,13 @@ const ImageEditMode: React.FC<ImageEditModeProps> = ({
   const handleGenerate = async () => {
     if (!prompt.trim() && !file) {
       setError(copy.errors.prompt);
+      return;
+    }
+
+    // Validar que el hardware soporta generación de imágenes
+    const validation = validateImageGeneration(hardwareProfile);
+    if (!validation.isSupported) {
+      setError(validation.message);
       return;
     }
 

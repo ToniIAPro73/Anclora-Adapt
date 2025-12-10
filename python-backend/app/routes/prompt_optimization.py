@@ -21,6 +21,9 @@ class PromptOptimizeRequest(BaseModel):
     better_prompt: bool = False  # Si True, mejora y optimiza el prompt
     model: str | None = None  # Si es None, el backend usa el mejor modelo disponible
     language: str | None = None  # Idioma del prompt de salida (es, en, fr, etc.)
+    # Campos opcionales para selección inteligente de modelo
+    prefer_speed: bool = False
+    target_language: str | None = None
 
 
 class PromptOptimizeResponse(BaseModel):
@@ -49,11 +52,18 @@ async def optimize_prompt(payload: PromptOptimizeRequest) -> PromptOptimizeRespo
         logger.info(f"Optimizing prompt with model: {payload.model}, deep_thinking: {payload.deep_thinking}, better_prompt: {payload.better_prompt}, language: {payload.language}")
         logger.info(f"Raw prompt: {payload.prompt[:100]}...")
 
+        # Si no se especifica modelo, usar selección inteligente basada en contexto
+        selected_model = payload.model
+        if not selected_model:
+            # El servicio improve_prompt intentará usar el mejor modelo disponible
+            # considerando prefer_speed y target_language si se proporcionan
+            selected_model = None  # Será manejado por improve_prompt
+
         result: PromptImprovement = improve_prompt(
             raw_prompt=payload.prompt,
             deep_thinking=payload.deep_thinking,
             better_prompt=payload.better_prompt,
-            model=payload.model,
+            model=selected_model,
             language=payload.language,
         )
 
