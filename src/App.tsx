@@ -288,8 +288,6 @@ const App: React.FC = () => {
     setImageUrl: _setImageUrl,
   } = useUIContext();
 
-  const [isHardwareAdjusting, setIsHardwareAdjusting] = useState(false);
-
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isFetchingModels, setIsFetchingModels] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -709,25 +707,6 @@ const App: React.FC = () => {
     [getModelCandidates]
   );
 
-  const handleHardwareAdjust = useCallback(async () => {
-    setIsHardwareAdjusting(true);
-    try {
-      const profile = await apiService.getCapabilities();
-      setHardwareProfile(profile);
-      _setError(null);
-    } catch (error) {
-      const fallbackMessage =
-        language === "es"
-          ? "No se pudo detectar el hardware local."
-          : "Hardware detection failed.";
-      _setError(
-        error instanceof Error ? error.message || fallbackMessage : fallbackMessage
-      );
-    } finally {
-      setIsHardwareAdjusting(false);
-    }
-  }, [language, _setError, setHardwareProfile]);
-
   /**
    * Auto-enhance vague or short prompts for better model comprehension
    * Detects if a prompt is too generic/short and enriches it with context
@@ -1084,8 +1063,6 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
       onTextModelChange={setSelectedModel}
       onRefreshModels={refreshAvailableModels}
       isRefreshingModels={isFetchingModels}
-      onHardwareAdjust={handleHardwareAdjust}
-      isHardwareAdjusting={isHardwareAdjusting}
       hardwareProfile={hardwareProfile}
       modeAvailability={hardwareModeAvailability}
       onTabChange={handleTabChange}
