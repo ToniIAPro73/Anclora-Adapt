@@ -13,7 +13,7 @@ Documento de estado que describe el contexto técnico actual de Anclora Adapt.
 | Tests                | ⚠️ Básicos      | Vitest configurado, cobertura limitada           |
 | Documentación        | ✅ Actualizada  | README, CLAUDE, CONTEXTO, AGENTS                 |
 
-## 🔄 Cambios Recientes (Diciembre 9, 2025)
+## 🔄 Cambios Recientes (Diciembre 10, 2025)
 
 ### 1. Migración de Modelo de Visión
 
@@ -70,6 +70,35 @@ deep_thinking_bool = deep_thinking.lower() == "true" if isinstance(deep_thinking
 - `.gitignore` actualizado para `*.db`, `*.sqlite`, `*.sqlite3`
 - `image_analysis_cache.db` marcado como `assume-unchanged`
 
+### 7. Selección Dinámica de Modelos para Optimización de Prompts
+
+**Problema**: Hardcoded model list no se adaptaba a los modelos disponibles en el hardware del usuario
+
+**Solución Implementada** (Diciembre 10, 2025):
+
+- **Nuevo archivo**: `python-backend/app/services/model_selector.py`
+  - `get_available_models()` - Consulta Ollama `/api/tags` dinámicamente
+  - `select_best_models()` - Prioriza modelos: Qwen2.5:14b > 7b-instruct > 7b > Mistral > Llama
+  - `get_model_candidates()` - Punto de entrada con fallback a MODEL_PRIORITY
+
+- **Modificado**: `python-backend/app/services/prompt_optimizer.py`
+  - Cambio de hardcoded `["mistral:latest", "qwen2.5:14b", ...]` a `get_model_candidates()`
+  - Removido error cuando no hay modelos (ahora siempre hay fallback)
+  - Intenta modelos en orden: qwen2.5:14b → 7b-instruct → 7b
+
+- **Resultado**:
+  - Backend genera **2000+ caracteres** cuando ambos checkboxes activados
+  - Qwen2.5:14b seleccionado automáticamente como modelo primario
+  - Fallback chain garantiza operación incluso si Ollama `/api/tags` no responde
+
+**Verificación**:
+```bash
+# Test el servicio directamente
+cd python-backend
+python -c "from app.services.model_selector import get_model_candidates; print(get_model_candidates())"
+# Output esperado: ['qwen2.5:14b', 'qwen2.5:7b-instruct-q4_K_M', 'qwen2.5:7b-instruct']
+```
+
 ## 📁 Estructura de Carpetas Crítica
 
 ```
@@ -110,12 +139,16 @@ python-backend/
 
 ```bash
 ollama list
-# Llava:latest           ✅ Visión (análisis de imágenes)
-# qwen3-vl:8b            ✅ Visión (fallback)
-# qwen2.5:7b-instruct    ✅ Texto rápido
-# mistral:latest         ✅ Texto calidad
-# llama2:latest          ✅ Texto generalist
+# Llava:latest               ✅ Visión (análisis de imágenes)
+# qwen3-vl:8b                ✅ Visión (fallback)
+# qwen2.5:14b                ✅ Texto (PRIMARIO para optimización)
+# qwen2.5:7b-instruct        ✅ Texto (SECUNDARIO para optimización)
+# qwen2.5:7b                 ✅ Texto (TERCIARIO para optimización)
+# mistral:latest             ✅ Texto (fallback)
+# llama2:latest              ✅ Texto (generalist)
 ```
+
+**Nota**: El backend ahora consulta Ollama `/api/tags` dinámicamente y prioriza automáticamente los mejores modelos disponibles.
 
 ### Variables de Entorno
 
@@ -261,6 +294,6 @@ Antes de hacer cambios significativos:
 
 ---
 
-**Última actualización**: Diciembre 9, 2025 14:20
-**Versión del documento**: 2.0
-**Estado de sincronización**: ✅ Sincronizado con código actual
+**Última actualización**: Diciembre 10, 2025 11:45
+**Versión del documento**: 2.1
+**Estado de sincronización**: ✅ Sincronizado con código actual (selección dinámica de modelos implementada)

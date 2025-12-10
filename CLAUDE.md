@@ -169,6 +169,12 @@ Ejemplo: `src/components/modes/IntelligentMode.tsx`
 - ✅ Timeout aumentado a 300 segundos en model_fallback.py
 - ✅ Corregido parseado de `deep_thinking` en endpoints
 - ✅ Hook `useImageAnalyzer` actualizado para manejar ambos formatos de API
+- ✅ **NUEVO (Dic 10)**: Selección dinámica de modelos para optimización de prompts
+  - Nuevo archivo `python-backend/app/services/model_selector.py`
+  - Consulta automática de modelos disponibles en Ollama `/api/tags`
+  - Prioridad: Qwen2.5:14b → 7b-instruct → 7b → Mistral → Llama
+  - Fallback a MODEL_PRIORITY si Ollama no responde
+  - **Resultado**: 2000+ caracteres generados con Qwen2.5:14b como primario
 
 ## 🐛 Debugging
 
@@ -202,6 +208,8 @@ R: Frontend: ES, EN. Backend: ES, EN, FR, DE, IT (extendible)
 
 ---
 
-**Última actualización:** Diciembre 9, 2025
+**Última actualización:** Diciembre 10, 2025 (11:45 UTC)
+**Versión:** 2.1
 **Estado del proyecto:** En desarrollo activo
+**Cambios de hoy:** Selección dinámica de modelos para optimización de prompts (modelo_selector.py)
 **Contacto:** Usuario (workspace local)
