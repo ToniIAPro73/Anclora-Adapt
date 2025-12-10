@@ -7,8 +7,9 @@ import logging
 import torch
 import soundfile as sf
 import numpy as np
+import importlib
 from contextlib import asynccontextmanager
-from typing import Optional, Literal, List, Dict, Any
+from typing import Optional, Literal, List, Dict, Any, TYPE_CHECKING
 from pathlib import Path
 
 from hardware_profiles import detect_hardware_profile
@@ -17,22 +18,47 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.responses import Response, JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from app.routes.social import oauth
 
-# Librerías de IA (Importaciones condicionales para manejo de errores)
-try:
-    from diffusers import StableDiffusionXLPipeline, EulerDiscreteScheduler, UNet2DConditionModel
-    from huggingface_hub import hf_hub_download
-except ImportError:
+StableDiffusionXLPipelineType = Any
+StableDiffusionXLPipelineOutputType = Any
+EulerDiscreteSchedulerType = Any
+WhisperModelType = Any
+KokoroType = Any
+
+
+def _import_attr(module_path: str, attr: str):
+    try:
+        module = importlib.import_module(module_path)
+        return getattr(module, attr)
+    except ImportError:
+        return None
+
+
+StableDiffusionXLPipeline = _import_attr(
+    "diffusers.pipelines.stable_diffusion_xl.pipeline_stable_diffusion_xl",
+    "StableDiffusionXLPipeline",
+)
+StableDiffusionXLPipelineOutput = _import_attr(
+    "diffusers.pipelines.stable_diffusion_xl.pipeline_output",
+    "StableDiffusionXLPipelineOutput",
+)
+EulerDiscreteScheduler = _import_attr(
+    "diffusers.schedulers.scheduling_euler_discrete", "EulerDiscreteScheduler"
+)
+if StableDiffusionXLPipeline is None or StableDiffusionXLPipelineOutput is None:
     print("⚠️ Advertencia: Librerías de Diffusers no encontradas.")
 
-try:
-    from faster_whisper import WhisperModel
-except ImportError:
+hf_hub_download = _import_attr("huggingface_hub", "hf_hub_download")
+if hf_hub_download is None:
+    print("⚠️ Advertencia: huggingface_hub no disponible.")
+
+WhisperModel = _import_attr("faster_whisper", "WhisperModel")
+if WhisperModel is None:
     print("⚠️ Advertencia: Faster-Whisper no encontrado.")
 
-try:
-    from kokoro_onnx import Kokoro
-except ImportError:
+Kokoro = _import_attr("kokoro_onnx", "Kokoro")
+if Kokoro is None:
     print("⚠️ Advertencia: Kokoro-ONNX no encontrado.")
 
 try:
@@ -78,9 +104,9 @@ DEFAULT_VOICES = [
 class ModelManager:
     def __init__(self):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.tts_model = None
-        self.stt_model = None
-        self.image_pipe = None
+        self.tts_model: Any = None
+        self.stt_model: Any = None
+        self.image_pipe: Any = None
         self.models_path = Path(__file__).parent / "models"
         self.models_path.mkdir(exist_ok=True)
         logger.info(f"🚀 Iniciando en dispositivo: {self.device}")
@@ -106,6 +132,11 @@ class ModelManager:
     def load_tts(self):
         """Carga Kokoro TTS (Ligero, se mantiene en memoria si es posible)"""
         if self.tts_model is None:
+            if Kokoro is None:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Dependencia Kokoro-ONNX no instalada. Ejecuta 'pip install kokoro-onnx'.",
+                )
             logger.info("🔊 Cargando Kokoro TTS...")
             # Verifica si los archivos existen
             kokoro_path = self.models_path / "kokoro.onnx"
@@ -131,6 +162,11 @@ class ModelManager:
     def load_stt(self):
         """Carga Faster-Whisper. Descarga Imagen si es necesario para liberar VRAM."""
         if self.stt_model is None:
+            if WhisperModel is None:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Dependencia Faster-Whisper no instalada. Ejecuta 'pip install faster-whisper'.",
+                )
             self.unload_image_model()  # Liberar VRAM de la GPU
             logger.info("👂 Cargando Faster-Whisper Large-v3-Turbo...")
             try:
@@ -145,6 +181,15 @@ class ModelManager:
     def load_image_model(self):
         """Carga SDXL Lightning. Descarga Whisper si es necesario."""
         if self.image_pipe is None:
+            if (
+                StableDiffusionXLPipeline is None
+                or EulerDiscreteScheduler is None
+                or hf_hub_download is None
+            ):
+                raise HTTPException(
+                    status_code=500,
+                    detail="Dependencias de Diffusers no instaladas. Ejecuta 'pip install diffusers huggingface_hub'.",
+                )
             self.unload_stt_model()  # Liberar VRAM crítica
             logger.info("🎨 Cargando SDXL Lightning...")
 
@@ -153,24 +198,24 @@ class ModelManager:
                 repo = "ByteDance/SDXL-Lightning"
                 ckpt = "sdxl_lightning_4step_unet.safetensors"
 
-                # Cargar UNet optimizado
                 logger.info("📥 Descargando componentes SDXL Lightning...")
-                unet = UNet2DConditionModel.from_config(base, subfolder="unet").to(self.device, torch.float16)
-                unet.load_state_dict(
-                    torch.load(
-                        hf_hub_download(repo, ckpt),
-                        map_location=self.device
-                    )
-                )
-
-                self.image_pipe = StableDiffusionXLPipeline.from_pretrained(
-                    base, unet=unet, torch_dtype=torch.float16, variant="fp16"
+                pipe = StableDiffusionXLPipeline.from_pretrained(
+                    base,
+                    torch_dtype=torch.float16,
+                    variant="fp16",
                 ).to(self.device)
 
-                self.image_pipe.scheduler = EulerDiscreteScheduler.from_config(
-                    self.image_pipe.scheduler.config, timestep_spacing="trailing"
+                ckpt_path = hf_hub_download(repo, ckpt)
+                state_dict = torch.load(ckpt_path, map_location=self.device)
+                pipe.unet.load_state_dict(state_dict)
+
+                pipe.scheduler = EulerDiscreteScheduler.from_config(
+                    pipe.scheduler.config, timestep_spacing="trailing"
                 )
+                self.image_pipe = pipe
                 logger.info("✓ SDXL Lightning cargado correctamente")
+            except HTTPException:
+                raise
             except Exception as e:
                 logger.error(f"Error cargando SDXL: {e}")
                 raise HTTPException(status_code=500, detail="Error al cargar modelo de imagen")
@@ -268,6 +313,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(oauth.router)
 
 # Registrar router del Image Analyzer si está disponible
 if image_analyzer_router:
@@ -401,12 +448,18 @@ async def generate_image(req: ImageRequest):
 
         logger.info(f"🎨 Generando imagen: {req.prompt}")
 
-        image = pipe(
+        steps = req.num_inference_steps or 4
+        negative_prompt = req.negative_prompt or None
+        image_result = pipe(
             req.prompt,
-            negative_prompt=req.negative_prompt,
-            num_inference_steps=req.num_inference_steps,
-            guidance_scale=0
-        ).images[0]
+            negative_prompt=negative_prompt,
+            num_inference_steps=steps,
+            guidance_scale=0,
+        )
+
+        if not hasattr(image_result, "images"):
+            raise HTTPException(status_code=500, detail="Respuesta inesperada del generador de imágenes.")
+        image = image_result.images[0]
 
         img_byte_arr = io.BytesIO()
         image.save(img_byte_arr, format='PNG')
