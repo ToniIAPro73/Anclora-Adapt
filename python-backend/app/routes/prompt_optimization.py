@@ -42,7 +42,8 @@ async def optimize_prompt(payload: PromptOptimizeRequest) -> PromptOptimizeRespo
 
     - **prompt**: Prompt original a optimizar
     - **deep_thinking**: Si True, genera un prompt mucho más detallado y exhaustivo
-    - **model**: Modelo de Ollama a usar (opcional). Si es None, usa: mistral > qwen2.5:14b > qwen2.5:7b
+    - **better_prompt**: Si True, mejora la claridad, estructura y profesionalismo del prompt
+    - **model**: Modelo de Ollama a usar (opcional). Si es None, usa selección dinámica: qwen2.5:14b > qwen2.5:7b-instruct > qwen2.5:7b > mistral > llama
 
     Devuelve un prompt mejorado siguiendo mejores prácticas de prompt engineering.
     El prompt resultante será 3-7x más detallado si deep_thinking está activado.
@@ -97,7 +98,7 @@ async def health_check() -> dict:
     return {
         "status": "ok",
         "service": "prompt-optimizer",
-        "model_priority": "mistral:latest > qwen2.5:14b > qwen2.5:7b",
+        "model_priority": "qwen2.5:14b > qwen2.5:7b-instruct > qwen2.5:7b > mistral > llama (dynamic selection based on available models)",
         "endpoints": {
             "/optimize": "POST - Optimiza un prompt con el mejor modelo disponible"
         }
