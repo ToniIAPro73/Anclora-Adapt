@@ -220,19 +220,38 @@ def improve_prompt(
         logger.debug(f"Raw content from Ollama:\n{content[:200]}...")
 
         # Parsear el JSON de la respuesta
+        json_data = None
         try:
             json_data = json.loads(content)
         except json.JSONDecodeError as e:
-            # Si falla, intentar sanitizar los saltos de línea sin escapar
+            # Si falla, intentar sanitizar de varias formas
             logger.warning(f"First JSON parse failed: {str(e)}. Attempting to sanitize...")
+
+            # Intento 1: Reemplazar saltos de línea literales por espacios dentro de strings
             try:
-                # Reemplazar saltos de línea literales dentro del JSON por espacios
                 sanitized_content = content.replace('\n', ' ').replace('\r', ' ')
                 json_data = json.loads(sanitized_content)
-                logger.info("Successfully parsed JSON after sanitization")
+                logger.info("Successfully parsed JSON after newline sanitization")
             except json.JSONDecodeError as e2:
-                logger.error(f"Could not parse JSON even after sanitization: {sanitized_content[:500]}")
-                raise ValueError(f"La respuesta no es un JSON válido: {str(e2)}")
+                logger.warning(f"Newline sanitization failed: {str(e2)}")
+
+                # Intento 2: Extraer el JSON válido si está embebido en texto
+                try:
+                    import re
+                    # Buscar el JSON entre { ... }
+                    json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                    if json_match:
+                        potential_json = json_match.group(0)
+                        # Sanitizar también este
+                        potential_json = potential_json.replace('\n', ' ').replace('\r', ' ')
+                        json_data = json.loads(potential_json)
+                        logger.info("Successfully parsed JSON after extraction and sanitization")
+                except Exception as e3:
+                    logger.warning(f"JSON extraction failed: {str(e3)}")
+
+            if not json_data:
+                logger.error(f"Could not parse JSON after all attempts. First 500 chars: {content[:500]}")
+                raise ValueError(f"La respuesta no es un JSON válido después de intentar sanitizar")
 
         # Validar que tiene los campos requeridos
         improved_prompt = json_data.get("improved_prompt", "")
