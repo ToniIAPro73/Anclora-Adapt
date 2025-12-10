@@ -7,7 +7,6 @@ import type {
 import commonStyles from "@/styles/commonStyles";
 import { formatCounterText } from "@/utils/text";
 import { fileToBase64 } from "@/utils/files";
-import { validateImageGeneration } from "@/utils/hardwareValidator";
 
 interface ImageCopy {
   promptLabel: string;
@@ -66,13 +65,6 @@ const ImageEditMode: React.FC<ImageEditModeProps> = ({
   const handleGenerate = async () => {
     if (!prompt.trim() && !file) {
       setError(copy.errors.prompt);
-      return;
-    }
-
-    // Validar que el hardware soporta generación de imágenes
-    const validation = validateImageGeneration(hardwareProfile);
-    if (!validation.isSupported) {
-      setError(validation.message);
       return;
     }
 
