@@ -138,6 +138,16 @@ export const FEATURE_FLAGS = {
   DEBUG_MODE: env.VITE_DEBUG === "true",
 };
 
+export const PROVIDER_POLICIES = {
+  allowCloudText: env.VITE_ALLOW_CLOUD_TEXT === "true",
+  allowCloudImage: env.VITE_ALLOW_CLOUD_IMAGE === "true",
+  allowCloudAudio: env.VITE_ALLOW_CLOUD_AUDIO === "true",
+};
+
+export const BENCHMARK_TTL_MS = Number(
+  env.VITE_MODEL_BENCHMARK_TTL || 1000 * 60 * 60 * 24
+);
+
 // ==========================================
 // LOGGING
 // ==========================================

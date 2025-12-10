@@ -8,6 +8,7 @@ import {
   TTS_ENDPOINT,
   FEATURE_FLAGS,
   TEXT_MODEL_ID,
+  PROVIDER_POLICIES,
 } from "@/config";
 import { mapModelIdToOllamaName } from "@/utils/modelIds";
 import type { ImageGenerationOptions, STTResponse } from "@/types";
@@ -209,6 +210,16 @@ class ModelProviderRegistry {
 
     for (const provider of ordered) {
       if (this.isCircuitOpen(provider.id)) {
+        continue;
+      }
+
+      if (
+        provider.tier !== "local" &&
+        ((!PROVIDER_POLICIES.allowCloudText && provider.kind === "text") ||
+          (!PROVIDER_POLICIES.allowCloudImage && provider.kind === "image") ||
+          (!PROVIDER_POLICIES.allowCloudAudio &&
+            (provider.kind === "tts" || provider.kind === "stt")))
+      ) {
         continue;
       }
 
