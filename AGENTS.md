@@ -359,6 +359,48 @@ VITE_TEXT_MODEL_ID=llama2                     # Modelo a usar
 
 ## Recent Changes & Backend Configuration (Diciembre 2025)
 
+### Dynamic Model Selection for Prompt Optimization (Phase 9 - Diciembre 10)
+
+**Problema**: El backend tenía una lista hardcoded de modelos que no se adaptaba a lo disponible en el hardware
+
+**Solución Implementada**:
+
+- **Nuevo archivo**: `python-backend/app/services/model_selector.py`
+  - `get_available_models()` - Queries `http://localhost:11434/api/tags` dynamically
+  - `select_best_models()` - Prioritizes: Qwen2.5:14b > 7b-instruct > 7b > Mistral > Llama
+  - `get_model_candidates()` - Main entry point with fallback to MODEL_PRIORITY
+
+- **Modificado**: `python-backend/app/services/prompt_optimizer.py`
+  - Reemplaza hardcoded list con `get_model_candidates(count=3)`
+  - Removed error when no models (fallback garantiza éxito)
+  - Intenta modelos en orden óptimo
+
+**Resultados**:
+- Genera **2000+ caracteres** cuando `deep_thinking=true` y `better_prompt=true`
+- **Qwen2.5:14b** seleccionado automáticamente como modelo primario
+- Fallback chain funciona incluso si Ollama `/api/tags` no responde
+
+**Testing**:
+```bash
+# Backend test
+cd python-backend
+python -c "from app.services.model_selector import get_model_candidates; print(get_model_candidates())"
+# Output: ['qwen2.5:14b', 'qwen2.5:7b-instruct', 'qwen2.5:7b']
+
+# Backend test con prompt
+python << 'EOF'
+from app.services.prompt_optimizer import improve_prompt
+result = improve_prompt(
+    raw_prompt="Dormitorios, piscina privada, amenities de clase mundial...",
+    deep_thinking=True,
+    better_prompt=True,
+    language="es"
+)
+print(f"Generated {len(result.improved_prompt)} characters")
+EOF
+# Output: Generated 2039 characters
+```
+
 ### Image Analyzer Migration (Phase 8)
 
 **Problema**: Qwen3-VL causaba timeouts al procesar imágenes base64 en Ollama
