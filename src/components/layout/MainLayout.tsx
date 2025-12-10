@@ -50,6 +50,14 @@ interface MainLayoutProps {
   onTabChange: (tabId: AppMode) => void;
   onReset: () => void;
   help: HelpConfig;
+  executionStatus?: { message: string; notices?: string[] } | null;
+  queueInfo?: {
+    offline: boolean;
+    pending: number;
+    lastLabel?: string;
+    lastError?: string | null;
+    onRetry: () => void;
+  };
   children: React.ReactNode;
 }
 
@@ -74,6 +82,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   onTabChange,
   onReset,
   help,
+  executionStatus,
+  queueInfo,
   children,
 }) => {
   const { theme, setTheme } = useTheme();
@@ -236,7 +246,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             </div>
 
             {(hardwareSummary ||
-              (textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed)) && (
+              (textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed) ||
+              executionStatus ||
+              (queueInfo && (queueInfo.offline || queueInfo.pending > 0))) && (
               <div style={commonStyles.settingsInfoRow}>
                 {hardwareSummary && (
                   <span style={commonStyles.settingsHint}>
@@ -247,6 +259,30 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                   <span style={commonStyles.settingsHint}>
                     {`Modelo: ${lastModelUsed}`}
                   </span>
+                )}
+                {executionStatus?.message && (
+                  <span style={{ ...commonStyles.settingsHint, color: "#fef08a" }}>
+                    {executionStatus.message}
+                  </span>
+                )}
+                {queueInfo && (queueInfo.offline || queueInfo.pending > 0) && (
+                  <button
+                    type="button"
+                    style={{
+                      ...commonStyles.resetButton,
+                      padding: "4px 10px",
+                      fontSize: "0.8em",
+                    }}
+                    onClick={queueInfo.onRetry}
+                  >
+                    {queueInfo.offline
+                      ? language === "es"
+                        ? `Offline (${queueInfo.pending} en cola)`
+                        : `Offline (${queueInfo.pending} queued)`
+                      : language === "es"
+                      ? `En cola: ${queueInfo.pending}`
+                      : `Queued: ${queueInfo.pending}`}
+                  </button>
                 )}
               </div>
             )}

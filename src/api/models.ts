@@ -5,6 +5,8 @@ import type {
   ImageGenerationOptions,
 } from "@/types";
 import { modelProviderRegistry, TextGenerationRequest } from "@/services/modelProviders";
+import { enqueueWithQueue } from "@/utils/operationQueue";
+import { getImageDimensionLimit } from "@/utils/hardwareRuntime";
 
 const env = import.meta.env;
 const OLLAMA_BASE_URL = (
@@ -63,11 +65,20 @@ export const callImageModel = async (
     throw new Error("El prompt de la imagen no puede estar vacío");
   }
 
-  return modelProviderRegistry.executeImage({
+  const imageLimits = getImageDimensionLimit();
+  const payload: ImageGenerationOptions = {
     ...options,
     prompt: trimmedPrompt,
-    model: options.model || IMAGE_MODEL_ID || undefined,
-  });
+    width: Math.min(options.width ?? imageLimits.width, imageLimits.width),
+    height: Math.min(options.height ?? imageLimits.height, imageLimits.height),
+  };
+
+  return enqueueWithQueue("image-generation", () =>
+    modelProviderRegistry.executeImage({
+      ...payload,
+      model: options.model || IMAGE_MODEL_ID || undefined,
+    })
+  );
 };
 
 export const callTextToSpeech = async (
@@ -79,11 +90,13 @@ export const callTextToSpeech = async (
     throw new Error("El texto para TTS no puede estar vacío");
   }
 
-  return modelProviderRegistry.executeTts({
-    text,
-    language,
-    voicePreset,
-  });
+  return enqueueWithQueue("tts", () =>
+    modelProviderRegistry.executeTts({
+      text,
+      language,
+      voicePreset,
+    })
+  );
 };
 
 
@@ -94,9 +107,11 @@ export const callSpeechToText = async (
     throw new Error("El audio para STT no puede estar vacío");
   }
 
-  return modelProviderRegistry.executeStt({
-    audio: audioBlob,
-  });
+  return enqueueWithQueue("stt", () =>
+    modelProviderRegistry.executeStt({
+      audio: audioBlob,
+    })
+  );
 };
 
 export const listAvailableTextModels = async (): Promise<string[]> => {

@@ -60,6 +60,11 @@ import {
   loadModelDecisions,
   saveModelDecision,
 } from "@/utils/modelDecisionStore";
+import { adaptContextForHardware } from "@/utils/hardwareRuntime";
+import { validateOutputsAgainstRequest } from "@/utils/outputValidators";
+import { resolveModelTier, describeTier } from "@/constants/modelTiers";
+import type { ModelTier } from "@/constants/modelTiers";
+import { operationQueue, type QueueSnapshot } from "@/utils/operationQueue";
 
 // ===== PERFORMANCE: Regex patterns compiled once at module level =====
 const MODEL_PATTERNS = {
@@ -274,6 +279,19 @@ const speakWithBrowserTts = async (text: string, language: string) => {
   });
 };
 
+type ExecutionStatus = {
+  mode: AppMode;
+  provider: string;
+  fallback: boolean;
+  tier: ModelTier;
+  message: string;
+  notices: string[];
+  timestamp: number;
+};
+
+const getInitialOfflineState = () =>
+  typeof navigator !== "undefined" ? !navigator.onLine : false;
+
 const App: React.FC = () => {
   const { language } = useLanguage();
 
@@ -309,12 +327,51 @@ const App: React.FC = () => {
   const [persistedDecisions, setPersistedDecisions] = useState<
     Record<string, string>
   >({});
+  const [executionStatus, setExecutionStatus] = useState<ExecutionStatus | null>(
+    null
+  );
+  const [queueState, setQueueState] = useState<QueueSnapshot>(
+    operationQueue.snapshot()
+  );
+  const [isOffline, setIsOffline] = useState<boolean>(getInitialOfflineState());
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     setModelBenchmarks(loadBenchmarkMap());
     setPersistedDecisions(loadModelDecisions());
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = operationQueue.subscribe(setQueueState);
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const update = () => setIsOffline(!window.navigator.onLine);
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+
+  const handleRetryQueuedOperations = useCallback(() => {
+    operationQueue.forceProcess();
+  }, []);
+
+  const queueInfo = useMemo(
+    () => ({
+      offline: isOffline,
+      pending: queueState.pending,
+      lastLabel: queueState.lastLabel,
+      lastError: queueState.lastError,
+      onRetry: handleRetryQueuedOperations,
+    }),
+    [handleRetryQueuedOperations, isOffline, queueState.lastError, queueState.lastLabel, queueState.pending]
+  );
 
   // ===== PERFORMANCE: Selective memoization =====
   // Only memoize expensive operations and objects passed to many children
@@ -371,6 +428,22 @@ const App: React.FC = () => {
     { id: "live", label: copy.tabs.live },
     { id: "image", label: copy.tabs.image },
   ];
+
+  const describeExecutionLabel = useCallback(
+    (provider: string, tier: ModelTier, fallback: boolean, notices: string[]) => {
+      const tierLabel = describeTier(tier, language);
+      const fallbackLabel = fallback
+        ? language === "es"
+          ? "fallback activo"
+          : "fallback active"
+        : language === "es"
+        ? "camino principal"
+        : "primary path";
+      const noticeSuffix = notices.length ? ` · ${notices.join(" · ")}` : "";
+      return `${tierLabel} · ${provider} (${fallbackLabel})${noticeSuffix}`;
+    },
+    [language]
+  );
 
   useEffect(() => {
     if (!hardwareModeAvailability) return;
@@ -618,7 +691,7 @@ const App: React.FC = () => {
       }
 
       // ========== CONTENIDO EXTENSO ==========
-      if (context?.minChars && context.minChars > 500) {
+      if (context?.minChars && context?.minChars > 500) {
         // Contenido extenso requiere modelos capaces
         if (MODEL_PATTERNS.qwen.test(normalized)) {
           score += 7; // Qwen es excelente para contenido largo
@@ -631,7 +704,7 @@ const App: React.FC = () => {
         if (MODEL_PATTERNS.llama2.test(normalized)) {
           score -= 5;
         }
-      } else if (context?.maxChars && context.maxChars > 0) {
+      } else if (context?.maxChars && context?.maxChars > 0) {
         // Si hay límite máximo pero sin mínimo específico
         if (MODEL_PATTERNS.mistralGemma.test(normalized) || MODEL_PATTERNS.qwen.test(normalized)) score += 2;
       }
@@ -857,17 +930,21 @@ const App: React.FC = () => {
       _setImageUrl(null);
       clearOutputs();
 
+      const hardwareAdjustment = adaptContextForHardware(context, hardwareProfile);
+      const effectiveContext = hardwareAdjustment.context ?? context;
+      const contextNotices = hardwareAdjustment.notices;
+
       // Auto-enhance vague prompts before processing
-      const enhancedPrompt = enhancePromptIfNeeded(prompt, context);
+      const enhancedPrompt = enhancePromptIfNeeded(prompt, effectiveContext);
 
       // Construir instrucciones adicionales de restricción de caracteres
       let charConstraint = "";
-      if (context?.minChars && context.minChars > 0 && context?.maxChars && context.maxChars > 0) {
-        charConstraint = `\n⚠️ REQUISITO OBLIGATORIO ESTRICTO: Cada plataforma DEBE tener ENTRE ${context.minChars} Y ${context.maxChars} caracteres (rango permitido). Genera contenido extenso y detallado dentro de este rango. NO generes más de ${context.maxChars} caracteres NI menos de ${context.minChars} caracteres.`;
-      } else if (context?.minChars && context.minChars > 0) {
-        charConstraint = `\n⚠️ REQUISITO OBLIGATORIO: Cada plataforma DEBE tener MÍNIMO ${context.minChars} caracteres. Genera contenido EXTREMADAMENTE EXTENSO, DETALLADO y PROFUNDO. Si no alcanzas ${context.minChars} caracteres, expande más el contenido. REPITO: MÍNIMO ${context.minChars} CARACTERES OBLIGATORIO.`;
-      } else if (context?.maxChars && context.maxChars > 0) {
-        charConstraint = `\n⚠️ REQUISITO OBLIGATORIO: Cada plataforma DEBE tener MÁXIMO ${context.maxChars} caracteres. Sé conciso pero completo.`;
+      if (effectiveContext?.minChars && effectiveContext?.minChars > 0 && effectiveContext?.maxChars && effectiveContext?.maxChars > 0) {
+        charConstraint = `\n⚠️ REQUISITO OBLIGATORIO ESTRICTO: Cada plataforma DEBE tener ENTRE ${effectiveContext?.minChars} Y ${effectiveContext?.maxChars} caracteres (rango permitido). Genera contenido extenso y detallado dentro de este rango. NO generes más de ${effectiveContext?.maxChars} caracteres NI menos de ${effectiveContext?.minChars} caracteres.`;
+      } else if (effectiveContext?.minChars && effectiveContext?.minChars > 0) {
+        charConstraint = `\n⚠️ REQUISITO OBLIGATORIO: Cada plataforma DEBE tener MÍNIMO ${effectiveContext?.minChars} caracteres. Genera contenido EXTREMADAMENTE EXTENSO, DETALLADO y PROFUNDO. Si no alcanzas ${effectiveContext?.minChars} caracteres, expande más el contenido. REPITO: MÍNIMO ${effectiveContext?.minChars} CARACTERES OBLIGATORIO.`;
+      } else if (effectiveContext?.maxChars && effectiveContext?.maxChars > 0) {
+        charConstraint = `\n⚠️ REQUISITO OBLIGATORIO: Cada plataforma DEBE tener MÁXIMO ${effectiveContext?.maxChars} caracteres. Sé conciso pero completo.`;
       }
 
       const enforcedPrompt = `${enhancedPrompt}
@@ -892,23 +969,23 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
           const contentLength = output.content.length;
 
           // Validar límite mínimo si está especificado
-          if (context?.minChars && context.minChars > 0) {
-            if (contentLength < context.minChars) {
+          if (effectiveContext?.minChars && effectiveContext?.minChars > 0) {
+            if (contentLength < effectiveContext?.minChars) {
               throw new Error(
                 language === "es"
-                  ? `El contenido tiene ${contentLength} caracteres, pero se requiere un mínimo de ${context.minChars}.`
-                  : `Content has ${contentLength} characters, but a minimum of ${context.minChars} is required.`
+                  ? `El contenido tiene ${contentLength} caracteres, pero se requiere un mínimo de ${effectiveContext?.minChars}.`
+                  : `Content has ${contentLength} characters, but a minimum of ${effectiveContext?.minChars} is required.`
               );
             }
           }
 
           // Validar límite máximo si está especificado
-          if (context?.maxChars && context.maxChars > 0) {
-            if (contentLength > context.maxChars) {
+          if (effectiveContext?.maxChars && effectiveContext?.maxChars > 0) {
+            if (contentLength > effectiveContext?.maxChars) {
               throw new Error(
                 language === "es"
-                  ? `El contenido tiene ${contentLength} caracteres, pero no debe exceder ${context.maxChars}.`
-                  : `Content has ${contentLength} characters, but must not exceed ${context.maxChars}.`
+                  ? `El contenido tiene ${contentLength} caracteres, pero no debe exceder ${effectiveContext?.maxChars}.`
+                  : `Content has ${contentLength} characters, but must not exceed ${effectiveContext?.maxChars}.`
               );
             }
           }
@@ -918,32 +995,33 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
       };
 
       try {
-        for (const candidate of candidates) {
+        for (let attemptIndex = 0; attemptIndex < candidates.length; attemptIndex += 1) {
+          const candidate = candidates[attemptIndex];
           try {
             const normalized = await runModel(candidate);
             const filtered = filterOutputsByPlatforms(
               normalized,
-              context?.allowedPlatforms
+              effectiveContext?.allowedPlatforms
             );
 
-            // Check if filtering resulted in empty output
-            if (filtered.length === 0 && context?.allowedPlatforms && context.allowedPlatforms.length > 0) {
+            if (filtered.length === 0 && effectiveContext?.allowedPlatforms && effectiveContext.allowedPlatforms.length > 0) {
               throw new Error(
                 language === "es"
-                  ? `No se generó contenido para las plataformas seleccionadas (${context.allowedPlatforms.join(", ")}). El modelo generó contenido para otras plataformas.`
-                  : `No content was generated for the selected platforms (${context.allowedPlatforms.join(", ")}). The model generated content for other platforms.`
+                  ? `No se generó contenido para las plataformas seleccionadas (${effectiveContext?.allowedPlatforms?.join(", ")}). El modelo generó contenido para otras plataformas.`
+                  : `No content was generated for the selected platforms (${effectiveContext?.allowedPlatforms?.join(", ")}). The model generated content for other platforms.`
               );
             }
 
+            validateOutputsAgainstRequest(filtered, effectiveContext);
             const polished = await enforceLanguageQuality(
               filtered,
-              context?.targetLanguage,
+              effectiveContext?.targetLanguage,
               candidate,
               callTextModel
             );
             (polished.length ? polished : filtered).forEach(addOutput);
             setLastModelUsed(candidate);
-            const decisionKey = context?.mode || activeMode;
+            const decisionKey = effectiveContext?.mode || activeMode;
             if (
               decisionKey &&
               selectedModel === AUTO_TEXT_MODEL_ID
@@ -955,12 +1033,29 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
                 return next;
               });
             }
+
+            const tier = resolveModelTier(candidate);
+            setExecutionStatus({
+              mode: decisionKey || activeMode,
+              provider: candidate,
+              fallback: attemptIndex > 0,
+              tier,
+              message: describeExecutionLabel(
+                candidate,
+                tier,
+                attemptIndex > 0,
+                contextNotices
+              ),
+              notices: contextNotices,
+              timestamp: Date.now(),
+            });
             lastError = null;
             return;
           } catch (err) {
             lastError = err instanceof Error ? err : new Error(String(err));
             console.warn(`Fallo con el modelo ${candidate}`, lastError);
           }
+
         }
 
         if (lastError) {
@@ -975,6 +1070,22 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
               fallbackNotice ? ` ${fallbackNotice}` : ""
             }`.trim()
           );
+          const fallbackModel =
+            selectedModel === AUTO_TEXT_MODEL_ID
+              ? candidates[0] || DEFAULT_TEXT_MODEL_ID
+              : selectedModel;
+          setExecutionStatus({
+            mode: effectiveContext?.mode || activeMode,
+            provider: fallbackModel || "unavailable",
+            fallback: true,
+            tier: resolveModelTier(fallbackModel),
+            message:
+              language === "es"
+                ? "Cadena de modelos agotada. Revisa hardware o activa proveedores cloud."
+                : "Model chain exhausted. Review hardware or enable cloud providers.",
+            notices: contextNotices,
+            timestamp: Date.now(),
+          });
         }
       } catch (err) {
         _setError(err instanceof Error ? err.message : "Error desconocido");
@@ -985,13 +1096,16 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
     [
       addOutput,
       clearOutputs,
+      describeExecutionLabel,
       enhancePromptIfNeeded,
       getModelCandidates,
+      hardwareProfile,
       language,
       selectedModel,
       _setError,
       _setImageUrl,
       _setIsLoading,
+      setExecutionStatus,
       setLastModelUsed,
       activeMode,
     ]
@@ -1161,6 +1275,12 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
       onTabChange={handleTabChange}
       onReset={handleReset}
       help={helpConfig}
+      executionStatus={
+        executionStatus
+          ? { message: executionStatus.message, notices: executionStatus.notices }
+          : null
+      }
+      queueInfo={queueInfo}
     >
       {renderActiveMode()}
     </MainLayout>

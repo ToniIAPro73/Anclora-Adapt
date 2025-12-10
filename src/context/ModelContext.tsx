@@ -20,6 +20,7 @@ import React, {
 } from "react";
 import type { SystemCapabilities } from "@/types";
 import { DEFAULT_TEXT_MODEL_ID } from "@/config";
+import { setRuntimeHardwareProfile } from "@/utils/hardwareRuntime";
 
 const TEXT_MODEL_STORAGE_KEY = "anclora.textModel";
 
@@ -58,8 +59,13 @@ export const ModelProvider: React.FC<ModelProviderProps> = ({ children }) => {
   });
 
   const [lastModelUsed, setLastModelUsed] = useState<string | null>(null);
-  const [hardwareProfile, setHardwareProfile] =
+  const [hardwareProfile, setHardwareProfileState] =
     useState<SystemCapabilities | null>(null);
+
+  const setHardwareProfile = (profile: SystemCapabilities | null) => {
+    setRuntimeHardwareProfile(profile);
+    setHardwareProfileState(profile);
+  };
 
   // Persist selectedModel to localStorage
   useEffect(() => {
