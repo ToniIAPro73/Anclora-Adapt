@@ -45,8 +45,6 @@ interface MainLayoutProps {
   onTextModelChange: (modelId: string) => void;
   onRefreshModels: () => Promise<void> | void;
   isRefreshingModels: boolean;
-  onHardwareAdjust: () => Promise<void> | void;
-  isHardwareAdjusting: boolean;
   hardwareProfile?: SystemCapabilities | null;
   modeAvailability?: Partial<Record<AppMode, { enabled: boolean; reason?: string }>>;
   onTabChange: (tabId: AppMode) => void;
@@ -71,8 +69,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   onTextModelChange,
   onRefreshModels,
   isRefreshingModels,
-  onHardwareAdjust,
-  isHardwareAdjusting,
   hardwareProfile,
   modeAvailability,
   onTabChange,
@@ -224,22 +220,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               </div>
 
               <div style={{ ...commonStyles.settingsActions, flexShrink: 0 }}>
-                <button
-                  type="button"
-                  style={{
-                    ...commonStyles.resetButton,
-                    padding: "6px 12px",
-                    fontSize: "0.85rem",
-                    flexShrink: 0,
-                  }}
-                  onClick={() => void onHardwareAdjust()}
-                  disabled={isHardwareAdjusting}
-                  title={modelCopy.hardwareAdjust}
-                >
-                  {isHardwareAdjusting
-                    ? modelCopy.hardwareAdjusting
-                    : modelCopy.hardwareAdjust}
-                </button>
                 <button
                   type="button"
                   style={{ ...commonStyles.resetButton, padding: "6px 12px", flexShrink: 0 }}
