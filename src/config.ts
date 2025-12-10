@@ -40,6 +40,27 @@ export const DEFAULT_TEXT_MODEL_ID = TEXT_MODEL_ID;
 // 5 minutes for long-running tasks (image generation, etc.)
 export const DEFAULT_TIMEOUT_MS = 300_000;
 
+export const PROVIDER_LIMITS = {
+  text: {
+    maxTokens: Number(env.VITE_TEXT_MAX_TOKENS || "2048"),
+    maxTemperature: Number(env.VITE_TEXT_MAX_TEMPERATURE || "1"),
+  },
+  image: {
+    maxWidth: Number(env.VITE_IMAGE_MAX_WIDTH || "1536"),
+    maxHeight: Number(env.VITE_IMAGE_MAX_HEIGHT || "1536"),
+    maxSteps: Number(env.VITE_IMAGE_MAX_STEPS || "50"),
+  },
+  audio: {
+    maxTtsChars: Number(env.VITE_TTS_MAX_CHARS || "2000"),
+    maxSttDurationMs: Number(env.VITE_STT_MAX_DURATION_MS || "120000"),
+  },
+};
+
+export const CIRCUIT_BREAKER_CONFIG = {
+  failureThreshold: Number(env.VITE_PROVIDER_FAILURES || "3"),
+  cooldownMs: Number(env.VITE_PROVIDER_COOLDOWN_MS || "60000"),
+};
+
 // ==========================================
 // TTS / STT / IMAGE ENDPOINTS
 // ==========================================
