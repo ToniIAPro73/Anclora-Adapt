@@ -49,6 +49,17 @@ import {
   inferLanguagesForModel,
   LanguageOptionAvailability,
 } from "@/constants/modelCapabilities";
+import {
+  benchmarkModel,
+  isBenchmarkFresh,
+  loadBenchmarkMap,
+  persistBenchmarkResult,
+  type ModelBenchmarkResult,
+} from "@/utils/modelBenchmark";
+import {
+  loadModelDecisions,
+  saveModelDecision,
+} from "@/utils/modelDecisionStore";
 
 // ===== PERFORMANCE: Regex patterns compiled once at module level =====
 const MODEL_PATTERNS = {
@@ -292,6 +303,18 @@ const App: React.FC = () => {
   const [isFetchingModels, setIsFetchingModels] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [resetCounter, setResetCounter] = useState(0);
+  const [modelBenchmarks, setModelBenchmarks] = useState<
+    Record<string, ModelBenchmarkResult>
+  >({});
+  const [persistedDecisions, setPersistedDecisions] = useState<
+    Record<string, string>
+  >({});
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setModelBenchmarks(loadBenchmarkMap());
+    setPersistedDecisions(loadModelDecisions());
+  }, []);
 
   // ===== PERFORMANCE: Selective memoization =====
   // Only memoize expensive operations and objects passed to many children
@@ -466,6 +489,35 @@ const App: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [refreshAvailableModels]);
 
+  useEffect(() => {
+    const candidatePool =
+      hardwareProfile?.recommendations?.text?.map((rec) => rec.id) ||
+      availableModelPool;
+    const prioritized = candidatePool.slice(0, 3);
+    const stale = prioritized.filter((modelId) => {
+      const bench = modelBenchmarks[modelId];
+      return !bench || !isBenchmarkFresh(bench);
+    });
+    if (!stale.length) {
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      for (const modelId of stale) {
+        const result = await benchmarkModel(modelId);
+        if (cancelled) return;
+        setModelBenchmarks((prev) => {
+          const next = { ...prev, [modelId]: result };
+          persistBenchmarkResult(result);
+          return next;
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hardwareProfile, availableModelPool, modelBenchmarks]);
+
   // ===== Auto-detect hardware on app load =====
   // Usuario no necesita pulsar "Ajustar Hardware" explícitamente
   // La app detecta automáticamente las capacidades del sistema
@@ -598,9 +650,25 @@ const App: React.FC = () => {
         score -= 3; // Menos bueno en comparativa
       }
 
+      const benchResult = modelBenchmarks[modelId];
+      if (benchResult) {
+        if (!benchResult.success) {
+          score -= 6;
+        } else {
+          const latencyPenalty = Math.min(benchResult.latencyMs / 500, 6);
+          score -= latencyPenalty;
+          if (context?.preferSpeed && benchResult.latencyMs <= 1500) {
+            score += 4;
+          }
+          if (benchResult.tokensPerSecond > 800) {
+            score += 1;
+          }
+        }
+      }
+
       return score;
     },
-    [hardwareProfile]
+    [hardwareProfile, modelBenchmarks]
   );
 
   const getModelCandidates = useCallback(
@@ -679,6 +747,17 @@ const App: React.FC = () => {
         basePool = scored.map((entry) => entry.model);
       }
 
+      if (
+        context?.mode &&
+        selectedModel === AUTO_TEXT_MODEL_ID &&
+        persistedDecisions[context.mode]
+      ) {
+        const stored = persistedDecisions[context.mode];
+        if (basePool.includes(stored)) {
+          basePool = [stored, ...basePool.filter((model) => model !== stored)];
+        }
+      }
+
       // Si el usuario seleccionó un modelo específico (no AUTO), ponerlo primero
       if (selectedModel && selectedModel !== AUTO_TEXT_MODEL_ID) {
         const manualFirst = basePool.find((model) => model === selectedModel);
@@ -696,6 +775,7 @@ const App: React.FC = () => {
       hardwareProfile,
       scoreModelForContext,
       selectedModel,
+      persistedDecisions,
     ]
   );
 
@@ -863,6 +943,18 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
             );
             (polished.length ? polished : filtered).forEach(addOutput);
             setLastModelUsed(candidate);
+            const decisionKey = context?.mode || activeMode;
+            if (
+              decisionKey &&
+              selectedModel === AUTO_TEXT_MODEL_ID
+            ) {
+              setPersistedDecisions((prev) => {
+                if (prev[decisionKey] === candidate) return prev;
+                const next = { ...prev, [decisionKey]: candidate };
+                saveModelDecision(decisionKey, candidate);
+                return next;
+              });
+            }
             lastError = null;
             return;
           } catch (err) {
@@ -901,6 +993,7 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
       _setImageUrl,
       _setIsLoading,
       setLastModelUsed,
+      activeMode,
     ]
   );
 
