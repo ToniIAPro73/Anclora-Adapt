@@ -366,6 +366,7 @@ VITE_TEXT_MODEL_ID=llama2                     # Modelo a usar
 **Solución Implementada**:
 
 - **Nuevo archivo**: `python-backend/app/services/model_selector.py`
+
   - `get_available_models()` - Queries `http://localhost:11434/api/tags` dynamically
   - `select_best_models()` - Prioritizes: Qwen2.5:14b > 7b-instruct > 7b > Mistral > Llama
   - `get_model_candidates()` - Main entry point with fallback to MODEL_PRIORITY
@@ -376,11 +377,13 @@ VITE_TEXT_MODEL_ID=llama2                     # Modelo a usar
   - Intenta modelos en orden óptimo
 
 **Resultados**:
+
 - Genera **2000+ caracteres** cuando `deep_thinking=true` y `better_prompt=true`
 - **Qwen2.5:14b** seleccionado automáticamente como modelo primario
 - Fallback chain funciona incluso si Ollama `/api/tags` no responde
 
 **Testing**:
+
 ```bash
 # Backend test
 cd python-backend
