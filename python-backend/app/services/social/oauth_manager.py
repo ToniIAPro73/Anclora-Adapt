@@ -8,12 +8,14 @@ import os
 import httpx
 from cryptography.fernet import Fernet
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from dotenv import load_dotenv
+from pathlib import Path
 
-from app.models.oauth_tokens import OAuthToken
+from models.oauth_tokens import OAuthToken
 
-load_dotenv('.env.local')
-
+env_path = Path(__file__).parent.parent.parent / '.env.local'
+load_dotenv(dotenv_path=env_path)
 
 class TokenEncryptor:
     """Encripta y desencripta tokens usando AES-256 Fernet"""
@@ -143,10 +145,12 @@ class OAuthTokenManager:
             expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
         
         # Buscar token existente
-        existing_token = self.db.query(OAuthToken).filter(
-            OAuthToken.user_id == user_id,
-            OAuthToken.platform == platform
-        ).first()
+        stmt = (
+            select(OAuthToken)
+            .where(OAuthToken.user_id == user_id)
+            .where(OAuthToken.platform == platform)
+        )
+        existing_token = self.db.execute(stmt).scalars().first()
         
         if existing_token:
             # Actualizar token existente
@@ -179,11 +183,13 @@ class OAuthTokenManager:
     
     def get_token(self, user_id: str, platform: str) -> Optional[str]:
         """Obtiene access token desencriptado desde BD"""
-        token = self.db.query(OAuthToken).filter(
-            OAuthToken.user_id == user_id,
-            OAuthToken.platform == platform,
-            OAuthToken.is_valid == True
-        ).first()
+        stmt = (
+            select(OAuthToken)
+            .where(OAuthToken.user_id == user_id)
+            .where(OAuthToken.platform == platform)
+            .where(OAuthToken.is_valid.is_(True))
+        )
+        token = self.db.execute(stmt).scalars().first()
         
         if not token:
             return None
@@ -201,10 +207,12 @@ class OAuthTokenManager:
     
     def revoke_token(self, user_id: str, platform: str) -> bool:
         """Revoca (invalida) un token"""
-        token = self.db.query(OAuthToken).filter(
-            OAuthToken.user_id == user_id,
-            OAuthToken.platform == platform
-        ).first()
+        stmt = (
+            select(OAuthToken)
+            .where(OAuthToken.user_id == user_id)
+            .where(OAuthToken.platform == platform)
+        )
+        token = self.db.execute(stmt).scalars().first()
         
         if not token:
             return False
@@ -216,10 +224,12 @@ class OAuthTokenManager:
     
     def delete_token(self, user_id: str, platform: str) -> bool:
         """Elimina completamente un token (GDPR)"""
-        token = self.db.query(OAuthToken).filter(
-            OAuthToken.user_id == user_id,
-            OAuthToken.platform == platform
-        ).first()
+        stmt = (
+            select(OAuthToken)
+            .where(OAuthToken.user_id == user_id)
+            .where(OAuthToken.platform == platform)
+        )
+        token = self.db.execute(stmt).scalars().first()
         
         if not token:
             return False
