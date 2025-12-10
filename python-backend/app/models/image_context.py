@@ -4,7 +4,7 @@ Includes visual analysis, composition details, and mode-specific prompts
 """
 
 from typing import List, Dict, Optional, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 
 
@@ -96,6 +96,8 @@ class ImageContext(BaseModel):
 
 class AnalysisMetadata(BaseModel):
     """Metadata about the analysis process"""
+
+    model_config = ConfigDict(protected_namespaces=())
 
     model_used: str = Field(..., description="Vision model used (qwen3-vl, llava, etc.)")
     language: str = Field(default="es", description="Output language code")
