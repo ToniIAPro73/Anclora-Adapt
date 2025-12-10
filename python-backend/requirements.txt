@@ -8,7 +8,7 @@ diffusers==0.26.3
 transformers==4.37.2
 accelerate==0.27.2
 soundfile==0.12.1
-# faster-whisper==1.0.0
+faster-whisper==1.0.3
 psutil==5.9.8
 kokoro-onnx==0.3.1
 numpy<2.0.0
