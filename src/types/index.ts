@@ -94,6 +94,7 @@ export interface ImageGenerationOptions {
   height?: number;
   steps?: number;
   base64Image?: string;
+  model?: string;
 }
 
 // ==========================================
