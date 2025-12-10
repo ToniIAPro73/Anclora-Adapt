@@ -58,7 +58,7 @@ Mantén el idioma del prompt original. Sé directo, profesional y útil.
 """.strip()
 
 
-def build_optimizer_messages(raw_prompt: str, deep_thinking: bool = False, better_prompt: bool = False, language: str = None) -> list[dict]:
+def build_optimizer_messages(raw_prompt: str, deep_thinking: bool = False, better_prompt: bool = False, language: str | None = None) -> list[dict]:
     """Construye el array de mensajes para ollama.chat()."""
     # Si no se especifica idioma, usar español por defecto
     if not language:
@@ -167,8 +167,8 @@ def improve_prompt(
     raw_prompt: str,
     deep_thinking: bool = False,
     better_prompt: bool = False,
-    model: str = None,
-    language: str = None,
+    model: str | None = None,
+    language: str | None = None,
 ) -> PromptImprovement:
     """
     Llama al modelo local vía Ollama (HTTP) y devuelve un PromptImprovement.
