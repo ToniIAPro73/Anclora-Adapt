@@ -1,28 +1,27 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import os
+from pathlib import Path
 
-load_dotenv('.env.local')
+# Cargar .env.local desde la raíz del proyecto
+env_path = Path(__file__).parent.parent / '.env.local'
+load_dotenv(dotenv_path=env_path)
 
-# Obtener URL de BD desde .env.local
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL no está configurada en .env.local")
 
-# Crear engine
 engine = create_engine(
     DATABASE_URL,
-    echo=False,  # Cambiar a True para ver queries SQL
+    echo=False,
     pool_size=10,
     max_overflow=20,
 )
 
-# Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Dependency para FastAPI
 def get_db():
     db = SessionLocal()
     try:
