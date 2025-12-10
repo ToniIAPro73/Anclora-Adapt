@@ -67,8 +67,10 @@ def select_best_models(available_models: List[str], count: int = 3) -> List[str]
         Lista ordenada de los mejores modelos disponibles
     """
     if not available_models:
-        logger.warning("No available models provided")
-        return []
+        logger.warning("No available models provided, using model priority list as fallback")
+        # Si no hay modelos disponibles, retornar la lista prioritaria como fallback
+        # Esto asume que al menos uno de estos modelos está disponible en Ollama
+        return MODEL_PRIORITY[:count]
 
     selected = []
 
