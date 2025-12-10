@@ -1,0 +1,42 @@
+{
+  "text": [
+    { "name": "phi4:14b", "size_gb": 9.1, "tier": "premium" },
+    { "name": "qwen2.5:14b", "size_gb": 9.0, "tier": "premium" },
+    { "name": "deepseek-r1:8b", "size_gb": 5.2, "tier": "reasoning" },
+    { "name": "qwen2.5:7b", "size_gb": 4.7, "tier": "balanced" },
+    { "name": "qwen2.5:7b-instruct", "size_gb": 4.7, "tier": "balanced" },
+    { "name": "qwen2.5:7b-instruct-q4_K_M", "size_gb": 4.7, "tier": "quantized" },
+    { "name": "mistral:latest", "size_gb": 4.4, "tier": "balanced" },
+    { "name": "phi3:latest", "size_gb": 2.2, "tier": "light" },
+    { "name": "phi3:3.8b-mini-128k-instruct-q4_K_M", "size_gb": 2.4, "tier": "quantized" },
+    { "name": "llama3.2:latest", "size_gb": 2.0, "tier": "light" },
+    { "name": "llama2:latest", "size_gb": 3.8, "tier": "legacy" },
+    { "name": "gemma3:4b", "size_gb": 3.3, "tier": "light" },
+    { "name": "gemma3:1b", "size_gb": 0.8, "tier": "edge" }
+  ],
+  "vision": [
+    { "name": "Llava:latest", "size_gb": 4.7 },
+    { "name": "qwen3-vl:8b", "size_gb": 6.1 }
+  ],
+  "audio": {
+    "tts": [
+      {
+        "path": "python-backend/models/kokoro.onnx",
+        "source": "https://huggingface.co/hexgrad/Kokoro-82M",
+        "size_gb": 0.3
+      },
+      {
+        "path": "python-backend/models/voices.json",
+        "source": "https://huggingface.co/hexgrad/Kokoro-82M",
+        "size_gb": 0.01
+      }
+    ],
+    "stt": [
+      {
+        "package": "faster-whisper",
+        "model": "large-v3-turbo",
+        "notes": "Se descarga automáticamente en ~/.cache/whisper"
+      }
+    ]
+  }
+}
