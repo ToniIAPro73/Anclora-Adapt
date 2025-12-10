@@ -21,6 +21,22 @@ El ecosistema Anclora gestiona cuatro ramas principales sincronizadas de forma c
 El script **`promote.ps1`** permite mantener todas estas ramas perfectamente alineadas,
 evitando conflictos, commits adelantados o pérdidas accidentales de trabajo.
 
+### 🚀 1.1 Scripts de provisionamiento (Fase 3)
+
+Para que la Fase 3 sea reproducible se incorporaron utilidades de arranque:
+
+- `scripts/bootstrap.ps1`: valida python/node/ollama, lee `provisioning/models.json` y descarga los modelos locales (texto y vision). Tambien revisa los modulos `diffusers` y `faster-whisper`, permite omitir pasos mediante flags (`-SkipModels`, `-SkipPythonDeps`, `-SkipNodeDeps`, `-SkipHealth`) y ejecuta `npm install` si falta.
+- `provisioning/models.json`: inventario oficial de modelos y activos (texto, vision, TTS/STT) que guia al bootstrap para decidir que descargar o advertir.
+- `scripts/cache-maintenance.ps1`: envoltura PowerShell que llama a `python-backend/scripts/cache_cleanup.py` para limpiar audios/imagenes temporales y purgar `image_analysis_cache.db`. Soporta `-MaxAgeDays` y `-Vacuum`.
+- `docs/BOOTSTRAP.md`: guia paso a paso para estos scripts y health checks recomendados.
+
+Ejemplo rapido:
+
+```powershell
+pwsh ./scripts/bootstrap.ps1
+pwsh ./scripts/cache-maintenance.ps1 -MaxAgeDays 7 -Vacuum
+```
+
 ---
 
 ## 🧩 2. SCRIPT PRINCIPAL — `promote.ps1`
