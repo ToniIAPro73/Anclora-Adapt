@@ -12,6 +12,12 @@ from contextlib import asynccontextmanager
 from typing import Optional, Literal, List, Dict, Any, TYPE_CHECKING
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+env_path = Path(__file__).parent.parent / ".env.local"
+if env_path.exists():
+    load_dotenv(env_path)
+
 from hardware_profiles import detect_hardware_profile
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
