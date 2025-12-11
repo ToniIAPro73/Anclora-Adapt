@@ -20,8 +20,8 @@ __pycache__/
 .env
 .env.*
 !.env.docker  # Excepción: sí queremos incluir el base
-docker/.env.local
-docker/.env.secret
+.env.local
+.env.secret
 
 # 🧱 Dependencias locales (se instalarán dentro del contenedor)
 node_modules/
