@@ -164,21 +164,22 @@ const BasicModeOptions: React.FC<BasicModeOptionsProps> = ({
           Traducción Literal
         </label>
 
-        <label
-          style={{
-            ...commonStyles.checkboxLabel,
-            fontSize: "0.85em",
-            flex: 1,
-            minWidth: "220px",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={improvePrompt}
-            onChange={(e) => onImprovePromptChange(e.target.checked)}
-          />{" "}
-          {betterPromptLabel}
-        </label>
+      <label
+        style={{
+          ...commonStyles.checkboxLabel,
+          fontSize: "0.85em",
+          flex: 1,
+          minWidth: "220px",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={improvePrompt}
+          onChange={(e) => onImprovePromptChange(e.target.checked)}
+          disabled={literalTranslation}
+        />{" "}
+        {betterPromptLabel}
+      </label>
 
         {showCharacterLimits && (
           <div

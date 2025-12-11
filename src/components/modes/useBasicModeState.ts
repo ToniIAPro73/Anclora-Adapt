@@ -124,6 +124,13 @@ export const useBasicModeState = (
     reader.readAsText(file);
   };
 
+  const handleLiteralToggle = (value: boolean) => {
+    setLiteralTranslation(value);
+    if (value) {
+      setImprovePrompt(false);
+    }
+  };
+
   return {
     // UI state
     isLoading,
@@ -144,7 +151,7 @@ export const useBasicModeState = (
     setPlatforms,
     speed,
     literalTranslation,
-    setLiteralTranslation,
+    setLiteralTranslation: handleLiteralToggle,
     minChars,
     setMinChars,
     maxChars,
