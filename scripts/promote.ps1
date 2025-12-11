@@ -1,11 +1,14 @@
 <#
 =====================================================================
-⚓ ANCLORA DEV SHELL — PROMOTE FULL v3.0
+⚓ ANCLORA DEV SHELL — PROMOTE FULL v3.3
 Autor: Toni Ballesteros
 Descripción:
   Sincroniza todas las ramas principales del repositorio (development,
   main, preview, production) usando como fuente la rama más reciente.
-  Incluye control de identidad, limpieza temporal y protección de secretos.
+  Incluye:
+  - Detección y confirmación automática si promote.ps1 fue modificado.
+  - Protección de secretos optimizada (solo en rutas relevantes).
+  - Retorno automático a la rama original.
 =====================================================================
 #>
 
@@ -19,7 +22,7 @@ $logFile = "logs/promote_$timestamp.txt"
 if (!(Test-Path "logs")) { New-Item -ItemType Directory -Path "logs" | Out-Null }
 
 Start-Transcript -Path $logFile -Append | Out-Null
-Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v3.0`n" -ForegroundColor Cyan
+Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v3.3`n" -ForegroundColor Cyan
 
 # -----------------------------
 # 🧩 AUTORIZACIÓN SEGURA
@@ -43,14 +46,41 @@ catch {
 }
 
 # -----------------------------
-# 🚫 PROTECCIÓN DE SECRETOS
+# 🧠 AUTODETECCIÓN DE CAMBIOS EN EL PROPIO SCRIPT
 # -----------------------------
-$protectedPaths = @("*.env*", "*.db", "docker/.env.docker", "backend/.env*", "python-backend/cache/*.db")
+$scriptPath = "scripts/promote.ps1"
+if (git status --porcelain $scriptPath | Select-String -Quiet "M") {
+    Write-Host "⚠️ Se detectaron cambios sin commit en promote.ps1." -ForegroundColor Yellow
+    $resp = Read-Host "¿Deseas hacer commit y push automático antes de continuar? (S/N)"
+    if ($resp -match '^[sS]$') {
+        try {
+            git add $scriptPath
+            git commit -m "🔄 promote.ps1 actualizado automáticamente (v3.3)" | Out-Null
+            git push origin HEAD | Out-Null
+            Write-Host "✅ promote.ps1 actualizado y sincronizado correctamente.`n" -ForegroundColor Green
+        }
+        catch {
+            Write-Host "❌ No se pudo hacer commit automático del script. Continúa sin sincronizar." -ForegroundColor Red
+        }
+    } else {
+        Write-Host "⏭️  Se omite la sincronización del propio script.`n" -ForegroundColor DarkGray
+    }
+}
 
-foreach ($pattern in $protectedPaths) {
-    Get-ChildItem -Path . -Recurse -Include $pattern -ErrorAction SilentlyContinue | ForEach-Object {
-        Write-Host "🧱 Protegido: $($_.FullName)" -ForegroundColor DarkGray
-        git update-index --assume-unchanged $_.FullName 2>$null
+# -----------------------------
+# 🔐 PROTECCIÓN DE SECRETOS (OPTIMIZADA)
+# -----------------------------
+Write-Host "🔐 Aplicando protección de secretos optimizada..." -ForegroundColor Yellow
+
+$protectedPatterns = @(".env*", "*.db")
+$protectedDirs = @(".", "docker", "python-backend")
+
+foreach ($dir in $protectedDirs) {
+    if (Test-Path $dir) {
+        Get-ChildItem -Path $dir -Include $protectedPatterns -File -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "🧱 Protegido: $($_.FullName)" -ForegroundColor DarkGray
+            git update-index --assume-unchanged $_.FullName 2>$null
+        }
     }
 }
 
@@ -59,9 +89,9 @@ foreach ($pattern in $protectedPaths) {
 # -----------------------------
 $branches = @("development", "main", "preview", "production")
 
-# Detectar rama actual
+# Guardar la rama actual (para volver al final)
 $currentBranch = (git rev-parse --abbrev-ref HEAD).Trim()
-Write-Host "`n📍 Rama actual: $currentBranch`n" -ForegroundColor Cyan
+Write-Host "`n📍 Rama actual detectada: $currentBranch`n" -ForegroundColor Cyan
 
 # Actualizar referencias remotas
 Write-Host "🔄 Actualizando referencias remotas..." -ForegroundColor Yellow
@@ -81,7 +111,6 @@ if (-not $latest) {
 
 $latestDate = (Get-Date ([datetime]"1970-01-01").AddSeconds($latest.Date) -Format "dd/MM/yyyy HH:mm:ss")
 Write-Host "📍 Rama más reciente detectada: $($latest.Name) ($latestDate)`n" -ForegroundColor Cyan
-
 
 # -----------------------------
 # 🔁 PROCESAR CADA RAMA
@@ -108,9 +137,11 @@ foreach ($branch in $branches) {
 }
 
 # -----------------------------
-# 🧹 LIMPIEZA FINAL
+# 🧹 LIMPIEZA Y RETORNO
 # -----------------------------
-git checkout $latest.Name | Out-Null
+git checkout $currentBranch | Out-Null
+Write-Host "`n🔁 Has vuelto a tu rama original: $currentBranch" -ForegroundColor Cyan
+
 Write-Host "`n🎯 Todas las ramas sincronizadas correctamente (rebase limpio aplicado)." -ForegroundColor Green
 Write-Host "🕒 Finalizado: $(Get-Date -Format 'HH:mm:ss')" -ForegroundColor Yellow
 
