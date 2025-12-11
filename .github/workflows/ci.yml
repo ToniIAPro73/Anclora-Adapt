@@ -1,0 +1,81 @@
+name: anclora-ci
+
+on:
+  push:
+    branches: ["main", "development"]
+  pull_request:
+
+jobs:
+  lint-build-smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: anclora_ci
+          POSTGRES_USER: anclora_ci
+          POSTGRES_PASSWORD: ci_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U anclora_ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql://anclora_ci:ci_pass@localhost:5432/anclora_ci
+      VITE_API_BASE_URL: http://localhost:8000
+      VITE_IMAGE_MODEL_ENDPOINT: http://localhost:8000/api/image
+      VITE_TTS_ENDPOINT: http://localhost:8000/api/tts
+      VITE_STT_ENDPOINT: http://localhost:8000/api/stt
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install frontend deps
+        run: npm ci
+
+      - name: Lint & build frontend
+        run: |
+          npm run lint:check
+          npm run build
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend deps
+        working-directory: python-backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Launch backend
+        working-directory: python-backend
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+        run: |
+          nohup uvicorn main:app --host 0.0.0.0 --port 8000 &
+          echo $! > ../backend.pid
+          sleep 8
+
+      - name: Smoke test backend health
+        run: curl -f http://127.0.0.1:8000/api/health
+
+      - name: Check configured endpoints
+        run: node scripts/check-endpoints.js
+
+      - name: Shutdown backend
+        if: always()
+        run: |
+          if [ -f backend.pid ]; then
+            kill $(cat backend.pid) || true
+          fi
