@@ -39,6 +39,7 @@ import {
   type AutoModelContext,
   type GeneratedOutput,
   type AppMode,
+  type HardwareSpecs,
 } from "@/types";
 import { useLanguage } from "@/context/LanguageContext";
 import { useModelContext } from "@/context/ModelContext";
@@ -65,6 +66,12 @@ import { validateOutputsAgainstRequest } from "@/utils/outputValidators";
 import { resolveModelTier, describeTier } from "@/constants/modelTiers";
 import type { ModelTier } from "@/constants/modelTiers";
 import { operationQueue, type QueueSnapshot } from "@/utils/operationQueue";
+import { ModelScoringService } from "@/services/modelScoringService";
+import type {
+  HardwareProfile,
+  ModelScoringMode,
+  UserRequestContext,
+} from "@/types/modelScoring";
 
 // ===== PERFORMANCE: Regex patterns compiled once at module level =====
 const MODEL_PATTERNS = {
@@ -414,6 +421,44 @@ const App: React.FC = () => {
     set.add(DEFAULT_TEXT_MODEL_ID);
     return Array.from(set);
   })();
+
+  const buildHardwareProfileForScoring = (hardware?: HardwareSpecs): HardwareProfile => ({
+    gpuVramGB: hardware?.gpu_vram_gb ?? 4,
+    ramGB: hardware?.ram_gb ?? 16,
+    cpuCores: hardware?.cpu_cores ?? 4,
+    gpuModel: hardware?.gpu_model ?? "CPU Only",
+    isLaptop: Boolean(hardware?.gpu_model && /laptop/i.test(hardware.gpu_model)),
+  });
+
+  const shouldUseModelScoring = (mode?: string): mode is ModelScoringMode =>
+    mode === "basic" || mode === "intelligent";
+
+  const buildModelScoringContext = (
+    context: AutoModelContext,
+    options: {
+      speed: "detailed" | "flash";
+      tone: string;
+      language: string;
+      platforms: string[];
+    }
+  ): UserRequestContext => {
+    const preferSpeed = Boolean(context.preferSpeed) || options.speed === "flash";
+    const preferQuality =
+      Boolean(context.preferReasoning) || options.speed === "detailed";
+    return {
+      mode: (context.mode as ModelScoringMode) || "basic",
+      language: context.targetLanguage || options.language,
+      platforms: options.platforms,
+      tone: options.tone,
+      improvePrompt: Boolean(context.improvePrompt),
+      deepThinking: Boolean(context.preferReasoning),
+      includeImage: context.mode === "intelligent",
+      minChars: context.minChars ?? undefined,
+      maxChars: context.maxChars ?? undefined,
+      preferSpeed,
+      preferQuality,
+    };
+  };
 
   // Build language options - small operation, no memo needed
   const languageOptions: LanguageOptionAvailability[] =
@@ -995,7 +1040,43 @@ const App: React.FC = () => {
       }
       const enforcedPrompt = `${promptSeed}
 Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutputExample}${charConstraint}`;
-      const candidates = getModelCandidates(context).slice(0, 3);
+      const scoringContext =
+        shouldUseModelScoring(effectiveContext?.mode) && effectiveContext
+          ? buildModelScoringContext(effectiveContext, {
+              speed,
+              tone,
+              language,
+              platforms: requestedPlatforms,
+            })
+          : null;
+      const scoringRanking = scoringContext
+        ? ModelScoringService.scoreModels(
+            scoringContext,
+            buildHardwareProfileForScoring(hardwareProfile?.hardware),
+            installedModels
+          )
+        : null;
+      const scoringNotices = scoringRanking
+        ? [
+            scoringRanking.primary.reason,
+            ...scoringRanking.primary.warnings,
+          ].filter(Boolean)
+        : [];
+      const combinedNotices = [...contextNotices, ...scoringNotices];
+      const scoringOrder =
+        scoringRanking?.allRanked.map((entry) => entry.modelName) || [];
+      const orderedCandidates =
+        scoringOrder.length > 0
+          ? Array.from(new Set(scoringOrder))
+          : getModelCandidates(context);
+      const prioritizedCandidates =
+        selectedModel && selectedModel !== AUTO_TEXT_MODEL_ID
+          ? [
+              selectedModel,
+              ...orderedCandidates.filter((model) => model !== selectedModel),
+            ]
+          : orderedCandidates;
+      const candidates = prioritizedCandidates.slice(0, 3);
       let lastError: Error | null = null;
 
       const buildPrompt = (...extras: (string | null | undefined)[]) => {
@@ -1145,9 +1226,9 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
                 candidate,
                 tier,
                 attemptIndex > 0,
-                contextNotices
+                combinedNotices
               ),
-              notices: contextNotices,
+              notices: combinedNotices,
               timestamp: Date.now(),
             });
             lastError = null;
@@ -1184,7 +1265,7 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
               language === "es"
                 ? "Cadena de modelos agotada. Revisa hardware o activa proveedores cloud."
                 : "Model chain exhausted. Review hardware or enable cloud providers.",
-            notices: contextNotices,
+            notices: combinedNotices,
             timestamp: Date.now(),
           });
         }
