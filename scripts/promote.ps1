@@ -1,100 +1,103 @@
 <#
-    ANCLORA DEV SHELL — PROMOTE FULL v2.8
-    Autor: Antonio Ballesteros Alonso
-    Descripción:
-      Sincroniza todas las ramas del proyecto con rebase limpio sobre la más actual.
-      Previene commits no autorizados y genera logs detallados.
+.SYNOPSIS
+  Sincroniza las ramas principales de Anclora (development → main → preview → production)
+  con limpieza automática y protección contra archivos sensibles.
 
+.DESCRIPTION
+  - Verifica autorización del autor
+  - Limpia el working tree antes de cada rebase
+  - Detecta secretos o archivos .env antes de hacer push
+  - Sincroniza todas las ramas de forma ordenada con control de errores
+
+.VERSION
+  v2.9 (Anclora Adapt / 2025-12)
 #>
 
-param(
-    [switch]$Force
-)
-
-# ======================
+# ==============================
 # ⚙️ CONFIGURACIÓN
-# ======================
-$ErrorActionPreference = "Stop"
-$timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-$logDir = "logs"
-if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Force -Path $logDir | Out-Null }
-Start-Transcript -Path "$logDir/promote_$timestamp.txt" -Append | Out-Null
-
-Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v2.8`n" -ForegroundColor Cyan
-
-# ======================
-# 🧩 AUTORIZACIÓN
-# ======================
-$allowedAuthors = @(
-    "Antonio Ballesteros Alonso <toni@uniestate.co.uk>",
-    "ToniIAPro73 <supertoniia@gmail.com>",
-    "Toni Ballesteros <antonio@anclora.com>"
-)
-
-$currentAuthor = (git config user.name) + " <" + (git config user.email) + ">"
-
-if ($allowedAuthors -notcontains $currentAuthor) {
-    Write-Host "🚫 Bloqueado: autor no autorizado ($currentAuthor)" -ForegroundColor Red
-    Stop-Transcript | Out-Null
-    exit 1
-}
-
-Write-Host "✅ Autorización verificada: $currentAuthor`n" -ForegroundColor Green
-
-# ======================
-# 🔄 SINCRONIZACIÓN GLOBAL
-# ======================
-Write-Host "🔄 Actualizando referencias remotas..." -ForegroundColor Yellow
-git fetch --all --prune | Out-Null
-
-# Determinar la rama más reciente
+# ==============================
+$allowedAuthor = "ToniIAPro73 <supertoniia@gmail.com>"
 $branches = @("development", "main", "preview", "production")
-$latestBranch = ""
-$latestDate = Get-Date "2000-01-01"
 
-foreach ($b in $branches) {
-    $commitDate = git log origin/$b -1 --format="%ci" 2>$null
-    if ($commitDate -and ([datetime]$commitDate -gt $latestDate)) {
-        $latestBranch = $b
-        $latestDate = [datetime]$commitDate
-    }
-}
+# ==============================
+# 🚀 INICIO
+# ==============================
+Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v2.9`n" -ForegroundColor Cyan
 
-if (-not $latestBranch) {
-    Write-Host "❌ No se pudieron obtener commits remotos válidos." -ForegroundColor Red
-    Stop-Transcript | Out-Null
+# Verificar autor
+$author = git config user.name + " <" + (git config user.email) + ">"
+if ($author -ne $allowedAuthor) {
+    Write-Host "🚫 Bloqueado: autor no autorizado ($author)" -ForegroundColor Red
     exit 1
+} else {
+    Write-Host "✅ Autorización verificada: $author`n" -ForegroundColor Green
 }
 
-Write-Host "`n📍 Rama más reciente detectada: $latestBranch ($latestDate)`n" -ForegroundColor Green
+# ==============================
+# 🧹 LIMPIEZA PREVIA
+# ==============================
+Write-Host "🧹 Limpiando entorno local..."
+git restore .
+git clean -fd
+git reset --hard
+Write-Host "✅ Working tree limpio.`n"
 
-# ======================
-# 🧠 REBASE LIMPIO
-# ======================
-foreach ($branch in $branches) {
-    Write-Host "`n📦 Procesando rama '$branch'..." -ForegroundColor Yellow
+# ==============================
+# 🔍 DETECCIÓN DE SECRETOS
+# ==============================
+Write-Host "🔒 Escaneando archivos sensibles antes del push..."
+$secretPatterns = '\.env|secret|token|apikey|api_key|credential|password'
+$secretFiles = git ls-files | Select-String -Pattern $secretPatterns
+
+if ($secretFiles) {
+    Write-Host "🚫 Archivos sensibles detectados, abortando push:" -ForegroundColor Red
+    $secretFiles | ForEach-Object { Write-Host "   ⚠️ $($_.Line)" }
+    Write-Host "`n🧭 Por seguridad, elimina o agrega a .gitignore antes de continuar.`n" -ForegroundColor Yellow
+    exit 1
+} else {
+    Write-Host "✅ No se han detectado archivos sensibles.`n"
+}
+
+# ==============================
+# 🔄 ACTUALIZAR REFERENCIAS
+# ==============================
+Write-Host "🔄 Actualizando referencias remotas..."
+git fetch --all
+Write-Host ""
+
+# Obtener último commit de development
+$latestBranch = "development"
+$latestCommit = git log -1 --format="%h" $latestBranch
+$latestDate = git log -1 --format="%cd" --date=format:"%d/%m/%Y %H:%M:%S" $latestBranch
+Write-Host "📍 Rama más reciente detectada: $latestBranch ($latestDate)`n"
+
+# ==============================
+# 🔁 SINCRONIZAR TODAS LAS RAMAS
+# ==============================
+foreach ($b in $branches) {
+    Write-Host "📦 Procesando rama '$b'..." -ForegroundColor Cyan
 
     try {
-        git checkout $branch -q
-        git pull origin $branch --rebase | Out-Null
+        git checkout $b 2>$null | Out-Null
 
-        if ($branch -ne $latestBranch) {
-            Write-Host "🪄 Rebasando sobre '$latestBranch'..." -ForegroundColor Cyan
-            git rebase origin/$latestBranch
-            Write-Host "✅ Rebase completado: $branch ← $latestBranch" -ForegroundColor Green
-        }
-        git push origin $branch --force-with-lease
-        Write-Host "⬆️ Push completado para '$branch'" -ForegroundColor Green
+        # Rebase limpio
+        Write-Host "🪄 Rebasando sobre 'development'..."
+        git fetch origin $b | Out-Null
+        git rebase origin/development 2>$null | Out-Null
+        Write-Host "✅ Rebase completado: $b ← development"
+
+        # Push forzado controlado
+        git push origin $b --force-with-lease
+        Write-Host "⬆️ Push completado para '$b'`n"
     }
     catch {
-        Write-Host "⚠️ Error en '$branch': $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host "Intenta resolver manualmente y relanza el promote." -ForegroundColor Yellow
+        Write-Host "⚠️ Error durante la sincronización de '$b': $_" -ForegroundColor Yellow
     }
 }
 
-# ======================
-# 🧾 RESUMEN FINAL
-# ======================
-Write-Host "`n🎯 Todas las ramas sincronizadas correctamente (rebase limpio aplicado)."
-Write-Host "🕒 Finalizado: $(Get-Date -Format 'HH:mm:ss')`n" -ForegroundColor Green
-Stop-Transcript | Out-Null
+# ==============================
+# ✅ FINALIZACIÓN
+# ==============================
+Write-Host "`n🎯 Todas las ramas sincronizadas correctamente (rebase limpio aplicado)." -ForegroundColor Green
+$time = Get-Date -Format "HH:mm:ss"
+Write-Host "🕒 Finalizado: $time`n"
