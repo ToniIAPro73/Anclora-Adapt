@@ -23,19 +23,33 @@ Servicios incluidos:
 | Servicio  | Puerto | Notas |
 | --------- | ------ | ----- |
 | `backend` | 8000   | FastAPI con healthcheck (`/api/health`) y volúmenes `backend-models`, `backend-cache`. |
-| `frontend`| 4173   | Nginx sirviendo `dist/`. Depende de que `backend` esté saludable. |
-| `postgres`| 5432   | Base de datos de referencia. Si ya tienes `anclora-postgre`, comenta este servicio y apunta `DATABASE_URL` a tu instancia. |
+| `frontend`| 4173   | Nginx sirviendo `dist/`. |
+| `postgres`| 5432   | Base de datos de referencia activable con `--profile local-db`. Si ya tienes `anclora-postgres`, omite este perfil y apunta `DATABASE_URL` a dicha instancia. |
 
 ### Variables y volúmenes
 
-1. Copia `docker/.env.docker.example` a `docker/.env.docker` y ajusta credenciales/URLs.
-2. Ejecuta:
+### Usar la base incluida
+
+1. Copia `docker/.env.docker.example` a `docker/.env.docker`.
+2. Ejecuta el stack completo (incluyendo PostgreSQL embebido):
 
 ```bash
-docker compose up --build
+docker compose --profile local-db up --build
 ```
 
 Los volúmenes `backend-models`, `backend-cache` y `pgdata` guardan modelos y datos entre reinicios.
+
+### Conectar a un `anclora-postgres` existente
+
+1. Ajusta `DATABASE_URL` en `docker/.env.docker` o `python-backend/.env.local` para que apunte a tu contenedor existente, por ejemplo `postgresql://anclora_user:Anc1ora%402024%21Secure@anclora-postgres:5432/anclora_db`.
+2. Asegúrate de que el backend pueda resolver el host (conecta ambos contenedores a la misma red o expón PostgreSQL en el host y usa `host.docker.internal`).
+3. Levanta solo frontend + backend:
+
+```bash
+docker compose up --build backend frontend
+```
+
+De esta forma no se crea `anclora-adapt-postgres-1` y se reutiliza tu base actual.
 
 ## 3. Pipeline CI/CD mínimo
 
