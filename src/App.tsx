@@ -949,11 +949,22 @@ const App: React.FC = () => {
 
       const enforcedPrompt = `${enhancedPrompt}
 Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutputExample}${charConstraint}`;
+      const improvementDirective =
+        effectiveContext?.improvePrompt && !effectiveContext?.isLiteralTranslation
+          ? language === "es"
+            ? "Reformula el prompt anterior con más contexto, claridad y señales de valor antes de generar la respuesta final."
+            : "Rewrite the previous prompt with richer context, clarity and value signals before generating the final answer."
+          : null;
       const candidates = getModelCandidates(context).slice(0, 3);
       let lastError: Error | null = null;
 
-      const buildPrompt = (extra?: string) =>
-        extra ? `${enforcedPrompt}\n${extra}` : enforcedPrompt;
+      const buildPrompt = (...extras: (string | null | undefined)[]) => {
+        const filtered = extras.filter(Boolean);
+        if (!filtered.length) {
+          return enforcedPrompt;
+        }
+        return `${enforcedPrompt}\n${filtered.join("\n")}`;
+      };
 
       const minCharLimit =
         effectiveContext?.minChars && effectiveContext.minChars > 0
@@ -972,10 +983,8 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
 
       const runModel = async (modelId: string) => {
         const normalizeResponse = async (extraMessage?: string) => {
-          const rawResponse = await callTextModel(
-            buildPrompt(extraMessage),
-            modelId
-          );
+          const prompt = buildPrompt(improvementDirective, extraMessage);
+          const rawResponse = await callTextModel(prompt, modelId);
           const parsed = JSON.parse(extractJsonPayload(rawResponse));
           const normalized = normalizeOutputs(parsed);
           if (!normalized.length) {

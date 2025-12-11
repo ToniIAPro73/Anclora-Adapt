@@ -42,6 +42,7 @@ export type AutoModelContext = {
   isLiteralTranslation?: boolean;
   numberOfPlatforms?: number;
   tone?: string;
+  improvePrompt?: boolean;
 };
 
 export const AUTO_TEXT_MODEL_ID = "auto";

@@ -31,6 +31,7 @@ interface BasicCopy {
   speedDetailed: string;
   speedFlash: string;
   errors: { idea: string; platforms: string; upload?: string };
+  betterPromptLabel?: string;
 }
 
 type BasicModeProps = {
@@ -72,6 +73,8 @@ const BasicMode: FC<BasicModeProps> = ({
     setMinChars,
     maxChars,
     setMaxChars,
+    improvePrompt,
+    setImprovePrompt,
     isMobile,
     uploadedFileName,
     uploadedText,
@@ -146,19 +149,20 @@ const BasicMode: FC<BasicModeProps> = ({
     }
       await onGenerate(
         prompt,
-        {
-          mode: "basic",
-          preferSpeed: speed === "flash",
-          preferReasoning: speed === "detailed" && !literalTranslation,
-          targetLanguage: language,
-          allowedPlatforms: requestedPlatforms,
-          minChars: minCharLimit,
-          maxChars: maxCharLimit,
-          isLiteralTranslation: literalTranslation,
-          numberOfPlatforms: literalTranslation ? 1 : platforms.length,
-          tone: tone,
-        }
-      );
+          {
+            mode: "basic",
+            preferSpeed: speed === "flash",
+            preferReasoning: speed === "detailed" && !literalTranslation,
+            targetLanguage: language,
+            allowedPlatforms: requestedPlatforms,
+            minChars: minCharLimit,
+            maxChars: maxCharLimit,
+            isLiteralTranslation: literalTranslation,
+            numberOfPlatforms: literalTranslation ? 1 : platforms.length,
+            tone: tone,
+            improvePrompt,
+          }
+        );
   };
 
   const containerStyle = isMobile
@@ -207,6 +211,9 @@ const BasicMode: FC<BasicModeProps> = ({
         isLoading={isLoading}
         buttonLabel={buttonLabel}
         onGenerate={handleGenerate}
+        betterPromptLabel={copy.betterPromptLabel ?? "Mejorar prompt"}
+        improvePrompt={improvePrompt}
+        onImprovePromptChange={setImprovePrompt}
       />
 
       {/* Output Display Section */}

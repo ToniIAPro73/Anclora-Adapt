@@ -17,6 +17,9 @@ interface BasicModeOptionsProps {
   maxChars: string;
   onMaxCharsChange: (value: string) => void;
   languageOptions: LanguageOptionAvailability[];
+  betterPromptLabel: string;
+  improvePrompt: boolean;
+  onImprovePromptChange: (value: boolean) => void;
 }
 
 const BasicModeOptions: React.FC<BasicModeOptionsProps> = ({
@@ -33,6 +36,9 @@ const BasicModeOptions: React.FC<BasicModeOptionsProps> = ({
   maxChars,
   onMaxCharsChange,
   languageOptions,
+  betterPromptLabel,
+  improvePrompt,
+  onImprovePromptChange,
 }) => {
   const platformOptions = ["LinkedIn", "X", "Instagram", "WhatsApp", "Email"];
 
@@ -141,21 +147,37 @@ const BasicModeOptions: React.FC<BasicModeOptionsProps> = ({
           marginBottom: "4px",
         }}
       >
-        <label
-          style={{
-            ...commonStyles.checkboxLabel,
-            fontSize: "0.85em",
-            flex: 1,
-            minWidth: "220px",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={literalTranslation}
-            onChange={(e) => onToggleLiteral(e.target.checked)}
-          />{" "}
-          Traducción Literal
-        </label>
+      <label
+        style={{
+          ...commonStyles.checkboxLabel,
+          fontSize: "0.85em",
+          flex: 1,
+          minWidth: "220px",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={literalTranslation}
+          onChange={(e) => onToggleLiteral(e.target.checked)}
+        />{" "}
+        Traducción Literal
+      </label>
+
+      <label
+        style={{
+          ...commonStyles.checkboxLabel,
+          fontSize: "0.85em",
+          flex: 1,
+          minWidth: "220px",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={improvePrompt}
+          onChange={(e) => onImprovePromptChange(e.target.checked)}
+        />{" "}
+        {betterPromptLabel}
+      </label>
 
         <div
           style={{

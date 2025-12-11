@@ -32,6 +32,9 @@ interface BasicModeFormProps {
   isLoading: boolean;
   buttonLabel: string;
   onGenerate: () => Promise<void>;
+  betterPromptLabel: string;
+  improvePrompt: boolean;
+  onImprovePromptChange: (value: boolean) => void;
 }
 
 const BasicModeForm: React.FC<BasicModeFormProps> = ({
@@ -61,6 +64,9 @@ const BasicModeForm: React.FC<BasicModeFormProps> = ({
   isLoading,
   buttonLabel,
   onGenerate,
+  betterPromptLabel,
+  improvePrompt,
+  onImprovePromptChange,
 }) => {
   return (
     <div
@@ -186,6 +192,9 @@ const BasicModeForm: React.FC<BasicModeFormProps> = ({
           maxChars={maxChars}
           onMaxCharsChange={onMaxCharsChange}
           languageOptions={languageOptions}
+          betterPromptLabel={betterPromptLabel}
+          improvePrompt={improvePrompt}
+          onImprovePromptChange={onImprovePromptChange}
         />
       </div>
 

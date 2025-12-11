@@ -35,6 +35,7 @@ export const useBasicModeState = (
   const [literalTranslation, setLiteralTranslation] = useState(false);
   const [minChars, setMinChars] = useState("");
   const [maxChars, setMaxChars] = useState("");
+  const [improvePrompt, setImprovePrompt] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [uploadedText, setUploadedText] = useState<string>("");
@@ -148,6 +149,8 @@ export const useBasicModeState = (
     setMinChars,
     maxChars,
     setMaxChars,
+    improvePrompt,
+    setImprovePrompt,
     isMobile,
     uploadedFileName,
     setUploadedFileName,
