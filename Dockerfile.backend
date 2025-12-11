@@ -1,0 +1,40 @@
+# syntax=docker/dockerfile:1.7
+
+ARG PYTHON_IMAGE=python:3.11-slim
+
+FROM ${PYTHON_IMAGE} AS builder
+WORKDIR /app
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+COPY python-backend/requirements.txt .
+RUN pip install --upgrade pip \
+ && pip install --prefix=/install --no-cache-dir -r requirements.txt
+
+COPY python-backend /app
+
+FROM ${PYTHON_IMAGE} AS runtime
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DATABASE_URL=sqlite:////data/anclora.db \
+    UVICORN_PORT=8000 \
+    UVICORN_WORKERS=2
+
+COPY --from=builder /install /usr/local
+COPY python-backend /app
+
+RUN useradd -ms /bin/bash anclora \
+ && mkdir -p /data \
+ && chown -R anclora:anclora /app /data
+
+USER anclora
+
+VOLUME ["/app/models", "/app/cache", "/data"]
+
+EXPOSE 8000
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
