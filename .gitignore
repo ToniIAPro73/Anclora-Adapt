@@ -53,3 +53,6 @@ wheels/
 *.sqlite3
 python-backend/cache/
 docker/.env.docker
+# Docker and environment configs
+docker/.env*
+*.env
