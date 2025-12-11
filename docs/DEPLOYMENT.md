@@ -30,7 +30,7 @@ Servicios incluidos:
 
 Docker, por defecto, puede limitar la GPU/VRAM y la memoria que oye FastAPI, por lo que `/api/system/capabilities` devuelve valores inventados (CPU only, 16 GB de RAM). A partir de esta versión:
 
-1. El servicio `backend` declara `device_requests` para pasar la GPU mediante `nvidia-container-toolkit`. Asegúrate de tenerlo instalado y configurado antes de ejecutar:
+1. El servicio `backend` pasa la GPU al contenedor usando `deploy.resources.reservations.devices` (reconocido por Docker Compose V2 cuando `nvidia-container-toolkit` está activo). Asegúrate de tenerlo instalado y configurado antes de ejecutar:
 
    ```bash
    docker compose --env-file .env.local up --build backend frontend

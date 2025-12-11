@@ -31,10 +31,13 @@ services:
     volumes:
       - backend-models:/app/models
       - backend-cache:/app/cache
-    device_requests:
-      - driver: nvidia
-        count: -1
-        capabilities: ["gpu"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: -1
+              capabilities: ["gpu"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
