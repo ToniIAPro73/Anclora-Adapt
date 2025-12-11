@@ -1,3 +1,4 @@
+import logging
 import os
 import psutil
 import shutil
@@ -6,6 +7,7 @@ import torch
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Any, Optional
 
+logger = logging.getLogger(__name__)
 
 @dataclass
 class RecommendedModel:
