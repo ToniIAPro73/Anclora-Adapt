@@ -1,100 +1,118 @@
 <#
-    ANCLORA DEV SHELL — PROMOTE FULL v2.8
-    Autor: Antonio Ballesteros Alonso
-    Descripción:
-      Sincroniza todas las ramas del proyecto con rebase limpio sobre la más actual.
-      Previene commits no autorizados y genera logs detallados.
-
+.SYNOPSIS
+  ANCLORA DEV SHELL — PROMOTE FULL v3.1
+.DESCRIPTION
+  Sincroniza las ramas principales (development, main, preview, production)
+  aplicando rebase limpio y push seguro. Verifica autor, remoto y conflictos.
 #>
 
-param(
-    [switch]$Force
-)
-
-# ======================
-# ⚙️ CONFIGURACIÓN
-# ======================
+# --- 🧭 Inicialización ---------------------------------------------------------
+Clear-Host
+Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v3.1`n" -ForegroundColor Cyan
 $ErrorActionPreference = "Stop"
+
+# --- 📘 Configuración básica ---------------------------------------------------
+$repoName = Split-Path -Leaf (Get-Location)
 $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $logDir = "logs"
-if (!(Test-Path $logDir)) { New-Item -ItemType Directory -Force -Path $logDir | Out-Null }
-Start-Transcript -Path "$logDir/promote_$timestamp.txt" -Append | Out-Null
+$logFile = "$logDir/promote_$timestamp.txt"
+if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
+Start-Transcript -Path $logFile | Out-Null
 
-Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v2.8`n" -ForegroundColor Cyan
+# --- 🧑‍💻 Validar autor --------------------------------------------------------
+$userName = (git config user.name | Out-String).Trim()
+$userEmail = (git config user.email | Out-String).Trim()
+$allowedAuthor = "ToniIAPro73 <supertoniia@gmail.com>"
 
-# ======================
-# 🧩 AUTORIZACIÓN
-# ======================
-$allowedAuthors = @(
-    "Antonio Ballesteros Alonso <toni@uniestate.co.uk>",
-    "ToniIAPro73 <supertoniia@gmail.com>",
-    "Toni Ballesteros <antonio@anclora.com>"
-)
-
-$currentAuthor = (git config user.name) + " <" + (git config user.email) + ">"
-
-if ($allowedAuthors -notcontains $currentAuthor) {
-    Write-Host "🚫 Bloqueado: autor no autorizado ($currentAuthor)" -ForegroundColor Red
+if (-not $userName -or -not $userEmail) {
+    Write-Host "⚠️ No se detectó configuración de autor en Git." -ForegroundColor Yellow
+    Write-Host "   Ejecuta:`n   git config --global user.name 'ToniIAPro73'`n   git config --global user.email 'supertoniia@gmail.com'`n"
     Stop-Transcript | Out-Null
     exit 1
 }
 
-Write-Host "✅ Autorización verificada: $currentAuthor`n" -ForegroundColor Green
+$author = "$userName <$userEmail>"
 
-# ======================
-# 🔄 SINCRONIZACIÓN GLOBAL
-# ======================
-Write-Host "🔄 Actualizando referencias remotas..." -ForegroundColor Yellow
-git fetch --all --prune | Out-Null
-
-# Determinar la rama más reciente
-$branches = @("development", "main", "preview", "production")
-$latestBranch = ""
-$latestDate = Get-Date "2000-01-01"
-
-foreach ($b in $branches) {
-    $commitDate = git log origin/$b -1 --format="%ci" 2>$null
-    if ($commitDate -and ([datetime]$commitDate -gt $latestDate)) {
-        $latestBranch = $b
-        $latestDate = [datetime]$commitDate
-    }
-}
-
-if (-not $latestBranch) {
-    Write-Host "❌ No se pudieron obtener commits remotos válidos." -ForegroundColor Red
+if ($author -ne $allowedAuthor) {
+    Write-Host "🚫 Bloqueado: autor no autorizado ($author)" -ForegroundColor Red
     Stop-Transcript | Out-Null
     exit 1
+} else {
+    Write-Host "✅ Autorización verificada: $author`n" -ForegroundColor Green
 }
 
-Write-Host "`n📍 Rama más reciente detectada: $latestBranch ($latestDate)`n" -ForegroundColor Green
+# --- 🌐 Verificar y crear remoto 'origin' si falta ----------------------------
+if (-not (git remote | Select-String "origin")) {
+    Write-Host "⚠️ No se detectó remoto 'origin'. Creándolo automáticamente..." -ForegroundColor Yellow
+    git remote add origin https://github.com/ToniIAPro73/$repoName.git
+    Write-Host "✅ Remoto 'origin' configurado correctamente.`n" -ForegroundColor Green
+}
 
-# ======================
-# 🧠 REBASE LIMPIO
-# ======================
-foreach ($branch in $branches) {
-    Write-Host "`n📦 Procesando rama '$branch'..." -ForegroundColor Yellow
+# --- 🧹 Detectar rebase interrumpido ------------------------------------------
+if (Test-Path ".git/rebase-merge") {
+    Write-Host "⚠️ Se detectó un rebase interrumpido. Abortando para limpiar..." -ForegroundColor Yellow
+    git rebase --abort | Out-Null
+    Write-Host "✅ Rebase abortado y entorno restaurado.`n" -ForegroundColor Green
+}
 
+# --- 🧩 Función de sincronización ---------------------------------------------
+function Sync-Branch {
+    param([string]$branch, [string]$baseBranch)
+
+    Write-Host "`n📦 Procesando rama '$branch'..." -ForegroundColor Cyan
     try {
-        git checkout $branch -q
-        git pull origin $branch --rebase | Out-Null
+        git fetch origin $branch | Out-Null
+        git checkout $branch | Out-Null
 
-        if ($branch -ne $latestBranch) {
-            Write-Host "🪄 Rebasando sobre '$latestBranch'..." -ForegroundColor Cyan
-            git rebase origin/$latestBranch
-            Write-Host "✅ Rebase completado: $branch ← $latestBranch" -ForegroundColor Green
-        }
-        git push origin $branch --force-with-lease
+        Write-Host "🪄 Rebasando '$branch' sobre '$baseBranch'..." -ForegroundColor Yellow
+        git pull origin $branch --rebase | Out-Null
+        git rebase $baseBranch | Out-Null
+        Write-Host "✅ Rebase completado: $branch ← $baseBranch" -ForegroundColor Green
+
+        git push origin $branch --force-with-lease | Out-Null
         Write-Host "⬆️ Push completado para '$branch'" -ForegroundColor Green
     }
     catch {
-        Write-Host "⚠️ Error en '$branch': $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host "Intenta resolver manualmente y relanza el promote." -ForegroundColor Yellow
+        Write-Host "❌ Error al procesar '$branch': $_" -ForegroundColor Red
+        Write-Host "🔧 Intentando abortar rebase y restaurar estado..." -ForegroundColor Yellow
+        git rebase --abort 2>$null
     }
 }
 
-# ======================
-# 🧾 RESUMEN FINAL
-# ======================
-Write-Host "`n🎯 Todas las ramas sincronizadas correctamente (rebase limpio aplicado)."
-Write-Host "🕒 Finalizado: $(Get-Date -Format 'HH:mm:ss')`n" -ForegroundColor Green
+# --- 🔄 Sincronización ---------------------------------------------------------
+Write-Host "🔄 Actualizando referencias remotas..." -ForegroundColor Yellow
+git fetch --all --prune | Out-Null
+
+$latestCommit = git log -1 --format="%h|%ad" --date=format:"dd/MM/yyyy HH:mm:ss" development
+$split = $latestCommit.Split("|")
+Write-Host "`n📍 Rama base detectada: development ($($split[1]))`n" -ForegroundColor White
+
+# --- 🧾 Verificar cambios locales ---------------------------------------------
+if ((git status --porcelain) -ne "") {
+    Write-Host "⚠️ Hay cambios sin commit en tu entorno local." -ForegroundColor Yellow
+    $choice = Read-Host "¿Deseas crear un backup automático antes de continuar? (S/N)"
+    if ($choice -eq "S") {
+        $backupBranch = "backup/$($timestamp)"
+        git checkout -b $backupBranch | Out-Null
+        git add -A
+        git commit -m "Backup automático antes de promote" | Out-Null
+        git push origin $backupBranch | Out-Null
+        Write-Host "💾 Backup creado: $backupBranch`n" -ForegroundColor Green
+        git checkout development | Out-Null
+    } else {
+        Write-Host "🚫 Proceso abortado por el usuario para evitar pérdida de cambios." -ForegroundColor Red
+        Stop-Transcript | Out-Null
+        exit 1
+    }
+}
+
+# --- 🚀 Ejecutar sincronización ------------------------------------------------
+Sync-Branch "development" "development"
+Sync-Branch "main" "development"
+Sync-Branch "preview" "development"
+Sync-Branch "production" "development"
+
+# --- ✅ Finalización -----------------------------------------------------------
+Write-Host "`n🎯 Todas las ramas sincronizadas correctamente (rebase limpio aplicado)." -ForegroundColor Green
+Write-Host "🕒 Finalizado: $(Get-Date -Format 'HH:mm:ss')" -ForegroundColor White
 Stop-Transcript | Out-Null
