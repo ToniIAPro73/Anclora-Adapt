@@ -40,6 +40,7 @@ const BasicModeOptions: React.FC<BasicModeOptionsProps> = ({
   improvePrompt,
   onImprovePromptChange,
 }) => {
+  const showCharacterLimits = false; // Mantener ocultos por ahora, sin eliminar la lógica
   const platformOptions = ["LinkedIn", "X", "Instagram", "WhatsApp", "Email"];
 
   return (
@@ -147,86 +148,88 @@ const BasicModeOptions: React.FC<BasicModeOptionsProps> = ({
           marginBottom: "4px",
         }}
       >
-      <label
-        style={{
-          ...commonStyles.checkboxLabel,
-          fontSize: "0.85em",
-          flex: 1,
-          minWidth: "220px",
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={literalTranslation}
-          onChange={(e) => onToggleLiteral(e.target.checked)}
-        />{" "}
-        Traducción Literal
-      </label>
-
-      <label
-        style={{
-          ...commonStyles.checkboxLabel,
-          fontSize: "0.85em",
-          flex: 1,
-          minWidth: "220px",
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={improvePrompt}
-          onChange={(e) => onImprovePromptChange(e.target.checked)}
-        />{" "}
-        {betterPromptLabel}
-      </label>
-
-        <div
+        <label
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
+            ...commonStyles.checkboxLabel,
             fontSize: "0.85em",
-            fontWeight: 600,
-            flexShrink: 0,
-            whiteSpace: "nowrap",
+            flex: 1,
+            minWidth: "220px",
           }}
         >
-          <span>Min/Max</span>
           <input
-            type="number"
-            min="0"
-            max="999999999"
-            style={{
-              ...commonStyles.select,
-              width: "70px",
-              padding: "4px 8px",
-              fontSize: "0.9em",
-            }}
-            value={minChars}
-            onChange={(e) => onMinCharsChange(e.target.value)}
-            placeholder="Min"
-            disabled={literalTranslation}
-            title="Número mínimo de caracteres"
-          />
-          <span style={{ fontSize: "0.75em", color: "var(--texto-muted)" }}>
-            –
-          </span>
+            type="checkbox"
+            checked={literalTranslation}
+            onChange={(e) => onToggleLiteral(e.target.checked)}
+          />{" "}
+          Traducción Literal
+        </label>
+
+        <label
+          style={{
+            ...commonStyles.checkboxLabel,
+            fontSize: "0.85em",
+            flex: 1,
+            minWidth: "220px",
+          }}
+        >
           <input
-            type="number"
-            min="0"
-            max="999999999"
+            type="checkbox"
+            checked={improvePrompt}
+            onChange={(e) => onImprovePromptChange(e.target.checked)}
+          />{" "}
+          {betterPromptLabel}
+        </label>
+
+        {showCharacterLimits && (
+          <div
             style={{
-              ...commonStyles.select,
-              width: "70px",
-              padding: "4px 8px",
-              fontSize: "0.9em",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "0.85em",
+              fontWeight: 600,
+              flexShrink: 0,
+              whiteSpace: "nowrap",
             }}
-            value={maxChars}
-            onChange={(e) => onMaxCharsChange(e.target.value)}
-            placeholder="Max"
-            disabled={literalTranslation}
-            title="Número máximo de caracteres"
-          />
-        </div>
+          >
+            <span>Min/Max</span>
+            <input
+              type="number"
+              min="0"
+              max="999999999"
+              style={{
+                ...commonStyles.select,
+                width: "70px",
+                padding: "4px 8px",
+                fontSize: "0.9em",
+              }}
+              value={minChars}
+              onChange={(e) => onMinCharsChange(e.target.value)}
+              placeholder="Min"
+              disabled={literalTranslation}
+              title="Número mínimo de caracteres"
+            />
+            <span style={{ fontSize: "0.75em", color: "var(--texto-muted)" }}>
+              –
+            </span>
+            <input
+              type="number"
+              min="0"
+              max="999999999"
+              style={{
+                ...commonStyles.select,
+                width: "70px",
+                padding: "4px 8px",
+                fontSize: "0.9em",
+              }}
+              value={maxChars}
+              onChange={(e) => onMaxCharsChange(e.target.value)}
+              placeholder="Max"
+              disabled={literalTranslation}
+              title="Número máximo de caracteres"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
