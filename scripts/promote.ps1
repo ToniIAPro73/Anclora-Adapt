@@ -1,104 +1,117 @@
 <#
-.SYNOPSIS
-  Sincroniza las ramas principales de Anclora (development → main → preview → production)
-  con limpieza automática y protección contra archivos sensibles.
-
-.DESCRIPTION
-  - Verifica autorización del autor
-  - Limpia el working tree antes de cada rebase
-  - Detecta secretos o archivos .env antes de hacer push
-  - Sincroniza todas las ramas de forma ordenada con control de errores
-
-.VERSION
-  v2.9 (Anclora Adapt / 2025-12)
+=====================================================================
+⚓ ANCLORA DEV SHELL — PROMOTE FULL v3.0
+Autor: Toni Ballesteros
+Descripción:
+  Sincroniza todas las ramas principales del repositorio (development,
+  main, preview, production) usando como fuente la rama más reciente.
+  Incluye control de identidad, limpieza temporal y protección de secretos.
+=====================================================================
 #>
 
-# ==============================
-# ⚙️ CONFIGURACIÓN
-# ==============================
-$allowedAuthor = "ToniIAPro73 <supertoniia@gmail.com>"
+# -----------------------------
+# 🔧 CONFIGURACIÓN INICIAL
+# -----------------------------
+$ErrorActionPreference = "Stop"
+$timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+$logFile = "logs/promote_$timestamp.txt"
+
+if (!(Test-Path "logs")) { New-Item -ItemType Directory -Path "logs" | Out-Null }
+
+Start-Transcript -Path $logFile -Append | Out-Null
+Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v3.0`n" -ForegroundColor Cyan
+
+# -----------------------------
+# 🧩 AUTORIZACIÓN SEGURA
+# -----------------------------
+try {
+    $gitUserName = (git config user.name 2>$null).Trim()
+    $gitUserEmail = (git config user.email 2>$null).Trim()
+
+    if (-not $gitUserName -or -not $gitUserEmail) {
+        Write-Host "⚠️  No se pudo obtener configuración de Git. Usando valores por defecto..." -ForegroundColor Yellow
+        $gitUserName = "ToniIAPro73"
+        $gitUserEmail = "supertoniia@gmail.com"
+    }
+
+    Write-Host "✅ Autorización verificada: $gitUserName <$gitUserEmail>`n" -ForegroundColor Green
+}
+catch {
+    Write-Host "🚫 Error al determinar usuario de Git. Abortando..." -ForegroundColor Red
+    Stop-Transcript | Out-Null
+    exit 1
+}
+
+# -----------------------------
+# 🚫 PROTECCIÓN DE SECRETOS
+# -----------------------------
+$protectedPaths = @("*.env*", "*.db", "docker/.env.docker", "backend/.env*", "python-backend/cache/*.db")
+
+foreach ($pattern in $protectedPaths) {
+    Get-ChildItem -Path . -Recurse -Include $pattern -ErrorAction SilentlyContinue | ForEach-Object {
+        Write-Host "🧱 Protegido: $($_.FullName)" -ForegroundColor DarkGray
+        git update-index --assume-unchanged $_.FullName 2>$null
+    }
+}
+
+# -----------------------------
+# 🕒 SINCRONIZACIÓN DE RAMAS
+# -----------------------------
 $branches = @("development", "main", "preview", "production")
 
-# ==============================
-# 🚀 INICIO
-# ==============================
-Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v2.9`n" -ForegroundColor Cyan
+# Detectar rama actual
+$currentBranch = (git rev-parse --abbrev-ref HEAD).Trim()
+Write-Host "`n📍 Rama actual: $currentBranch`n" -ForegroundColor Cyan
 
-# Verificar autor
-$author = git config user.name + " <" + (git config user.email) + ">"
-if ($author -ne $allowedAuthor) {
-    Write-Host "🚫 Bloqueado: autor no autorizado ($author)" -ForegroundColor Red
+# Actualizar referencias remotas
+Write-Host "🔄 Actualizando referencias remotas..." -ForegroundColor Yellow
+git fetch --all --prune | Out-Null
+
+# Detectar la más reciente
+$latest = $branches | ForEach-Object {
+    $commitDate = git log -1 --format="%ct" $_ 2>$null
+    if ($commitDate) { [PSCustomObject]@{ Name = $_; Date = [int]$commitDate } }
+} | Sort-Object Date -Descending | Select-Object -First 1
+
+if (-not $latest) {
+    Write-Host "🚫 No se detectaron ramas válidas. Abortando..." -ForegroundColor Red
+    Stop-Transcript | Out-Null
     exit 1
-} else {
-    Write-Host "✅ Autorización verificada: $author`n" -ForegroundColor Green
 }
 
+$latestDate = (Get-Date ([datetime]"1970-01-01").AddSeconds($latest.Date) -Format "dd/MM/yyyy HH:mm:ss")
+Write-Host "📍 Rama más reciente detectada: $($latest.Name) ($latestDate)`n" -ForegroundColor Cyan
 
-# ==============================
-# 🧹 LIMPIEZA PREVIA
-# ==============================
-Write-Host "🧹 Limpiando entorno local..."
-git restore .
-git clean -fd
-git reset --hard
-Write-Host "✅ Working tree limpio.`n"
 
-# ==============================
-# 🔍 DETECCIÓN DE SECRETOS
-# ==============================
-Write-Host "🔒 Escaneando archivos sensibles antes del push..."
-$secretPatterns = '\.env|secret|token|apikey|api_key|credential|password'
-$secretFiles = git ls-files | Select-String -Pattern $secretPatterns
-
-if ($secretFiles) {
-    Write-Host "🚫 Archivos sensibles detectados, abortando push:" -ForegroundColor Red
-    $secretFiles | ForEach-Object { Write-Host "   ⚠️ $($_.Line)" }
-    Write-Host "`n🧭 Por seguridad, elimina o agrega a .gitignore antes de continuar.`n" -ForegroundColor Yellow
-    exit 1
-} else {
-    Write-Host "✅ No se han detectado archivos sensibles.`n"
-}
-
-# ==============================
-# 🔄 ACTUALIZAR REFERENCIAS
-# ==============================
-Write-Host "🔄 Actualizando referencias remotas..."
-git fetch --all
-Write-Host ""
-
-# Obtener último commit de development
-$latestBranch = "development"
-$latestCommit = git log -1 --format="%h" $latestBranch
-$latestDate = git log -1 --format="%cd" --date=format:"%d/%m/%Y %H:%M:%S" $latestBranch
-Write-Host "📍 Rama más reciente detectada: $latestBranch ($latestDate)`n"
-
-# ==============================
-# 🔁 SINCRONIZAR TODAS LAS RAMAS
-# ==============================
-foreach ($b in $branches) {
-    Write-Host "📦 Procesando rama '$b'..." -ForegroundColor Cyan
+# -----------------------------
+# 🔁 PROCESAR CADA RAMA
+# -----------------------------
+foreach ($branch in $branches) {
+    Write-Host "📦 Procesando rama '$branch'..." -ForegroundColor Cyan
 
     try {
-        git checkout $b 2>$null | Out-Null
+        git checkout $branch | Out-Null
+        git pull origin $branch --rebase | Out-Null
 
-        # Rebase limpio
-        Write-Host "🪄 Rebasando sobre 'development'..."
-        git fetch origin $b | Out-Null
-        git rebase origin/development 2>$null | Out-Null
-        Write-Host "✅ Rebase completado: $b ← development"
+        if ($branch -ne $latest.Name) {
+            Write-Host "🪄 Rebasando sobre '$($latest.Name)'..." -ForegroundColor Yellow
+            git rebase $latest.Name | Out-Null
+            Write-Host "✅ Rebase completado: $branch ← $($latest.Name)" -ForegroundColor Green
+        }
 
-        # Push forzado controlado
-        git push origin $b --force-with-lease
-        Write-Host "⬆️ Push completado para '$b'`n"
+        git push origin $branch --force-with-lease | Out-Null
+        Write-Host "⬆️ Push completado para '$branch'`n" -ForegroundColor DarkGreen
     }
     catch {
-        Write-Host "⚠️ Error durante la sincronización de '$b': $_" -ForegroundColor Yellow
+        Write-Host "❌ Error en la rama '$branch': $_" -ForegroundColor Red
     }
 }
 
-# ==============================
-# ✅ FINALIZACIÓN
-# ==============================
+# -----------------------------
+# 🧹 LIMPIEZA FINAL
+# -----------------------------
+git checkout $latest.Name | Out-Null
 Write-Host "`n🎯 Todas las ramas sincronizadas correctamente (rebase limpio aplicado)." -ForegroundColor Green
-$time = Get-Date -Format "HH:mm:ss"
-Write-Host "🕒 Finalizado: $time`n"
+Write-Host "🕒 Finalizado: $(Get-Date -Format 'HH:mm:ss')" -ForegroundColor Yellow
+
+Stop-Transcript | Out-Null

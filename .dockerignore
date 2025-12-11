@@ -19,5 +19,5 @@ yarn-debug.log*
 yarn-error.log*
 Dockerfile.*
 # Docker and environment configs
-docker/.env*
+docker/.env.docker
 *.env
