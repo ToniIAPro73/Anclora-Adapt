@@ -11,7 +11,8 @@ Documento de estado que describe el contexto técnico actual de Anclora Adapt.
 | Análisis de Imágenes | ✅ Operacional  | Usando Llava:latest (más estable)                |
 | Caché                | ✅ Implementado | SQLite con deduplicación MD5, 30 días TTL        |
 | Tests                | ⚠️ Básicos      | Vitest configurado, cobertura limitada           |
-| Documentación        | ✅ Actualizada  | README, CLAUDE, CONTEXTO, AGENTS                 |
+| Documentación        | ✅ Actualizada  | README, CLAUDE, CONTEXTO, AGENTS, scoring docs     |
+| Model Scoring        | ✅ Operacional  | Ranking dinámico con `docs/model_scoring_system.md` y `docs/implementation_guide.md` |
 
 ## 🔄 Cambios Recientes (Diciembre 10, 2025)
 
@@ -98,6 +99,23 @@ cd python-backend
 python -c "from app.services.model_selector import get_model_candidates; print(get_model_candidates())"
 # Output esperado: ['qwen2.5:14b', 'qwen2.5:7b-instruct-q4_K_M', 'qwen2.5:7b-instruct']
 ```
+
+### 8. Model Scoring Service & Frontend Ranking (Diciembre 11, 2025)
+
+**Problema**: El frontend necesitaba una métrica compartida para priorizar modelos en Basic e Intelligent según idioma, tono, preferencias velocidad/calidad, restricciones de caracteres y la cantidad de VRAM disponible.
+
+**Solución**:
+
+- `src/services/modelScoringService.ts` aplica la fórmula ponderada (quality 35%, speed 25%, VRAM 20%, context 15%, multilingual 5%) usando métricas centralizadas en `src/constants/modelBenchmarks.ts`.
+- `src/types/modelScoring.ts` define los tipos del contexto de usuario y el resultado del scoring.
+- En `src/App.tsx`, esa lógica se ejecuta antes de `getModelCandidates` cuando el modo es Basic o Intelligent, reordena candidatos, preserva selección manual y expone razones/adverts en la línea de estado (combinedNotices).
+- `docs/model_scoring_system.md` describe los casos y `docs/implementation_guide.md` documenta la integración en TypeScript/React.
+
+**Resultado**: Basic e Intelligent priorizan automáticamente modelos viables, el checkbox “Mejorar prompt” se alinea con el ranking y el backend/frontend comparten una doc robusta sobre cómo se calcula cada score.
+
+**Verificación**:
+
+- Confirmar que Basic/Intelligent muestran la razón derivada del scoring en la barra de estado y que los warnings (p.ej. VRAM) aparecen junto al modelo seleccionado.
 
 ## 📁 Estructura de Carpetas Crítica
 
@@ -294,6 +312,6 @@ Antes de hacer cambios significativos:
 
 ---
 
-**Última actualización**: Diciembre 10, 2025 11:45
-**Versión del documento**: 2.1
+**Última actualización**: Diciembre 11, 2025 23:15
+**Versión del documento**: 2.2
 **Estado de sincronización**: ✅ Sincronizado con código actual (selección dinámica de modelos implementada)

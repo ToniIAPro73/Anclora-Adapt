@@ -404,6 +404,29 @@ EOF
 # Output: Generated 2039 characters
 ```
 
+### Model Scoring Service & Frontend Selection (Phase 10 - Diciembre 11)
+
+**Problema**: El frontend dependía de heurísticas simplificadas y no tenía una métrica consistente por modo para priorizar modelos cuando el usuario pedía idiomas, velocidades o rangos de caracteres específicos.
+
+**Solución Implementada**:
+
+- **Nuevo servicio**: `src/services/modelScoringService.ts` aplica la fórmula documentada (quality 35%, speed 25%, VRAM 20%, context 15%, multilingual 5%) y devuelve rankings con razones y warnings de VRAM.
+- **Métricas y tipos**: `src/constants/modelBenchmarks.ts` y `src/types/modelScoring.ts` centralizan los benchmarks (MMLU, tokens/s, VRAM necesaria, idiomas y especializaciones).
+- **Integración en App.tsx**:
+  - El scoring se ejecuta antes de `getModelCandidates` para Basic/Intelligent con contexto completo (language, tone, platforms, preferSpeed/Quality, min/max).
+  - Se reordena la cadena de candidatos (incluyendo selección manual cuando aplica) y se muestran las razones/advertencias en la barra de estado.
+- **Documentación nueva**: `docs/model_scoring_system.md` y `docs/implementation_guide.md` explican los casos de uso y la implementación en TypeScript/React.
+
+**Resultados**:
+
+- Prioriza automáticamente los modelos que cumplen la restricción de VRAM, características de idioma y preferencias de velocidad/calidad.
+- El checkbox “Mejorar prompt” ahora conecta de forma más directa con el scoring y se reflejan los warnings junto al proveedor escogido.
+- Dependencias de hardware y evidencias documentadas: se actualizó AGENTS, CONTEXTO y se añadió la guía técnica dedicada.
+
+**Testing**:
+
+- Verificar manualmente Basic e Intelligent para asegurarse de que la línea de status muestra el motivo que viene del scoring y que la generación respeta las restricciones.
+
 ### Image Analyzer Migration (Phase 8)
 
 **Problema**: Qwen3-VL causaba timeouts al procesar imágenes base64 en Ollama
