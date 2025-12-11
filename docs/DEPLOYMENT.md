@@ -26,6 +26,26 @@ Servicios incluidos:
 | `frontend`| 4173   | Nginx sirviendo `dist/`. |
 | `postgres`| 5432   | Base de datos de referencia activable con `--profile local-db`. Si ya tienes `anclora-postgres`, omite este perfil y apunta `DATABASE_URL` a dicha instancia. |
 
+### 2.1. Asegurar que el backend vea el hardware real
+
+Docker, por defecto, puede limitar la GPU/VRAM y la memoria que oye FastAPI, por lo que `/api/system/capabilities` devuelve valores inventados (CPU only, 16 GB de RAM). A partir de esta versión:
+
+1. El servicio `backend` declara `device_requests` para pasar la GPU mediante `nvidia-container-toolkit`. Asegúrate de tenerlo instalado y configurado antes de ejecutar:
+
+   ```bash
+   docker compose --env-file .env.local up --build backend frontend
+   ```
+
+2. Los portales pueden sobreescribir la detección automática con las variables `HOST_CPU_CORES`, `HOST_CPU_THREADS`, `HOST_RAM_GB`, `HOST_STORAGE_GB`, `HOST_GPU_MODEL`, `HOST_GPU_VRAM_GB` y `HOST_HAS_CUDA`. Si en tu entorno Docker la GPU o la RAM no son detectadas correctamente, configura esos valores reales en `.env.local` (por ejemplo `HOST_RAM_GB=32`) para que el frontend muestre tus 4 GB VRAM y 32 GB RAM.
+
+3. Comprueba que la información ya es válida:
+
+   ```bash
+   curl http://localhost:8000/api/system/capabilities
+   ```
+
+   Deberías ver el modelo de GPU como `RTX ...` y los GB de VRAM/RAM correctos. Si falta la GPU, revisa que `nvidia-container-toolkit` esté instalado y que el sistema ejecute `docker compose` con `device_requests`.
+
 ### Variables y volúmenes
 
 ### Usar la base incluida

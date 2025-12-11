@@ -18,11 +18,22 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-anclora_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Anc1ora@2024!Secure}
       VITE_OLLAMA_API_KEY: ${VITE_OLLAMA_API_KEY:-}
+      HOST_CPU_CORES: ${HOST_CPU_CORES:-}
+      HOST_CPU_THREADS: ${HOST_CPU_THREADS:-}
+      HOST_RAM_GB: ${HOST_RAM_GB:-}
+      HOST_STORAGE_GB: ${HOST_STORAGE_GB:-}
+      HOST_GPU_MODEL: ${HOST_GPU_MODEL:-}
+      HOST_GPU_VRAM_GB: ${HOST_GPU_VRAM_GB:-}
+      HOST_HAS_CUDA: ${HOST_HAS_CUDA:-}
     ports:
       - "8000:8000"
     volumes:
       - backend-models:/app/models
       - backend-cache:/app/cache
+    device_requests:
+      - driver: nvidia
+        count: -1
+        capabilities: ["gpu"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s

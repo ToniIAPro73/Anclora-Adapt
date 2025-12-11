@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import torch
 from dataclasses import dataclass, asdict
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 
 @dataclass
@@ -198,6 +198,57 @@ def _recommend_modes(ram_gb: float, vram_gb: float, has_cuda: bool) -> List[Dict
     return support
 
 
+def _parse_override_float(env_name: str) -> Optional[float]:
+    raw = os.getenv(env_name)
+    if not raw:
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        logger.warning(
+            "Override %s no numérico: %r. Se ignora y se usa la detección automática.",
+            env_name,
+            raw,
+        )
+        return None
+
+
+def _parse_override_int(env_name: str) -> Optional[int]:
+    value = _parse_override_float(env_name)
+    if value is None:
+        return None
+    return int(value)
+
+
+def _parse_override_bool(env_name: str) -> Optional[bool]:
+    raw = os.getenv(env_name)
+    if raw is None:
+        return None
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    logger.warning(
+        "Override %s no booleano: %r. Se ignora y se usa la detección automática.",
+        env_name,
+        raw,
+    )
+    return None
+
+
+def _load_hardware_overrides() -> Dict[str, Any]:
+    return {
+        "cpu_cores": _parse_override_int("HOST_CPU_CORES"),
+        "cpu_threads": _parse_override_int("HOST_CPU_THREADS"),
+        "ram_gb": _parse_override_float("HOST_RAM_GB"),
+        "storage_gb": _parse_override_float("HOST_STORAGE_GB"),
+        "gpu_model": os.getenv("HOST_GPU_MODEL") or None,
+        "gpu_vram_gb": _parse_override_float("HOST_GPU_VRAM_GB"),
+        "has_cuda": _parse_override_bool("HOST_HAS_CUDA"),
+    }
+
+
 def detect_hardware_profile() -> Dict[str, Any]:
     cpu_cores = psutil.cpu_count(logical=False) or 1
     cpu_threads = psutil.cpu_count(logical=True) or cpu_cores
@@ -206,6 +257,27 @@ def detect_hardware_profile() -> Dict[str, Any]:
 
     gpu = _detect_gpu()
     has_cuda = gpu["device"] == "cuda"
+    overrides = _load_hardware_overrides()
+
+    if overrides.get("cpu_cores") is not None:
+        cpu_cores = max(1, overrides["cpu_cores"])
+    if overrides.get("cpu_threads") is not None:
+        cpu_threads = max(1, overrides["cpu_threads"])
+    if overrides.get("ram_gb") is not None:
+        ram_gb = overrides["ram_gb"]
+    if overrides.get("storage_gb") is not None:
+        storage_gb = overrides["storage_gb"]
+    if overrides.get("gpu_model"):
+        gpu["model"] = overrides["gpu_model"]
+    if overrides.get("gpu_vram_gb") is not None:
+        gpu["vram_gb"] = overrides["gpu_vram_gb"]
+    if overrides.get("has_cuda") is not None:
+        has_cuda = overrides["has_cuda"]
+        if has_cuda and gpu["model"] == "CPU Only":
+            gpu["model"] = "GPU (override)"
+        if not has_cuda:
+            gpu["model"] = "CPU Only"
+            gpu["vram_gb"] = 0.0
 
     recommendations = {
         "text": _recommend_text_models(ram_gb, gpu["vram_gb"]),
