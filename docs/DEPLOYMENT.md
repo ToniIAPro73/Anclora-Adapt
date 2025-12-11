@@ -36,7 +36,7 @@ Docker, por defecto, puede limitar la GPU/VRAM y la memoria que oye FastAPI, por
    docker compose --env-file .env.local up --build backend frontend
    ```
 
-2. Los portales pueden sobreescribir la detección automática con las variables `HOST_CPU_CORES`, `HOST_CPU_THREADS`, `HOST_RAM_GB`, `HOST_STORAGE_GB`, `HOST_GPU_MODEL`, `HOST_GPU_VRAM_GB` y `HOST_HAS_CUDA`. Si en tu entorno Docker la GPU o la RAM no son detectadas correctamente, configura esos valores reales en `.env.local` (por ejemplo `HOST_RAM_GB=32`). Esa misma `.env.local` también se carga cuando ejecutás el backend fuera de Docker (`cd python-backend && uvicorn main:app --host 0.0.0.0 --port 8000`), así que podés forzar los 4 GB/32 GB sin depender del runtime. 
+2. Los portales pueden sobreescribir la detección automática con las variables `HOST_CPU_CORES`, `HOST_CPU_THREADS`, `HOST_RAM_GB`, `HOST_STORAGE_GB`, `HOST_GPU_MODEL`, `HOST_GPU_VRAM_GB` y `HOST_HAS_CUDA`. El archivo `.env.local` ya incluye esos campos vacíos al final; completalos con tus valores reales (por ejemplo `HOST_RAM_GB=32`, `HOST_GPU_MODEL="RTX 3050"`). Esa `.env.local` se usa tanto para Docker como para ejecutar el backend directamente (`cd python-backend && uvicorn main:app --host 0.0.0.0 --port 8000`), por lo que podés forzar los 4 GB/32 GB aunque la detección de Docker todavía limite la memoria. 
 
 3. Comprueba que la información ya es válida:
 
