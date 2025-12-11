@@ -52,7 +52,7 @@ wheels/
 *.sqlite
 *.sqlite3
 python-backend/cache/
-docker/.env.docker
+docker/.env.dockergit
 # Docker and environment configs
-docker/.env*
+docker/.env.docker
 *.env
