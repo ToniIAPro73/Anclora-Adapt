@@ -43,7 +43,7 @@ import {
 import { useLanguage } from "@/context/LanguageContext";
 import { useModelContext } from "@/context/ModelContext";
 import { useUIContext } from "@/context/UIContext";
-import { STT_ENDPOINT, TTS_ENDPOINT } from "@/config";
+import { API_BASE_URL, STT_ENDPOINT, TTS_ENDPOINT } from "@/config";
 import {
   buildLanguageOptions,
   inferLanguagesForModel,
@@ -361,6 +361,33 @@ const App: React.FC = () => {
   const handleRetryQueuedOperations = useCallback(() => {
     operationQueue.forceProcess();
   }, []);
+
+  const optimizePrompt = useCallback(
+    async (rawPrompt: string): Promise<string> => {
+      const optimizeUrl = `${API_BASE_URL}/api/prompts/optimize`;
+      const payload = {
+        prompt: rawPrompt,
+        language,
+        target_language: language,
+        better_prompt: true,
+        prefer_speed: true,
+      };
+      const response = await fetch(optimizeUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        throw new Error(`Prompt optimization falló: ${response.statusText}`);
+      }
+      const result = await response.json();
+      if (result?.success && result?.improved_prompt) {
+        return result.improved_prompt;
+      }
+      throw new Error(result?.error || "El optimizador devolvió respuesta inválida.");
+    },
+    [language]
+  );
 
   const queueInfo = useMemo(
     () => ({
@@ -947,14 +974,27 @@ const App: React.FC = () => {
         charConstraint = `\n⚠️ REQUISITO OBLIGATORIO: Cada plataforma DEBE tener MÁXIMO ${effectiveContext?.maxChars} caracteres. Sé conciso pero completo.`;
       }
 
-      const enforcedPrompt = `${enhancedPrompt}
-Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutputExample}${charConstraint}`;
       const improvementDirective =
         effectiveContext?.improvePrompt && !effectiveContext?.isLiteralTranslation
           ? language === "es"
             ? "Reformula el prompt anterior con más contexto, claridad y señales de valor antes de generar la respuesta final."
             : "Rewrite the previous prompt with richer context, clarity and value signals before generating the final answer."
           : null;
+      const shouldImprovePrompt = Boolean(improvementDirective);
+      const promptForOptimization = shouldImprovePrompt
+        ? `${enhancedPrompt}\n${improvementDirective}`
+        : enhancedPrompt;
+      let promptSeed = enhancedPrompt;
+      if (shouldImprovePrompt) {
+        try {
+          promptSeed = await optimizePrompt(promptForOptimization);
+        } catch (optimizationError) {
+          console.warn("Prompt optimizer failed:", optimizationError);
+          promptSeed = promptForOptimization;
+        }
+      }
+      const enforcedPrompt = `${promptSeed}
+Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutputExample}${charConstraint}`;
       const candidates = getModelCandidates(context).slice(0, 3);
       let lastError: Error | null = null;
 

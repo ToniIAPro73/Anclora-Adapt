@@ -246,22 +246,20 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             </div>
 
             {(hardwareSummary ||
-              (textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed) ||
               executionStatus ||
               (queueInfo && (queueInfo.offline || queueInfo.pending > 0))) && (
               <div style={commonStyles.settingsInfoRow}>
                 {hardwareSummary && (
-                  <span style={commonStyles.settingsHint}>
-                    {hardwareSummary}
-                  </span>
-                )}
-                {textModelId === AUTO_TEXT_MODEL_ID && lastModelUsed && (
-                  <span style={commonStyles.settingsHint}>
-                    {`Modelo: ${lastModelUsed}`}
-                  </span>
+                  <span style={commonStyles.settingsHint}>{hardwareSummary}</span>
                 )}
                 {executionStatus?.message && (
-                  <span style={{ ...commonStyles.settingsHint, color: "#fef08a" }}>
+                  <span
+                    style={{
+                      ...commonStyles.settingsHint,
+                      color: "#fef08a",
+                      textAlign: "right",
+                    }}
+                  >
                     {executionStatus.message}
                   </span>
                 )}
@@ -272,6 +270,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                       ...commonStyles.resetButton,
                       padding: "4px 10px",
                       fontSize: "0.8em",
+                      marginLeft: "auto",
                     }}
                     onClick={queueInfo.onRetry}
                   >
