@@ -1,14 +1,16 @@
 <#
 =====================================================================
-⚓ ANCLORA DEV SHELL — PROMOTE FULL v3.3
+⚓ ANCLORA DEV SHELL — PROMOTE FULL v3.4
 Autor: Toni Ballesteros
 Descripción:
-  Sincroniza todas las ramas principales del repositorio (development,
-  main, preview, production) usando como fuente la rama más reciente.
+  Sincroniza todas las ramas principales (development, main, preview, production)
+  usando como fuente la más reciente.  
+
   Incluye:
-  - Detección y confirmación automática si promote.ps1 fue modificado.
-  - Protección de secretos optimizada (solo en rutas relevantes).
-  - Retorno automático a la rama original.
+  ✅ Detección de cambios locales no comprometidos (interactiva)
+  ✅ Protección de secretos optimizada
+  ✅ Autocommit opcional del propio promote.ps1
+  ✅ Retorno automático a la rama original
 =====================================================================
 #>
 
@@ -20,9 +22,8 @@ $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
 $logFile = "logs/promote_$timestamp.txt"
 
 if (!(Test-Path "logs")) { New-Item -ItemType Directory -Path "logs" | Out-Null }
-
 Start-Transcript -Path $logFile -Append | Out-Null
-Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v3.3`n" -ForegroundColor Cyan
+Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v3.4`n" -ForegroundColor Cyan
 
 # -----------------------------
 # 🧩 AUTORIZACIÓN SEGURA
@@ -55,7 +56,7 @@ if (git status --porcelain $scriptPath | Select-String -Quiet "M") {
     if ($resp -match '^[sS]$') {
         try {
             git add $scriptPath
-            git commit -m "🔄 promote.ps1 actualizado automáticamente (v3.3)" | Out-Null
+            git commit -m "🔄 promote.ps1 actualizado automáticamente (v3.4)" | Out-Null
             git push origin HEAD | Out-Null
             Write-Host "✅ promote.ps1 actualizado y sincronizado correctamente.`n" -ForegroundColor Green
         }
@@ -64,6 +65,44 @@ if (git status --porcelain $scriptPath | Select-String -Quiet "M") {
         }
     } else {
         Write-Host "⏭️  Se omite la sincronización del propio script.`n" -ForegroundColor DarkGray
+    }
+}
+
+# -----------------------------
+# 🧾 VERIFICACIÓN DE ESTADO GIT (INTERACTIVA)
+# -----------------------------
+Write-Host "🧩 Comprobando estado de cambios locales..." -ForegroundColor Yellow
+$changes = git status --porcelain | Where-Object {$_ -notmatch "scripts/" -and $_ -notmatch "logs/"}
+
+if ($changes) {
+    Write-Host "`n⚠️  Se detectaron cambios sin commit fuera de logs/ y scripts/:" -ForegroundColor Yellow
+    $changes | ForEach-Object { Write-Host "   $_" -ForegroundColor DarkGray }
+
+    Write-Host ""
+    Write-Host "Opciones disponibles:" -ForegroundColor Cyan
+    Write-Host "  [C] Commit automático de los cambios"
+    Write-Host "  [S] Stash temporal y continuar"
+    Write-Host "  [N] Cancelar ejecución" -ForegroundColor Yellow
+    $choice = Read-Host "Selecciona una opción (C/S/N)"
+
+    switch ($choice.ToUpper()) {
+        "C" {
+            Write-Host "💾 Realizando commit automático..." -ForegroundColor Yellow
+            git add -A
+            git commit -m "💾 Commit automático previo a promote.ps1" | Out-Null
+            Write-Host "✅ Cambios confirmados localmente.`n" -ForegroundColor Green
+        }
+        "S" {
+            Write-Host "📦 Guardando cambios en stash temporal..." -ForegroundColor Yellow
+            git stash push -m "Stash temporal antes de promote.ps1" | Out-Null
+            $usedStash = $true
+            Write-Host "✅ Cambios guardados temporalmente.`n" -ForegroundColor Green
+        }
+        Default {
+            Write-Host "❌ Operación cancelada por el usuario." -ForegroundColor Red
+            Stop-Transcript | Out-Null
+            exit 0
+        }
     }
 }
 
@@ -88,12 +127,9 @@ foreach ($dir in $protectedDirs) {
 # 🕒 SINCRONIZACIÓN DE RAMAS
 # -----------------------------
 $branches = @("development", "main", "preview", "production")
-
-# Guardar la rama actual (para volver al final)
 $currentBranch = (git rev-parse --abbrev-ref HEAD).Trim()
-Write-Host "`n📍 Rama actual detectada: $currentBranch`n" -ForegroundColor Cyan
 
-# Actualizar referencias remotas
+Write-Host "`n📍 Rama actual detectada: $currentBranch`n" -ForegroundColor Cyan
 Write-Host "🔄 Actualizando referencias remotas..." -ForegroundColor Yellow
 git fetch --all --prune | Out-Null
 
@@ -137,11 +173,16 @@ foreach ($branch in $branches) {
 }
 
 # -----------------------------
-# 🧹 LIMPIEZA Y RETORNO
+# 🧹 LIMPIEZA Y RESTAURACIÓN FINAL
 # -----------------------------
+if ($usedStash) {
+    Write-Host "📦 Restaurando cambios del stash..." -ForegroundColor Yellow
+    git stash pop | Out-Null
+    Write-Host "✅ Cambios restaurados correctamente.`n" -ForegroundColor Green
+}
+
 git checkout $currentBranch | Out-Null
 Write-Host "`n🔁 Has vuelto a tu rama original: $currentBranch" -ForegroundColor Cyan
-
 Write-Host "`n🎯 Todas las ramas sincronizadas correctamente (rebase limpio aplicado)." -ForegroundColor Green
 Write-Host "🕒 Finalizado: $(Get-Date -Format 'HH:mm:ss')" -ForegroundColor Yellow
 

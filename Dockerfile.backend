@@ -24,6 +24,11 @@ ENV PYTHONUNBUFFERED=1 \
     UVICORN_PORT=8000 \
     UVICORN_WORKERS=2
 
+# ← AGREGAR ESTAS LÍNEAS AQUÍ (después de FROM runtime, antes de COPY)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /install /usr/local
 COPY python-backend /app
 
