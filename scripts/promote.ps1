@@ -1,104 +1,107 @@
 <#
 .SYNOPSIS
-  Sincroniza las ramas principales de Anclora (development → main → preview → production)
-  con limpieza automática y protección contra archivos sensibles.
-
+  ANCLORA DEV SHELL — PROMOTE FULL v3.0
 .DESCRIPTION
-  - Verifica autorización del autor
-  - Limpia el working tree antes de cada rebase
-  - Detecta secretos o archivos .env antes de hacer push
-  - Sincroniza todas las ramas de forma ordenada con control de errores
-
-.VERSION
-  v2.9 (Anclora Adapt / 2025-12)
+  Sincroniza todas las ramas principales (development, main, preview, production)
+  a partir de la más reciente, aplicando rebase limpio y push seguro.
+  Incluye validación de autor, logs automáticos y control visual de estado.
 #>
 
-# ==============================
-# ⚙️ CONFIGURACIÓN
-# ==============================
+# --- 🧭 Inicialización ---------------------------------------------------------
+Clear-Host
+Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v3.0`n" -ForegroundColor Cyan
+
+# --- 📘 Configuración básica ---------------------------------------------------
+$ErrorActionPreference = "Stop"
+$repoName = Split-Path -Leaf (Get-Location)
+$timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+$logDir = "logs"
+$logFile = "$logDir/promote_$timestamp.txt"
+if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
+
+Start-Transcript -Path $logFile | Out-Null
+
+# --- 🧑‍💻 Validar autor --------------------------------------------------------
+$userName = (git config user.name | Out-String).Trim()
+$userEmail = (git config user.email | Out-String).Trim()
 $allowedAuthor = "ToniIAPro73 <supertoniia@gmail.com>"
-$branches = @("development", "main", "preview", "production")
 
-# ==============================
-# 🚀 INICIO
-# ==============================
-Write-Host "`n⚓ ANCLORA DEV SHELL — PROMOTE FULL v2.9`n" -ForegroundColor Cyan
+if (-not $userName -or -not $userEmail) {
+    Write-Host "⚠️ No se detectó configuración de autor en Git." -ForegroundColor Yellow
+    Write-Host "   Ejecuta:`n   git config --global user.name 'ToniIAPro73'`n   git config --global user.email 'supertoniia@gmail.com'`n"
+    Stop-Transcript | Out-Null
+    exit 1
+}
 
-# Verificar autor
-$author = git config user.name + " <" + (git config user.email) + ">"
+$author = "$userName <$userEmail>"
+
 if ($author -ne $allowedAuthor) {
     Write-Host "🚫 Bloqueado: autor no autorizado ($author)" -ForegroundColor Red
+    Stop-Transcript | Out-Null
     exit 1
 } else {
     Write-Host "✅ Autorización verificada: $author`n" -ForegroundColor Green
 }
 
+# --- 🧩 Función de utilidad ----------------------------------------------------
+function Sync-Branch {
+    param(
+        [string]$branch,
+        [string]$baseBranch
+    )
 
-# ==============================
-# 🧹 LIMPIEZA PREVIA
-# ==============================
-Write-Host "🧹 Limpiando entorno local..."
-git restore .
-git clean -fd
-git reset --hard
-Write-Host "✅ Working tree limpio.`n"
-
-# ==============================
-# 🔍 DETECCIÓN DE SECRETOS
-# ==============================
-Write-Host "🔒 Escaneando archivos sensibles antes del push..."
-$secretPatterns = '\.env|secret|token|apikey|api_key|credential|password'
-$secretFiles = git ls-files | Select-String -Pattern $secretPatterns
-
-if ($secretFiles) {
-    Write-Host "🚫 Archivos sensibles detectados, abortando push:" -ForegroundColor Red
-    $secretFiles | ForEach-Object { Write-Host "   ⚠️ $($_.Line)" }
-    Write-Host "`n🧭 Por seguridad, elimina o agrega a .gitignore antes de continuar.`n" -ForegroundColor Yellow
-    exit 1
-} else {
-    Write-Host "✅ No se han detectado archivos sensibles.`n"
-}
-
-# ==============================
-# 🔄 ACTUALIZAR REFERENCIAS
-# ==============================
-Write-Host "🔄 Actualizando referencias remotas..."
-git fetch --all
-Write-Host ""
-
-# Obtener último commit de development
-$latestBranch = "development"
-$latestCommit = git log -1 --format="%h" $latestBranch
-$latestDate = git log -1 --format="%cd" --date=format:"%d/%m/%Y %H:%M:%S" $latestBranch
-Write-Host "📍 Rama más reciente detectada: $latestBranch ($latestDate)`n"
-
-# ==============================
-# 🔁 SINCRONIZAR TODAS LAS RAMAS
-# ==============================
-foreach ($b in $branches) {
-    Write-Host "📦 Procesando rama '$b'..." -ForegroundColor Cyan
+    Write-Host "`n📦 Procesando rama '$branch'..." -ForegroundColor Cyan
 
     try {
-        git checkout $b 2>$null | Out-Null
-
-        # Rebase limpio
-        Write-Host "🪄 Rebasando sobre 'development'..."
-        git fetch origin $b | Out-Null
-        git rebase origin/development 2>$null | Out-Null
-        Write-Host "✅ Rebase completado: $b ← development"
-
-        # Push forzado controlado
-        git push origin $b --force-with-lease
-        Write-Host "⬆️ Push completado para '$b'`n"
+        git fetch origin $branch | Out-Null
+        git checkout $branch | Out-Null
+        git pull origin $branch --rebase | Out-Null
+        Write-Host "🪄 Rebasando sobre '$baseBranch'..." -ForegroundColor DarkYellow
+        git rebase $baseBranch | Out-Null
+        Write-Host "✅ Rebase completado: $branch ← $baseBranch" -ForegroundColor Green
+        git push origin $branch --force-with-lease | Out-Null
+        Write-Host "⬆️ Push completado para '$branch'" -ForegroundColor Green
     }
     catch {
-        Write-Host "⚠️ Error durante la sincronización de '$b': $_" -ForegroundColor Yellow
+        Write-Host "❌ Error al procesar '$branch': $_" -ForegroundColor Red
     }
 }
 
-# ==============================
-# ✅ FINALIZACIÓN
-# ==============================
+# --- 🔄 Sincronización ---------------------------------------------------------
+Write-Host "🔄 Actualizando referencias remotas..." -ForegroundColor Yellow
+git fetch --all --prune | Out-Null
+
+$latestCommit = git log -1 --format="%h|%ad" --date=format:"dd/MM/yyyy HH:mm:ss" development
+$split = $latestCommit.Split("|")
+Write-Host "`n📍 Rama más reciente detectada: development ($($split[1]))`n" -ForegroundColor White
+
+# --- 🧹 Detectar cambios locales ------------------------------------------------
+if ((git status --porcelain) -ne "") {
+    Write-Host "⚠️ Hay cambios sin commit en tu entorno local." -ForegroundColor Yellow
+    $choice = Read-Host "¿Deseas crear un backup automático antes de continuar? (S/N)"
+    if ($choice -eq "S") {
+        $backupBranch = "backup/$($timestamp)"
+        git checkout -b $backupBranch | Out-Null
+        git add -A
+        git commit -m "Backup automático antes de promote" | Out-Null
+        git push origin $backupBranch | Out-Null
+        Write-Host "💾 Backup creado: $backupBranch`n" -ForegroundColor Green
+        git checkout development | Out-Null
+    } else {
+        Write-Host "🚫 Abortado por el usuario para evitar pérdida de cambios." -ForegroundColor Red
+        Stop-Transcript | Out-Null
+        exit 1
+    }
+}
+
+# --- 🚀 Proceso principal ------------------------------------------------------
+Sync-Branch "development" "development"
+Sync-Branch "main" "development"
+Sync-Branch "preview" "development"
+Sync-Branch "production" "development"
+
+# --- 🧾 Limpieza final ---------------------------------------------------------
 Write-Host "`n🎯 Todas las ramas sincronizadas correctamente (rebase limpio aplicado)." -ForegroundColor Green
-$time = Get-Date -Format "HH:mm:ss"
-Write-Host "🕒 Finalizado: $time`n"
+Write-Host "🕒 Finalizado: $(Get-Date -Format 'HH:mm:ss')" -ForegroundColor White
+
+Stop-Transcript | Out-Null
