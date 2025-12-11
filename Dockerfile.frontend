@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1.7
+
+ARG NODE_IMAGE=node:20.10-slim
+
+FROM ${NODE_IMAGE} AS base
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+FROM ${NODE_IMAGE} AS builder
+WORKDIR /app
+
+# Build-time options to override Vite envs without editing source files
+ARG VITE_API_BASE_URL=http://localhost:8000
+ARG VITE_OLLAMA_BASE_URL=http://localhost:11434
+ARG VITE_TEXT_MODEL_ID=mistral
+ARG VITE_IMAGE_MODEL_ENDPOINT=http://localhost:8000/api/image
+ARG VITE_TTS_ENDPOINT=http://localhost:8000/api/tts
+ARG VITE_STT_ENDPOINT=http://localhost:8000/api/stt
+
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ENV VITE_OLLAMA_BASE_URL=${VITE_OLLAMA_BASE_URL}
+ENV VITE_TEXT_MODEL_ID=${VITE_TEXT_MODEL_ID}
+ENV VITE_IMAGE_MODEL_ENDPOINT=${VITE_IMAGE_MODEL_ENDPOINT}
+ENV VITE_TTS_ENDPOINT=${VITE_TTS_ENDPOINT}
+ENV VITE_STT_ENDPOINT=${VITE_STT_ENDPOINT}
+
+COPY --from=base /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+FROM nginx:1.27-alpine AS runtime
+COPY deploy/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 4173
+CMD ["nginx", "-g", "daemon off;"]

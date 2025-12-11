@@ -191,6 +191,21 @@ Consulta `docs/QA_CHECKLIST.md`. Cada cambio debe validar:
 
 ---
 
+## Despliegue en contenedores
+
+- Contamos con **Dockerfile.frontend** y **Dockerfile.backend** multi-stage. El frontend se sirve con Nginx y el backend corre con Uvicorn.
+- `docker-compose.yml` orquesta frontend, backend y una base PostgreSQL opcional. Los volúmenes `backend-models` y `backend-cache` preservan descargas de modelos/cachés.
+- Copia `docker/.env.docker.example` a `docker/.env.docker`, ajusta variables y ejecuta:
+
+```bash
+docker compose up --build
+```
+
+- El pipeline de GitHub Actions (`.github/workflows/ci.yml`) repite `npm run lint:check`, `npm run build`, arranca el backend y ejecuta `node scripts/check-endpoints.js` como smoke test.
+- Para más detalles (hardware recomendado, comandos de verificación y pasos manuales), revisa `docs/DEPLOYMENT.md`.
+
+---
+
 ## Notas finales
 
 - El alias `@/` apunta a `src/` (ver `tsconfig.json`).
