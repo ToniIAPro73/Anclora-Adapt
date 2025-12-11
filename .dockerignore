@@ -1,23 +1,55 @@
+# ================================================
+# ⚓ ANCLORA ADAPT — .DOCKERIGNORE
+# Optimizado para builds seguras y rápidas
+# ================================================
+
+# 🔧 Archivos de control de Git
 .git
-.github
-.vscode
-dist
-logs
-docs
-screenshots
-node_modules
-python-backend/venv
-python-backend/__pycache__
-python-backend/cache
-python-backend/logs
-python-backend/*.db
-**/__pycache__
-*.pyc
+.gitignore
+.gitattributes
+
+# 🧪 Archivos temporales y logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-Dockerfile.*
-# Docker and environment configs
-docker/.env.docker
-*.env
+logs/
+tmp/
+__pycache__/
+*.pyc
+*.pyo
+
+# 🗂️ Entornos locales y secretos
+.env
+.env.*
+!.env.docker  # Excepción: sí queremos incluir el base
+docker/.env.local
+docker/.env.secret
+
+# 🧱 Dependencias locales (se instalarán dentro del contenedor)
+node_modules/
+.vscode/
+.idea/
+dist/
+build/
+.cache/
+.next/
+storybook-static/
+
+# 🐳 Archivos de Docker
+Dockerfile*
+docker-compose*.yml
+
+# 🧩 Backups y binarios
+*.zip
+*.tar
+*.rar
+*.7z
+*.db
+*.sqlite
+*.bak
+*.old
+*.orig
+
+# 🖼️ Archivos grandes o de medios (no necesarios en build)
+assets/videos/
+assets/samples/
+assets/test/
+public/uploads/
