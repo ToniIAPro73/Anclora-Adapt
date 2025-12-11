@@ -952,43 +952,95 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
       const candidates = getModelCandidates(context).slice(0, 3);
       let lastError: Error | null = null;
 
+      const buildPrompt = (extra?: string) =>
+        extra ? `${enforcedPrompt}\n${extra}` : enforcedPrompt;
+
+      const minCharLimit =
+        effectiveContext?.minChars && effectiveContext.minChars > 0
+          ? effectiveContext.minChars
+          : null;
+      const maxCharLimit =
+        effectiveContext?.maxChars && effectiveContext.maxChars > 0
+          ? effectiveContext.maxChars
+          : null;
+      const expansionInstruction =
+        minCharLimit && minCharLimit > 0
+          ? language === "es"
+            ? `Amplía cada entrada generada para que alcance al menos ${minCharLimit} caracteres por plataforma antes de finalizar.`
+            : `Expand each entry so that it reaches at least ${minCharLimit} characters per platform before finishing.`
+          : null;
+
       const runModel = async (modelId: string) => {
-        const rawResponse = await callTextModel(enforcedPrompt, modelId);
-        const parsed = JSON.parse(extractJsonPayload(rawResponse));
-        const normalized = normalizeOutputs(parsed);
-        if (!normalized.length) {
-          throw new Error(
-            language === "es"
-              ? "El modelo no devolvió el formato esperado."
-              : "Model did not return the expected format."
+        const normalizeResponse = async (extraMessage?: string) => {
+          const rawResponse = await callTextModel(
+            buildPrompt(extraMessage),
+            modelId
           );
-        }
+          const parsed = JSON.parse(extractJsonPayload(rawResponse));
+          const normalized = normalizeOutputs(parsed);
+          if (!normalized.length) {
+            throw new Error(
+              language === "es"
+                ? "El modelo no devolvió el formato esperado."
+                : "Model did not return the expected format."
+            );
+          }
+          return normalized;
+        };
 
-        // Validar límites de caracteres (mínimo y/o máximo)
-        for (const output of normalized) {
-          const contentLength = output.content.length;
+        const evaluateLengthErrors = (outputs: GeneratedOutput[]) => {
+          let minError: Error | null = null;
+          let maxError: Error | null = null;
 
-          // Validar límite mínimo si está especificado
-          if (effectiveContext?.minChars && effectiveContext?.minChars > 0) {
-            if (contentLength < effectiveContext?.minChars) {
-              throw new Error(
+          for (const output of outputs) {
+            const contentLength = output.content.length;
+            if (
+              !minError &&
+              minCharLimit !== null &&
+              contentLength < minCharLimit
+            ) {
+              minError = new Error(
                 language === "es"
-                  ? `El contenido tiene ${contentLength} caracteres, pero se requiere un mínimo de ${effectiveContext?.minChars}.`
-                  : `Content has ${contentLength} characters, but a minimum of ${effectiveContext?.minChars} is required.`
+                  ? `El contenido tiene ${contentLength} caracteres, pero se requiere un mínimo de ${minCharLimit}.`
+                  : `Content has ${contentLength} characters, but a minimum of ${minCharLimit} is required.`
               );
+            }
+            if (
+              !maxError &&
+              maxCharLimit !== null &&
+              contentLength > maxCharLimit
+            ) {
+              maxError = new Error(
+                language === "es"
+                  ? `El contenido tiene ${contentLength} caracteres, pero no debe exceder ${maxCharLimit}.`
+                  : `Content has ${contentLength} characters, but must not exceed ${maxCharLimit}.`
+              );
+            }
+            if (minError && maxError) {
+              break;
             }
           }
 
-          // Validar límite máximo si está especificado
-          if (effectiveContext?.maxChars && effectiveContext?.maxChars > 0) {
-            if (contentLength > effectiveContext?.maxChars) {
-              throw new Error(
-                language === "es"
-                  ? `El contenido tiene ${contentLength} caracteres, pero no debe exceder ${effectiveContext?.maxChars}.`
-                  : `Content has ${contentLength} characters, but must not exceed ${effectiveContext?.maxChars}.`
-              );
-            }
+          return { minError, maxError };
+        };
+
+        let normalized = await normalizeResponse();
+        let retriedMin = false;
+
+        while (true) {
+          const { minError, maxError } = evaluateLengthErrors(normalized);
+          if (minError && !retriedMin && expansionInstruction) {
+            retriedMin = true;
+            normalized = await normalizeResponse(expansionInstruction);
+            continue;
           }
+          if (minError) {
+            throw minError;
+          }
+          if (maxError) {
+            throw maxError;
+          }
+          break;
         }
 
         return normalized;
