@@ -249,7 +249,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               executionStatus ||
               (queueInfo && (queueInfo.offline || queueInfo.pending > 0))) && (
               <div style={commonStyles.settingsInfoRow}>
-                {hardwareSummary && (
+                {hardwareSummary && !executionStatus?.message && (
                   <span style={commonStyles.settingsHint}>{hardwareSummary}</span>
                 )}
                 {executionStatus?.message && (
