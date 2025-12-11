@@ -33,6 +33,7 @@ if ($author -ne $allowedAuthor) {
     Write-Host "✅ Autorización verificada: $author`n" -ForegroundColor Green
 }
 
+
 # ==============================
 # 🧹 LIMPIEZA PREVIA
 # ==============================
