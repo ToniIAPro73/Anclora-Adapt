@@ -8,6 +8,8 @@ import { useModeState } from "@/context/useContextSelectors";
  * Custom hook for BasicMode local state management
  * Handles: idea, language, tone, platforms, file uploads, min/max chars, etc.
  */
+const MAX_PLATFORM_SELECTION = 2;
+
 export const useBasicModeState = (
   interfaceLanguage: InterfaceLanguage,
   languageOptions: LanguageOptionAvailability[]
@@ -78,9 +80,24 @@ export const useBasicModeState = (
 
   // Helper functions
   const togglePlatform = (value: string) => {
-    setPlatforms((prev) =>
-      prev.includes(value) ? prev.filter((p) => p !== value) : [...prev, value]
-    );
+    const limitMessage =
+      interfaceLanguage === "es"
+        ? `Selecciona máximo ${MAX_PLATFORM_SELECTION} plataformas por generación.`
+        : `Select up to ${MAX_PLATFORM_SELECTION} platforms per generation.`;
+
+    setPlatforms((prev) => {
+      if (prev.includes(value)) {
+        if (error === limitMessage) {
+          setError(null);
+        }
+        return prev.filter((p) => p !== value);
+      }
+      if (prev.length >= MAX_PLATFORM_SELECTION) {
+        setError(limitMessage);
+        return prev;
+      }
+      return [...prev, value];
+    });
   };
 
   const handleFileUploadClick = () => {

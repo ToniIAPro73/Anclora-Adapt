@@ -26,6 +26,7 @@ services:
       HOST_GPU_MODEL: ${HOST_GPU_MODEL:-}
       HOST_GPU_VRAM_GB: ${HOST_GPU_VRAM_GB:-}
       HOST_HAS_CUDA: ${HOST_HAS_CUDA:-}
+      ANCLORA_FORCE_HOST_OVERRIDES: "true"
     ports:
       - "8000:8000"
     volumes:

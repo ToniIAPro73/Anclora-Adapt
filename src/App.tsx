@@ -1003,220 +1003,234 @@ const App: React.FC = () => {
       const effectiveContext = hardwareAdjustment.context ?? context;
       const contextNotices = hardwareAdjustment.notices;
 
-      // Auto-enhance vague prompts before processing
-      const enhancedPrompt = enhancePromptIfNeeded(prompt, effectiveContext);
+      const executeContext = async (
+        contextForRun: AutoModelContext | undefined,
+        noticesForRun: string[] = []
+      ) => {
+        const enhancedPrompt = enhancePromptIfNeeded(prompt, contextForRun);
 
-      // Construir instrucciones adicionales de restricción de caracteres
-      let charConstraint = "";
-      if (effectiveContext?.minChars && effectiveContext?.minChars > 0 && effectiveContext?.maxChars && effectiveContext?.maxChars > 0) {
-        charConstraint = `\n⚠️ REQUISITO OBLIGATORIO ESTRICTO: Cada plataforma DEBE tener ENTRE ${effectiveContext?.minChars} Y ${effectiveContext?.maxChars} caracteres (rango permitido). Genera contenido extenso y detallado dentro de este rango. NO generes más de ${effectiveContext?.maxChars} caracteres NI menos de ${effectiveContext?.minChars} caracteres.`;
-      } else if (effectiveContext?.minChars && effectiveContext?.minChars > 0) {
-        charConstraint = `\n⚠️ REQUISITO OBLIGATORIO: Cada plataforma DEBE tener MÍNIMO ${effectiveContext?.minChars} caracteres. Genera contenido EXTREMADAMENTE EXTENSO, DETALLADO y PROFUNDO. Si no alcanzas ${effectiveContext?.minChars} caracteres, expande más el contenido. REPITO: MÍNIMO ${effectiveContext?.minChars} CARACTERES OBLIGATORIO.`;
-      } else if (effectiveContext?.maxChars && effectiveContext?.maxChars > 0) {
-        charConstraint = `\n⚠️ REQUISITO OBLIGATORIO: Cada plataforma DEBE tener MÁXIMO ${effectiveContext?.maxChars} caracteres. Sé conciso pero completo.`;
-      }
-
-      const improvementDirective =
-        effectiveContext?.improvePrompt && !effectiveContext?.isLiteralTranslation
-          ? language === "es"
-            ? "Reformula el prompt anterior con más contexto, claridad y señales de valor antes de generar la respuesta final."
-            : "Rewrite the previous prompt with richer context, clarity and value signals before generating the final answer."
-          : null;
-      const shouldImprovePrompt = Boolean(improvementDirective);
-      const promptForOptimization = shouldImprovePrompt
-        ? `${enhancedPrompt}\n${improvementDirective}`
-        : enhancedPrompt;
-      let promptSeed = enhancedPrompt;
-      if (shouldImprovePrompt) {
-        try {
-          promptSeed = await optimizePrompt(promptForOptimization);
-        } catch (optimizationError) {
-          console.warn("Prompt optimizer failed:", optimizationError);
-          promptSeed = promptForOptimization;
+        let charConstraint = "";
+        if (
+          contextForRun?.minChars &&
+          contextForRun?.minChars > 0 &&
+          contextForRun?.maxChars &&
+          contextForRun?.maxChars > 0
+        ) {
+          charConstraint = `\nREQUISITO: Cada plataforma debe tener entre ${contextForRun.minChars} y ${contextForRun.maxChars} caracteres.`;
+        } else if (contextForRun?.minChars && contextForRun?.minChars > 0) {
+          charConstraint = `\nREQUISITO: Cada plataforma debe tener mínimo ${contextForRun.minChars} caracteres.`;
+        } else if (contextForRun?.maxChars && contextForRun?.maxChars > 0) {
+          charConstraint = `\nREQUISITO: Cada plataforma debe tener máximo ${contextForRun.maxChars} caracteres.`;
         }
-      }
-      const enforcedPrompt = `${promptSeed}
-Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutputExample}${charConstraint}`;
-      const requestedPlatforms = effectiveContext?.allowedPlatforms ?? [];
-      const toneForScoring =
-        effectiveContext?.tone && effectiveContext.tone.trim().length > 0
-          ? effectiveContext.tone
-          : language === "es"
-          ? "equilibrado"
-          : "balanced";
-      const scoringLanguage = effectiveContext?.targetLanguage || language;
-      const speedPreference: "detailed" | "flash" =
-        effectiveContext?.preferSpeed && !effectiveContext?.preferReasoning
-          ? "flash"
-          : "detailed";
-      const scoringContext =
-        shouldUseModelScoring(effectiveContext?.mode) && effectiveContext
-          ? buildModelScoringContext(effectiveContext, {
-              speed: speedPreference,
-              tone: toneForScoring,
-              language: scoringLanguage,
-              platforms: requestedPlatforms,
-            })
-          : null;
-      const scoringRanking = scoringContext
-        ? ModelScoringService.scoreModels(
-            scoringContext,
-            buildHardwareProfileForScoring(hardwareProfile?.hardware),
-            installedModels
-          )
-        : null;
-      const scoringNotices = scoringRanking
-        ? [
-            scoringRanking.primary.reason,
-            ...scoringRanking.primary.warnings,
-          ].filter(Boolean)
-        : [];
-      const combinedNotices = [...contextNotices, ...scoringNotices];
-      const scoringOrder =
-        scoringRanking?.allRanked.map((entry) => entry.modelName) || [];
-      const orderedCandidates =
-        scoringOrder.length > 0
-          ? Array.from(new Set(scoringOrder))
-          : getModelCandidates(context);
-      const prioritizedCandidates =
-        selectedModel && selectedModel !== AUTO_TEXT_MODEL_ID
-          ? [
-              selectedModel,
-              ...orderedCandidates.filter((model) => model !== selectedModel),
-            ]
-          : orderedCandidates;
-      const candidates = prioritizedCandidates.slice(0, 3);
-      let lastError: Error | null = null;
 
-      const buildPrompt = (...extras: (string | null | undefined)[]) => {
-        const filtered = extras.filter(Boolean);
-        if (!filtered.length) {
-          return enforcedPrompt;
-        }
-        return `${enforcedPrompt}\n${filtered.join("\n")}`;
-      };
-
-      const minCharLimit =
-        effectiveContext?.minChars && effectiveContext.minChars > 0
-          ? effectiveContext.minChars
-          : null;
-      const maxCharLimit =
-        effectiveContext?.maxChars && effectiveContext.maxChars > 0
-          ? effectiveContext.maxChars
-          : null;
-      const expansionInstruction =
-        minCharLimit && minCharLimit > 0
-          ? language === "es"
-            ? `Amplía cada entrada generada para que alcance al menos ${minCharLimit} caracteres por plataforma antes de finalizar.`
-            : `Expand each entry so that it reaches at least ${minCharLimit} characters per platform before finishing.`
-          : null;
-
-      const runModel = async (modelId: string) => {
-        const normalizeResponse = async (extraMessage?: string) => {
-          const prompt = buildPrompt(improvementDirective, extraMessage);
-          const rawResponse = await callTextModel(prompt, modelId);
-          const parsed = JSON.parse(extractJsonPayload(rawResponse));
-          const normalized = normalizeOutputs(parsed);
-          if (!normalized.length) {
-            throw new Error(
-              language === "es"
-                ? "El modelo no devolvió el formato esperado."
-                : "Model did not return the expected format."
-            );
+        const improvementDirective =
+          contextForRun?.improvePrompt && !contextForRun?.isLiteralTranslation
+            ? language === "es"
+              ? "Reformula el prompt anterior con más contexto, claridad y señales de valor antes de generar la respuesta final."
+              : "Rewrite the previous prompt with richer context, clarity and value signals before generating the final answer."
+            : null;
+        const shouldImprovePrompt = Boolean(improvementDirective);
+        const promptForOptimization = shouldImprovePrompt
+          ? `${enhancedPrompt}\n${improvementDirective}`
+          : enhancedPrompt;
+        let promptSeed = enhancedPrompt;
+        if (shouldImprovePrompt) {
+          try {
+            promptSeed = await optimizePrompt(promptForOptimization);
+          } catch (optimizationError) {
+            console.warn("Prompt optimizer failed:", optimizationError);
+            promptSeed = promptForOptimization;
           }
+        }
+
+        const requestedPlatforms = contextForRun?.allowedPlatforms ?? [];
+        const singlePlatformInstruction =
+          requestedPlatforms.length === 1
+            ? language === "es"
+              ? `\nIMPORTANTE: responde solo para "${requestedPlatforms[0]}" y devuelve exactamente una entrada en "outputs".`
+              : `\nIMPORTANT: answer only for "${requestedPlatforms[0]}" and return exactly one entry in "outputs".`
+            : "";
+
+        const enforcedPrompt = `${promptSeed}\nResponde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutputExample}${charConstraint}${singlePlatformInstruction}`;
+        const toneForScoring =
+          contextForRun?.tone && contextForRun.tone.trim().length > 0
+            ? contextForRun.tone
+            : language === "es"
+            ? "equilibrado"
+            : "balanced";
+        const scoringLanguage = contextForRun?.targetLanguage || language;
+        const speedPreference: "detailed" | "flash" =
+          contextForRun?.preferSpeed && !contextForRun?.preferReasoning
+            ? "flash"
+            : "detailed";
+        const scoringContext =
+          shouldUseModelScoring(contextForRun?.mode) && contextForRun
+            ? buildModelScoringContext(contextForRun, {
+                speed: speedPreference,
+                tone: toneForScoring,
+                language: scoringLanguage,
+                platforms: requestedPlatforms,
+              })
+            : null;
+        const scoringRanking = scoringContext
+          ? ModelScoringService.scoreModels(
+              scoringContext,
+              buildHardwareProfileForScoring(hardwareProfile?.hardware),
+              installedModels
+            )
+          : null;
+        const scoringNotices = scoringRanking
+          ? [
+              scoringRanking.primary.reason,
+              ...scoringRanking.primary.warnings,
+            ].filter(Boolean)
+          : [];
+        const combinedNotices = [...noticesForRun, ...scoringNotices];
+        const scoringOrder =
+          scoringRanking?.allRanked.map((entry) => entry.modelName) || [];
+        const orderedCandidates =
+          scoringOrder.length > 0
+            ? Array.from(new Set(scoringOrder))
+            : getModelCandidates(contextForRun);
+        const prioritizedCandidates =
+          selectedModel && selectedModel !== AUTO_TEXT_MODEL_ID
+            ? [
+                selectedModel,
+                ...orderedCandidates.filter((model) => model !== selectedModel),
+              ]
+            : orderedCandidates;
+        const candidates = prioritizedCandidates.slice(0, 3);
+        let lastError: Error | null = null;
+
+        const buildPrompt = (...extras: (string | null | undefined)[]) => {
+          const filtered = extras.filter(Boolean);
+          if (!filtered.length) {
+            return enforcedPrompt;
+          }
+          return `${enforcedPrompt}\n${filtered.join("\n")}`;
+        };
+
+        const minCharLimit =
+          contextForRun?.minChars && contextForRun.minChars > 0
+            ? contextForRun.minChars
+            : null;
+        const maxCharLimit =
+          contextForRun?.maxChars && contextForRun.maxChars > 0
+            ? contextForRun.maxChars
+            : null;
+        const expansionInstruction =
+          minCharLimit && minCharLimit > 0
+            ? language === "es"
+              ? `Amplía cada entrada generada para que alcance al menos ${minCharLimit} caracteres.`
+              : `Expand each entry so that it reaches at least ${minCharLimit} characters.`
+            : null;
+
+        const runModel = async (modelId: string) => {
+          const normalizeResponse = async (extraMessage?: string) => {
+            const payload = buildPrompt(improvementDirective, extraMessage);
+            const rawResponse = await callTextModel(payload, modelId);
+            const parsed = JSON.parse(extractJsonPayload(rawResponse));
+            const normalized = normalizeOutputs(parsed);
+            if (!normalized.length) {
+              throw new Error(
+                language === "es"
+                  ? "El modelo no devolvió el formato esperado."
+                  : "Model did not return the expected format."
+              );
+            }
+            return normalized;
+          };
+
+          const evaluateLengthErrors = (outputs: GeneratedOutput[]) => {
+            let minError: Error | null = null;
+            let maxError: Error | null = null;
+
+            for (const output of outputs) {
+              const contentLength = output.content.length;
+              if (
+                !minError &&
+                minCharLimit !== null &&
+                contentLength < minCharLimit
+              ) {
+                minError = new Error(
+                  language === "es"
+                    ? `El contenido tiene ${contentLength} caracteres, pero se requiere un mínimo de ${minCharLimit}.`
+                    : `Content has ${contentLength} characters, but a minimum of ${minCharLimit} is required.`
+                );
+              }
+              if (
+                !maxError &&
+                maxCharLimit !== null &&
+                contentLength > maxCharLimit
+              ) {
+                maxError = new Error(
+                  language === "es"
+                    ? `El contenido tiene ${contentLength} caracteres, pero no debe exceder ${maxCharLimit}.`
+                    : `Content has ${contentLength} characters, but must not exceed ${maxCharLimit}.`
+                );
+              }
+              if (minError && maxError) {
+                break;
+              }
+            }
+
+            return { minError, maxError };
+          };
+
+          let normalized = await normalizeResponse();
+          let retriedMin = false;
+
+          while (true) {
+            const { minError, maxError } = evaluateLengthErrors(normalized);
+            if (minError && !retriedMin && expansionInstruction) {
+              retriedMin = true;
+              normalized = await normalizeResponse(expansionInstruction);
+              continue;
+            }
+            if (minError) {
+              throw minError;
+            }
+            if (maxError) {
+              throw maxError;
+            }
+            break;
+          }
+
           return normalized;
         };
 
-        const evaluateLengthErrors = (outputs: GeneratedOutput[]) => {
-          let minError: Error | null = null;
-          let maxError: Error | null = null;
-
-          for (const output of outputs) {
-            const contentLength = output.content.length;
-            if (
-              !minError &&
-              minCharLimit !== null &&
-              contentLength < minCharLimit
-            ) {
-              minError = new Error(
-                language === "es"
-                  ? `El contenido tiene ${contentLength} caracteres, pero se requiere un mínimo de ${minCharLimit}.`
-                  : `Content has ${contentLength} characters, but a minimum of ${minCharLimit} is required.`
-              );
-            }
-            if (
-              !maxError &&
-              maxCharLimit !== null &&
-              contentLength > maxCharLimit
-            ) {
-              maxError = new Error(
-                language === "es"
-                  ? `El contenido tiene ${contentLength} caracteres, pero no debe exceder ${maxCharLimit}.`
-                  : `Content has ${contentLength} characters, but must not exceed ${maxCharLimit}.`
-              );
-            }
-            if (minError && maxError) {
-              break;
-            }
-          }
-
-          return { minError, maxError };
-        };
-
-        let normalized = await normalizeResponse();
-        let retriedMin = false;
-
-        while (true) {
-          const { minError, maxError } = evaluateLengthErrors(normalized);
-          if (minError && !retriedMin && expansionInstruction) {
-            retriedMin = true;
-            normalized = await normalizeResponse(expansionInstruction);
-            continue;
-          }
-          if (minError) {
-            throw minError;
-          }
-          if (maxError) {
-            throw maxError;
-          }
-          break;
-        }
-
-        return normalized;
-      };
-
-      try {
         for (let attemptIndex = 0; attemptIndex < candidates.length; attemptIndex += 1) {
           const candidate = candidates[attemptIndex];
           try {
             const normalized = await runModel(candidate);
             const filtered = filterOutputsByPlatforms(
               normalized,
-              effectiveContext?.allowedPlatforms
+              contextForRun?.allowedPlatforms
             );
 
-            if (filtered.length === 0 && effectiveContext?.allowedPlatforms && effectiveContext.allowedPlatforms.length > 0) {
+            if (
+              filtered.length === 0 &&
+              contextForRun?.allowedPlatforms &&
+              contextForRun.allowedPlatforms.length > 0
+            ) {
               throw new Error(
                 language === "es"
-                  ? `No se generó contenido para las plataformas seleccionadas (${effectiveContext?.allowedPlatforms?.join(", ")}). El modelo generó contenido para otras plataformas.`
-                  : `No content was generated for the selected platforms (${effectiveContext?.allowedPlatforms?.join(", ")}). The model generated content for other platforms.`
+                  ? `No se generó contenido para las plataformas seleccionadas (${contextForRun.allowedPlatforms.join(", ")}).`
+                  : `No content was generated for the selected platforms (${contextForRun.allowedPlatforms.join(", ")}).`
               );
             }
 
-            validateOutputsAgainstRequest(filtered, effectiveContext);
+            validateOutputsAgainstRequest(filtered, contextForRun);
             const polished = await enforceLanguageQuality(
               filtered,
-              effectiveContext?.targetLanguage,
+              contextForRun?.targetLanguage,
               candidate,
               callTextModel
             );
             (polished.length ? polished : filtered).forEach(addOutput);
             setLastModelUsed(candidate);
-            const decisionKey = effectiveContext?.mode || activeMode;
-            if (
-              decisionKey &&
-              selectedModel === AUTO_TEXT_MODEL_ID
-            ) {
+            const decisionKey = contextForRun?.mode || activeMode;
+            if (decisionKey && selectedModel === AUTO_TEXT_MODEL_ID) {
               setPersistedDecisions((prev) => {
                 if (prev[decisionKey] === candidate) return prev;
                 const next = { ...prev, [decisionKey]: candidate };
@@ -1231,20 +1245,15 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
               provider: candidate,
               fallback: attemptIndex > 0,
               tier,
-              message: describeExecutionLabel(
-                candidate,
-                attemptIndex > 0
-              ),
+              message: describeExecutionLabel(candidate, attemptIndex > 0),
               notices: combinedNotices,
               timestamp: Date.now(),
             });
-            lastError = null;
             return;
           } catch (err) {
             lastError = err instanceof Error ? err : new Error(String(err));
             console.warn(`Fallo con el modelo ${candidate}`, lastError);
           }
-
         }
 
         if (lastError) {
@@ -1254,30 +1263,62 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
                 ? "El modelo elegido no respondió con JSON válido. Prueba con un modelo multilingüe como mistral o qwen."
                 : "The selected model did not return valid JSON. Please try a multilingual model such as mistral or qwen."
               : "";
-          _setError(
-            `${lastError.message}${
-              fallbackNotice ? ` ${fallbackNotice}` : ""
-            }`.trim()
-          );
+          const singlePlatformHint =
+            requestedPlatforms.length === 1
+              ? language === "es"
+                ? "Consejo: intenta con otra plataforma o reduce las restricciones."
+                : "Hint: try with another platform or relax the constraints."
+              : "";
+          const combinedMessage = `${lastError.message}${fallbackNotice ? ` ${fallbackNotice}` : ""}${
+            singlePlatformHint ? ` ${singlePlatformHint}` : ""
+          }`.trim();
+          _setError(combinedMessage);
           const fallbackModel =
             selectedModel === AUTO_TEXT_MODEL_ID
               ? candidates[0] || DEFAULT_TEXT_MODEL_ID
               : selectedModel;
           setExecutionStatus({
-            mode: effectiveContext?.mode || activeMode,
+            mode: contextForRun?.mode || activeMode,
             provider: fallbackModel || "unavailable",
             fallback: true,
             tier: resolveModelTier(fallbackModel),
             message:
               language === "es"
                 ? "Cadena de modelos agotada. Revisa hardware o activa proveedores cloud."
-                : "Model chain exhausted. Review hardware or enable cloud providers.",
+                : "Model chain exhausted. Review hardware or   enable cloud providers.",
             notices: combinedNotices,
             timestamp: Date.now(),
           });
+          throw lastError;
+        }
+      };
+
+      try {
+        const requestedPlatforms = effectiveContext?.allowedPlatforms ?? [];
+        const shouldSplit = requestedPlatforms.length > 1 && effectiveContext;
+        if (shouldSplit) {
+          const splitNotice = language === "es"
+            ? "Generación independiente por plataforma para evitar JSON inválidos."
+            : "Generating each platform independently to avoid invalid JSON.";
+          for (const platform of requestedPlatforms) {
+            const variant = effectiveContext
+              ? {
+                  ...effectiveContext,
+                  allowedPlatforms: [platform],
+                  numberOfPlatforms: 1,
+                }
+              : undefined;
+            await executeContext(variant, [...contextNotices, splitNotice]);
+          }
+        } else {
+          await executeContext(effectiveContext, contextNotices);
         }
       } catch (err) {
-        _setError(err instanceof Error ? err.message : "Error desconocido");
+        if (err instanceof Error) {
+          console.warn("Generation aborted:", err.message);
+        } else {
+          console.warn("Generation aborted");
+        }
       } finally {
         _setIsLoading(false);
       }

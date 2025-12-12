@@ -250,6 +250,35 @@ def _load_hardware_overrides() -> Dict[str, Any]:
         "has_cuda": _parse_override_bool("HOST_HAS_CUDA"),
     }
 
+def _env_flag(name: str) -> Optional[bool]:
+    raw = os.getenv(name)
+    if raw is None:
+        return None
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    logger.warning("Flag %s inválido: %r. Se ignora.", name, raw)
+    return None
+
+def _running_inside_container() -> bool:
+    if os.path.exists("/.dockerenv"):
+        return True
+    try:
+        with open("/proc/1/cgroup", "r", encoding="utf-8") as fh:
+            data = fh.read()
+            if "docker" in data or "containerd" in data or "kubepods" in data:
+                return True
+    except OSError:
+        pass
+    return False
+
+def _should_use_overrides() -> bool:
+    explicit = _env_flag("ANCLORA_FORCE_HOST_OVERRIDES")
+    if explicit is not None:
+        return explicit
+    return _running_inside_container()
 
 def detect_hardware_profile() -> Dict[str, Any]:
     cpu_cores = psutil.cpu_count(logical=False) or 1
@@ -259,7 +288,7 @@ def detect_hardware_profile() -> Dict[str, Any]:
 
     gpu = _detect_gpu()
     has_cuda = gpu["device"] == "cuda"
-    overrides = _load_hardware_overrides()
+    overrides = _load_hardware_overrides() if _should_use_overrides() else {}
 
     if overrides.get("cpu_cores") is not None:
         cpu_cores = max(1, overrides["cpu_cores"])
