@@ -102,6 +102,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           <p style={commonStyles.headerSubtitle}>
             {localizedCopy.subtitle}
           </p>
+          {hardwareSummary && (
+            <span
+              style={{
+                ...commonStyles.settingsHint,
+                marginTop: "2px",
+              }}
+            >
+              {hardwareSummary}
+            </span>
+          )}
         </div>
 
         <div
@@ -114,16 +124,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             width: "100%",
           }}
         >
-          {hardwareSummary && (
-            <span
-              style={{
-                ...commonStyles.settingsHint,
-                alignSelf: "flex-end",
-              }}
-            >
-              {hardwareSummary}
-            </span>
-          )}
           <div
             style={{
               ...commonStyles.headerActions,
