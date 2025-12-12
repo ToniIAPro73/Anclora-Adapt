@@ -1040,12 +1040,24 @@ const App: React.FC = () => {
       }
       const enforcedPrompt = `${promptSeed}
 Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutputExample}${charConstraint}`;
+      const requestedPlatforms = effectiveContext?.allowedPlatforms ?? [];
+      const toneForScoring =
+        effectiveContext?.tone && effectiveContext.tone.trim().length > 0
+          ? effectiveContext.tone
+          : language === "es"
+          ? "equilibrado"
+          : "balanced";
+      const scoringLanguage = effectiveContext?.targetLanguage || language;
+      const speedPreference: "detailed" | "flash" =
+        effectiveContext?.preferSpeed && !effectiveContext?.preferReasoning
+          ? "flash"
+          : "detailed";
       const scoringContext =
         shouldUseModelScoring(effectiveContext?.mode) && effectiveContext
           ? buildModelScoringContext(effectiveContext, {
-              speed,
-              tone,
-              language,
+              speed: speedPreference,
+              tone: toneForScoring,
+              language: scoringLanguage,
               platforms: requestedPlatforms,
             })
           : null;
