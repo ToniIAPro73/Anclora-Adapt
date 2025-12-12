@@ -118,8 +118,14 @@ const BasicMode: FC<BasicModeProps> = ({
     const requestedPlatforms = literalTranslation
       ? [languageDisplay]
       : platforms;
+    const normalizePlatform = (value: string) =>
+      value
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
     const normalizedRequestedPlatforms = requestedPlatforms.map((platform) =>
-      platform.trim().toLowerCase()
+      normalizePlatform(platform)
     );
     const outputExample =
       requestedPlatforms.length > 0
@@ -149,15 +155,25 @@ const BasicMode: FC<BasicModeProps> = ({
         ? `RESTRICCIÓN CRÍTICA: Genera contenido SOLO para la plataforma "${requestedPlatforms[0]}" y ninguna otra. Tu respuesta debe contener EXACTAMENTE 1 entrada en el array "outputs" con platform: "${requestedPlatforms[0]}". NO generes para otras plataformas.`
         : `RESTRICCIÓN CRÍTICA: Genera contenido SOLO para estas plataformas exactas: ${list}. Tu respuesta debe contener EXACTAMENTE ${requestedPlatforms.length} entradas en el array "outputs", una por cada plataforma listada. NO incluyas plataformas adicionales.`;
       const platformGuidance: string[] = [];
-      if (
-        normalizedRequestedPlatforms.some((platform) =>
-          platform.includes("instagram")
-        )
-      ) {
-        platformGuidance.push(
-          'Instagram: entrega un caption completo listo para publicar (al menos dos frases), añade emojis y MÍNIMO 3 hashtags relevantes. No dejes la palabra "Legenda" sin texto; escribe la leyenda inmediatamente después.'
-        );
-      }
+      const guidanceMap: Record<string, string> = {
+        linkedin:
+          "LinkedIn: redacta dos párrafos profesionales orientados a negocio, añade un CTA final y al menos 3 hashtags estratégicos.",
+        instagram:
+          'Instagram: entrega un caption completo listo para publicar (mínimo dos frases), añade emojis y MÍNIMO 3 hashtags relevantes. No dejes la palabra "Legenda" sin texto; escribe la leyenda inmediatamente después.',
+        x:
+          "X/Twitter: mantén cada bloque por debajo de 280 caracteres, usa un tono directo y añade hashtags o menciones relevantes.",
+        twitter:
+          "X/Twitter: mantén cada bloque por debajo de 280 caracteres, usa un tono directo y añade hashtags o menciones relevantes.",
+        whatsapp:
+          "WhatsApp: redacta un mensaje conversacional de 3-4 frases, incluye un saludo inicial, valor clave y una llamada a la acción clara.",
+        email:
+          'Email: incluye "Asunto:" y "Cuerpo:" en el texto, con dos párrafos que expliquen beneficios y cierren con una llamada a la acción.',
+      };
+      normalizedRequestedPlatforms.forEach((platform) => {
+        if (guidanceMap[platform]) {
+          platformGuidance.push(guidanceMap[platform]);
+        }
+      });
       const specificInstructions =
         platformGuidance.length > 0
           ? `Instrucciones específicas por plataforma: ${platformGuidance.join(" ")}`
