@@ -248,7 +248,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               executionStatus ||
               (queueInfo && (queueInfo.offline || queueInfo.pending > 0))) && (
               <div style={commonStyles.settingsInfoRow}>
-                {hardwareSummary && !executionStatus?.message && (
+                {hardwareSummary && (
                   <span style={commonStyles.settingsHint}>{hardwareSummary}</span>
                 )}
                 {executionStatus?.message && (
@@ -262,6 +262,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                     {executionStatus.message}
                   </span>
                 )}
+                {executionStatus?.notices?.length ? (
+                  <span
+                    style={{
+                      ...commonStyles.settingsHint,
+                      color: "#fef08a",
+                      textAlign: "right",
+                    }}
+                  >
+                    {executionStatus.notices.join(" · ")}
+                  </span>
+                ) : null}
                 {queueInfo && (queueInfo.offline || queueInfo.pending > 0) && (
                   <button
                     type="button"

@@ -63,7 +63,7 @@ import {
 } from "@/utils/modelDecisionStore";
 import { adaptContextForHardware } from "@/utils/hardwareRuntime";
 import { validateOutputsAgainstRequest } from "@/utils/outputValidators";
-import { resolveModelTier, describeTier } from "@/constants/modelTiers";
+import { resolveModelTier } from "@/constants/modelTiers";
 import type { ModelTier } from "@/constants/modelTiers";
 import { operationQueue, type QueueSnapshot } from "@/utils/operationQueue";
 import { ModelScoringService } from "@/services/modelScoringService";
@@ -502,17 +502,15 @@ const App: React.FC = () => {
   ];
 
   const describeExecutionLabel = useCallback(
-    (provider: string, tier: ModelTier, fallback: boolean, notices: string[]) => {
-      const tierLabel = describeTier(tier, language);
-      const fallbackLabel = fallback
-        ? language === "es"
-          ? "fallback activo"
-          : "fallback active"
-        : language === "es"
-        ? "camino principal"
-        : "primary path";
-      const noticeSuffix = notices.length ? ` · ${notices.join(" · ")}` : "";
-      return `${tierLabel} · ${provider} (${fallbackLabel})${noticeSuffix}`;
+    (provider: string, fallback: boolean) => {
+      const label = language === "es" ? "Modelo" : "Model";
+      const fallbackSuffix =
+        fallback && language === "es"
+          ? " (fallback)"
+          : fallback
+          ? " (fallback)"
+          : "";
+      return `${label}: ${provider}${fallbackSuffix}`;
     },
     [language]
   );
@@ -670,10 +668,9 @@ const App: React.FC = () => {
     if (hardwareProfile) return; // Ya fue detectado
 
     const detectHardware = async () => {
-      try {
-        const profile = await apiService.getCapabilities();
-        setHardwareProfile(profile);
-        console.log("Hardware automatically detected:", profile);
+        try {
+          const profile = await apiService.getCapabilities();
+          setHardwareProfile(profile);
       } catch (error) {
         // Silencio el error - no es crítico si no se detecta automáticamente
         // El usuario puede hacerlo manualmente con el botón si lo necesita
@@ -1236,9 +1233,7 @@ Responde estrictamente en formato JSON siguiendo este ejemplo: ${structuredOutpu
               tier,
               message: describeExecutionLabel(
                 candidate,
-                tier,
-                attemptIndex > 0,
-                combinedNotices
+                attemptIndex > 0
               ),
               notices: combinedNotices,
               timestamp: Date.now(),

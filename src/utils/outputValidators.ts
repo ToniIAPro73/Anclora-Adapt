@@ -44,4 +44,20 @@ export const validateOutputsAgainstRequest = (
       "La traducción literal debe generar exactamente una salida; ajusta las plataformas seleccionadas."
     );
   }
+
+  outputs.forEach((output) => {
+    const normalizedPlatform = normalize(output.platform);
+    if (normalizedPlatform.startsWith("instagram")) {
+      const trimmedContent = output.content.trim();
+      if (
+        !trimmedContent ||
+        /legenda\s*:\s*$/i.test(trimmedContent) ||
+        /caption\s*:\s*$/i.test(trimmedContent)
+      ) {
+        throw new Error(
+          "El contenido para Instagram debe incluir un caption completo; no dejes la sección de Leyenda vacía."
+        );
+      }
+    }
+  });
 };
