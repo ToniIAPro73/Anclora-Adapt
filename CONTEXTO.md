@@ -175,6 +175,7 @@ ollama list
 ```dotenv
 VITE_API_BASE_URL=http://localhost:8000
 VITE_OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_BASE_URL=http://host.docker.internal:11434
 VITE_TEXT_MODEL_ID=mistral:latest
 ```
 

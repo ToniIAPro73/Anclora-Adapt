@@ -5,12 +5,13 @@ basándose en calidad, tamaño y disponibilidad.
 """
 
 import logging
-import requests
 from typing import List
 
-logger = logging.getLogger(__name__)
+import requests
 
-OLLAMA_API_URL = "http://localhost:11434/api/tags"
+from app.config import OLLAMA_TAGS_URL
+
+logger = logging.getLogger(__name__)
 
 # Modelos ordenados por preferencia (mejor a peor)
 MODEL_PRIORITY = [
@@ -34,7 +35,7 @@ def get_available_models() -> List[str]:
         Lista de nombres de modelos disponibles, o lista vacía si no se puede conectar.
     """
     try:
-        response = requests.get(OLLAMA_API_URL, timeout=5)
+        response = requests.get(OLLAMA_TAGS_URL, timeout=5)
         response.raise_for_status()
         data = response.json()
 
@@ -45,10 +46,10 @@ def get_available_models() -> List[str]:
             if model_name:
                 models.append(model_name)
 
-        logger.info(f"Available models in Ollama: {models}")
+        logger.info(f"Available models in Ollama ({OLLAMA_TAGS_URL}): {models}")
         return models
     except requests.exceptions.ConnectionError as e:
-        logger.error(f"Cannot connect to Ollama at {OLLAMA_API_URL}: {str(e)}")
+        logger.error(f"Cannot connect to Ollama at {OLLAMA_TAGS_URL}: {str(e)}")
         return []
     except Exception as e:
         logger.warning(f"Could not fetch available models: {str(e)}")

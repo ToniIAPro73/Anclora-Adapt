@@ -5,17 +5,17 @@ Optimizador de prompts usando un LLM open source vía Ollama (Qwen2.5).
 
 from __future__ import annotations
 
-import logging
 import json
-import requests
+import logging
 from typing import List
+
+import requests
 from pydantic import BaseModel
+
+from app.config import OLLAMA_CHAT_URL
 from app.services.model_selector import get_model_candidates
 
 logger = logging.getLogger(__name__)
-
-# URL del servidor Ollama
-OLLAMA_API_URL = "http://localhost:11434/api/chat"
 
 
 # 1) Esquema de salida que queremos del modelo
@@ -209,7 +209,7 @@ def improve_prompt(
 
             logger.debug(f"Payload: {json.dumps(payload, indent=2, ensure_ascii=False)[:200]}...")
 
-            response = requests.post(OLLAMA_API_URL, json=payload, timeout=300)
+            response = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=300)
             response.raise_for_status()
 
             response_data = response.json()
@@ -288,8 +288,8 @@ def improve_prompt(
 
     # Si llegamos aquí, ningún modelo funcionó
     if isinstance(last_error, requests.exceptions.ConnectionError):
-        logger.error(f"Cannot connect to Ollama at {OLLAMA_API_URL}")
-        raise ValueError(f"No se puede conectar a Ollama. ¿Está ejecutándose en {OLLAMA_API_URL}?")
+        logger.error(f"Cannot connect to Ollama at {OLLAMA_CHAT_URL}")
+        raise ValueError(f"No se puede conectar a Ollama. ¿Está ejecutándose en {OLLAMA_CHAT_URL}?")
     elif isinstance(last_error, requests.exceptions.Timeout):
         logger.error("All models timed out")
         raise ValueError("Todos los modelos tardaron demasiado. Intenta con un modelo más pequeño.")

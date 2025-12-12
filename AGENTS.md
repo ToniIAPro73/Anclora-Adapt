@@ -258,7 +258,8 @@ ollama serve
 **Variables de Configuración:**
 
 ```bash
-VITE_OLLAMA_BASE_URL=http://localhost:11434  # URL del servidor Ollama
+VITE_OLLAMA_BASE_URL=http://localhost:11434  # URL del servidor Ollama (frontend/browser)
+OLLAMA_BASE_URL=http://host.docker.internal:11434  # URL que usan los contenedores backend
 VITE_TEXT_MODEL_ID=llama2                     # Modelo a usar
 ````
 

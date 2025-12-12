@@ -7,11 +7,13 @@ Includes caching, fallback models, and security validation
 
 import base64
 import logging
-import requests
 import time
-from typing import Optional, Dict, Any
 from pathlib import Path
+from typing import Optional
 
+import requests
+
+from app.config import OLLAMA_BASE_URL
 from app.models.image_context import ImageContext, AnalysisMetadata, ImageAnalysisResponse
 from app.services.image_cache import ImageAnalysisCache
 from app.services.model_fallback import ModelFallbackManager, ImageSecurityValidator
@@ -24,7 +26,7 @@ class ImageAnalyzer:
 
     def __init__(
         self,
-        ollama_host: str = "http://localhost:11434",
+        ollama_host: Optional[str] = None,
         vision_model: str = "Llava:latest",
         refinement_model: str = "mistral:latest",
         enable_cache: bool = True,
@@ -41,8 +43,9 @@ class ImageAnalyzer:
             cache_dir: Directory for cache storage
         """
         try:
-            self.ollama_host = ollama_host
-            self.ollama_chat_url = f"{ollama_host}/api/chat"
+            base_host = (ollama_host or OLLAMA_BASE_URL).rstrip("/")
+            self.ollama_host = base_host
+            self.ollama_chat_url = f"{base_host}/api/chat"
             self.vision_model = vision_model
             self.refinement_model = refinement_model
 
@@ -50,7 +53,7 @@ class ImageAnalyzer:
             self.cache = ImageAnalysisCache(cache_dir) if enable_cache else None
 
             # Initialize fallback manager
-            self.fallback_manager = ModelFallbackManager(ollama_host)
+            self.fallback_manager = ModelFallbackManager(base_host)
 
             # Security validator
             self.security_validator = ImageSecurityValidator()

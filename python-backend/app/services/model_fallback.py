@@ -4,10 +4,12 @@ Provides graceful degradation when primary model is unavailable
 Supports: Qwen3-VL -> LLaVA -> CLIP Interrogator
 """
 
-import logging
-from typing import Optional, Tuple
 import base64
+import logging
 import requests
+from typing import Optional, Tuple
+
+from app.config import OLLAMA_BASE_URL
 
 logger = logging.getLogger(__name__)
 
@@ -15,15 +17,17 @@ logger = logging.getLogger(__name__)
 class ModelFallbackManager:
     """Manages fallback chain for vision models"""
 
-    def __init__(self, ollama_host: str = "http://localhost:11434"):
+    def __init__(self, ollama_host: Optional[str] = None):
         """
         Initialize fallback manager
 
         Args:
             ollama_host: Ollama server host
         """
-        self.ollama_host = ollama_host
-        self.ollama_chat_url = f"{ollama_host}/api/chat"
+        base_host = (ollama_host or OLLAMA_BASE_URL).rstrip("/")
+        self.ollama_host = base_host
+        self.ollama_chat_url = f"{base_host}/api/chat"
+        self.ollama_tags_url = f"{base_host}/api/tags"
         self._available_models = None
 
     def get_available_vision_models(self) -> list:
@@ -37,7 +41,7 @@ class ModelFallbackManager:
             return self._available_models
 
         try:
-            response = requests.get(f"{self.ollama_host}/api/tags", timeout=5)
+            response = requests.get(self.ollama_tags_url, timeout=5)
             response.raise_for_status()
             data = response.json()
 
