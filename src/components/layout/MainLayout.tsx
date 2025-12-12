@@ -104,17 +104,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           </p>
         </div>
 
-        {hardwareSummary && (
-          <span
-            style={{
-              ...commonStyles.settingsHint,
-              alignSelf: "flex-end",
-              marginBottom: "4px",
-            }}
-          >
-            {hardwareSummary}
-          </span>
-        )}
         <div
           style={{
             display: "flex",
@@ -125,6 +114,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             width: "100%",
           }}
         >
+          {hardwareSummary && (
+            <span
+              style={{
+                ...commonStyles.settingsHint,
+                alignSelf: "flex-end",
+              }}
+            >
+              {hardwareSummary}
+            </span>
+          )}
           <div
             style={{
               ...commonStyles.headerActions,
@@ -269,17 +268,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                     {executionStatus.message}
                   </span>
                 )}
-                {executionStatus?.notices?.length ? (
-                  <span
-                    style={{
-                      ...commonStyles.settingsHint,
-                      color: "#fef08a",
-                      textAlign: "right",
-                    }}
-                  >
-                    {executionStatus.notices.join(" · ")}
-                  </span>
-                ) : null}
                 {queueInfo && (queueInfo.offline || queueInfo.pending > 0) && (
                   <button
                     type="button"
