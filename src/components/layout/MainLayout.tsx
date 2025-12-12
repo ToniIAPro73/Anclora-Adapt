@@ -104,6 +104,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           </p>
         </div>
 
+        {hardwareSummary && (
+          <span
+            style={{
+              ...commonStyles.settingsHint,
+              alignSelf: "flex-end",
+              marginBottom: "4px",
+            }}
+          >
+            {hardwareSummary}
+          </span>
+        )}
         <div
           style={{
             display: "flex",
@@ -244,13 +255,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               </div>
             </div>
 
-            {(hardwareSummary ||
-              executionStatus ||
+            {(executionStatus ||
               (queueInfo && (queueInfo.offline || queueInfo.pending > 0))) && (
               <div style={commonStyles.settingsInfoRow}>
-                {hardwareSummary && (
-                  <span style={commonStyles.settingsHint}>{hardwareSummary}</span>
-                )}
                 {executionStatus?.message && (
                   <span
                     style={{

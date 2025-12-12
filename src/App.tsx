@@ -1085,7 +1085,9 @@ const App: React.FC = () => {
               ...scoringRanking.primary.warnings,
             ].filter(Boolean)
           : [];
-        const combinedNotices = [...noticesForRun, ...scoringNotices];
+        const combinedNotices = noticesForRun.length
+          ? noticesForRun
+          : [...scoringNotices];
         const scoringOrder =
           scoringRanking?.allRanked.map((entry) => entry.modelName) || [];
         const orderedCandidates =
