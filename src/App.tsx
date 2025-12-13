@@ -683,20 +683,25 @@ const App: React.FC = () => {
 
     const detectHardware = async () => {
       setHardwareDetectionStatus("detecting");
-        try {
-          const profile = await apiService.getCapabilities();
-          if (cancelled) return;
-          setHardwareProfile(profile);
-          setHardwareDetectionStatus("ready");
+      try {
+        const profile = await apiService.getCapabilities();
+        if (cancelled) return;
+        setHardwareProfile(profile);
+        setHardwareDetectionStatus("ready");
       } catch (error) {
         // Silencio el error - no es crítico si no se detecta automáticamente
         // El usuario puede hacerlo manualmente con el botón si lo necesita
         console.warn("Auto-detection of hardware failed, user can use Adjust Hardware button", error);
+        setHardwareDetectionStatus("error");
       }
     };
 
     void detectHardware();
-  }, [hardwareProfile, setHardwareProfile]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hardwareProfile]);
 
   const scoreModelForContext = useCallback(
     (modelId: string, context?: AutoModelContext) => {
