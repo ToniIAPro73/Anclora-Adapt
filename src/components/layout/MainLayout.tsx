@@ -90,10 +90,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   const { activeMode } = useLayoutState();
   const localizedCopy = translations[language];
   const themeIcon = theme === "light" ? "☀️" : theme === "dark" ? "🌙" : "🖥️";
-  const hardwareSummary =
-    hardwareProfile?.hardware && (!executionStatus || !executionStatus.message)
-      ? `${hardwareProfile.hardware.gpu_model} (${hardwareProfile.hardware.gpu_vram_gb} GB VRAM) · ${hardwareProfile.hardware.ram_gb} GB RAM`
-      : null;
+  const hardwareSummary = hardwareProfile?.hardware
+    ? `${hardwareProfile.hardware.gpu_model} (${hardwareProfile.hardware.gpu_vram_gb} GB VRAM) · ${hardwareProfile.hardware.ram_gb} GB RAM`
+    : null;
 
   return (
     <div style={commonStyles.mainContainer}>
@@ -103,11 +102,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           <p style={commonStyles.headerSubtitle}>
             {localizedCopy.subtitle}
           </p>
-        {hardwareSummary && (
-          <span
-            style={{
-              ...commonStyles.settingsHint,
+          {hardwareSummary && (
+            <span
+              style={{
+                ...commonStyles.settingsHint,
                 marginTop: "2px",
+                color: "#fef08a",
               }}
             >
               {hardwareSummary}
