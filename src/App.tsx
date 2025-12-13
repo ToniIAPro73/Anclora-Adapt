@@ -713,7 +713,56 @@ const App: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [hardwareProfile]);
+  }, [hardwareProfile, hardwareDetectionAttempts]);
+
+  const hardwareStatusNotice = useMemo<
+    | {
+        message: string;
+        variant: "info" | "warning" | "error";
+        onRetry?: () => void;
+      }
+    | null
+  >(() => {
+    if (hardwareDetectionStatus === "detecting") {
+      return {
+        message:
+          language === "es"
+            ? "Detectando capacidades del hardware local..."
+            : "Detecting local hardware capabilities...",
+        variant: "info",
+      };
+    }
+    if (hardwareDetectionStatus === "error") {
+      const attemptsLabel =
+        hardwareDetectionAttempts > 0
+          ? ` (${language === "es" ? "Intentos" : "Attempts"}: ${hardwareDetectionAttempts})`
+          : "";
+      return {
+        message:
+          language === "es"
+            ? `No se pudo detectar tu hardware. Revisa el backend y vuelve a intentarlo${attemptsLabel}.`
+            : `We could not detect your hardware. Check the backend and retry${attemptsLabel}.`,
+        variant: "error",
+        onRetry: retryHardwareDetection,
+      };
+    }
+    if (hardwareDetectionStatus === "idle" && !hardwareProfile) {
+      return {
+        message:
+          language === "es"
+            ? "Esperando respuesta del backend para ajustar el hardware..."
+            : "Waiting for backend response to tune hardware...",
+        variant: "warning",
+      };
+    }
+    return null;
+  }, [
+    hardwareDetectionAttempts,
+    hardwareDetectionStatus,
+    hardwareProfile,
+    language,
+    retryHardwareDetection,
+  ]);
 
   const scoreModelForContext = useCallback(
     (modelId: string, context?: AutoModelContext) => {
@@ -1527,6 +1576,17 @@ const App: React.FC = () => {
     onClose: () => setIsHelpOpen(false),
   };
 
+  const layoutExecutionStatus = executionStatus
+    ? { message: executionStatus.message, notices: executionStatus.notices }
+    : null;
+  const layoutHardwareStatus = hardwareStatusNotice
+    ? {
+        message: hardwareStatusNotice.message,
+        variant: hardwareStatusNotice.variant,
+        onRetry: hardwareStatusNotice.onRetry,
+      }
+    : null;
+
   // DIAGNÓSTICO TEMPORAL: Verificar valor de hardwareProfile
   console.log("[APP RENDER] hardwareProfile:", hardwareProfile);
   if (hardwareProfile) {
@@ -1553,11 +1613,8 @@ const App: React.FC = () => {
       onTabChange={handleTabChange}
       onReset={handleReset}
       help={helpConfig}
-      executionStatus={
-        executionStatus
-          ? { message: executionStatus.message, notices: executionStatus.notices }
-          : null
-      }
+      hardwareStatus={layoutHardwareStatus}
+      executionStatus={layoutExecutionStatus}
       queueInfo={queueInfo}
     >
       {renderActiveMode()}

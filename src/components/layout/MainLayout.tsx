@@ -49,6 +49,11 @@ interface MainLayoutProps {
   onTabChange: (tabId: AppMode) => void;
   onReset: () => void;
   help: HelpConfig;
+  hardwareStatus?: {
+    message: string;
+    variant?: "info" | "warning" | "error" | "success";
+    onRetry?: () => void;
+  } | null;
   executionStatus?: { message: string; notices?: string[] } | null;
   queueInfo?: {
     offline: boolean;
@@ -81,6 +86,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   onTabChange,
   onReset,
   help,
+  hardwareStatus,
   executionStatus,
   queueInfo,
   children,
@@ -261,39 +267,89 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             </div>
 
             {(executionStatus ||
+              hardwareStatus ||
               (queueInfo && (queueInfo.offline || queueInfo.pending > 0))) && (
               <div style={commonStyles.settingsInfoRow}>
-                {executionStatus?.message && (
-                  <span
-                    style={{
-                      ...commonStyles.settingsHint,
-                      color: "#fef08a",
-                      textAlign: "right",
-                    }}
-                  >
-                    {executionStatus.message}
-                  </span>
-                )}
-                {queueInfo && (queueInfo.offline || queueInfo.pending > 0) && (
-                  <button
-                    type="button"
-                    style={{
-                      ...commonStyles.resetButton,
-                      padding: "4px 10px",
-                      fontSize: "0.8em",
-                      marginLeft: "auto",
-                    }}
-                    onClick={queueInfo.onRetry}
-                  >
-                    {queueInfo.offline
-                      ? language === "es"
-                        ? `Offline (${queueInfo.pending} en cola)`
-                        : `Offline (${queueInfo.pending} queued)`
-                      : language === "es"
-                      ? `En cola: ${queueInfo.pending}`
-                      : `Queued: ${queueInfo.pending}`}
-                  </button>
-                )}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    flex: 1,
+                    minWidth: 0,
+                  }}
+                >
+                  {hardwareStatus && (
+                    <span
+                      style={{
+                        ...commonStyles.settingsHint,
+                        color:
+                          hardwareStatus.variant === "error"
+                            ? "#fecaca"
+                            : hardwareStatus.variant === "warning"
+                            ? "#fde68a"
+                            : hardwareStatus.variant === "success"
+                            ? "#bbf7d0"
+                            : "#bae6fd",
+                        fontWeight: hardwareStatus.variant === "error" ? 600 : 500,
+                      }}
+                    >
+                      {hardwareStatus.message}
+                    </span>
+                  )}
+                  {executionStatus?.message && (
+                    <span
+                      style={{
+                        ...commonStyles.settingsHint,
+                        color: "#fef08a",
+                        textAlign: "right",
+                      }}
+                    >
+                      {executionStatus.message}
+                    </span>
+                  )}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    flexShrink: 0,
+                  }}
+                >
+                  {hardwareStatus?.onRetry && (
+                    <button
+                      type="button"
+                      style={{
+                        ...commonStyles.resetButton,
+                        padding: "4px 10px",
+                        fontSize: "0.8em",
+                      }}
+                      onClick={hardwareStatus.onRetry}
+                    >
+                      {language === "es" ? "Reintentar ajuste" : "Retry detection"}
+                    </button>
+                  )}
+                  {queueInfo && (queueInfo.offline || queueInfo.pending > 0) && (
+                    <button
+                      type="button"
+                      style={{
+                        ...commonStyles.resetButton,
+                        padding: "4px 10px",
+                        fontSize: "0.8em",
+                      }}
+                      onClick={queueInfo.onRetry}
+                    >
+                      {queueInfo.offline
+                        ? language === "es"
+                          ? `Offline (${queueInfo.pending} en cola)`
+                          : `Offline (${queueInfo.pending} queued)`
+                        : language === "es"
+                        ? `En cola: ${queueInfo.pending}`
+                        : `Queued: ${queueInfo.pending}`}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
