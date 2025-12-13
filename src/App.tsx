@@ -296,6 +296,8 @@ type ExecutionStatus = {
   timestamp: number;
 };
 
+type HardwareDetectionStatus = "idle" | "detecting" | "ready" | "error";
+
 const getInitialOfflineState = () =>
   typeof navigator !== "undefined" ? !navigator.onLine : false;
 
@@ -337,6 +339,13 @@ const App: React.FC = () => {
   const [executionStatus, setExecutionStatus] = useState<ExecutionStatus | null>(
     null
   );
+  const [hardwareDetectionStatus, setHardwareDetectionStatus] =
+    useState<HardwareDetectionStatus>("idle");
+  const [hardwareDetectionAttempts, setHardwareDetectionAttempts] = useState(0);
+  const retryHardwareDetection = useCallback(() => {
+    setHardwareDetectionStatus("detecting");
+    setHardwareDetectionAttempts((attempt) => attempt + 1);
+  }, []);
   const [queueState, setQueueState] = useState<QueueSnapshot>(
     operationQueue.snapshot()
   );
@@ -665,12 +674,20 @@ const App: React.FC = () => {
   // Usuario no necesita pulsar "Ajustar Hardware" explícitamente
   // La app detecta automáticamente las capacidades del sistema
   useEffect(() => {
-    if (hardwareProfile) return; // Ya fue detectado
+    if (hardwareProfile) {
+      setHardwareDetectionStatus("ready");
+      return;
+    }
+
+    let cancelled = false;
 
     const detectHardware = async () => {
+      setHardwareDetectionStatus("detecting");
         try {
           const profile = await apiService.getCapabilities();
+          if (cancelled) return;
           setHardwareProfile(profile);
+          setHardwareDetectionStatus("ready");
       } catch (error) {
         // Silencio el error - no es crítico si no se detecta automáticamente
         // El usuario puede hacerlo manualmente con el botón si lo necesita
