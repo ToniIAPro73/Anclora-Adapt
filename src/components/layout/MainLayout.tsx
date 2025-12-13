@@ -107,15 +107,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             <span
               style={{
                 fontSize: "0.8rem",
-                color: "#fef08a",
+                color: "var(--header-subtitle, #475467)",
                 marginTop: "2px",
                 whiteSpace: "normal",
                 wordWrap: "break-word",
                 overflow: "visible",
                 display: "block",
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-                padding: "4px 8px",
-                borderRadius: "4px",
               }}
             >
               {hardwareSummary}
