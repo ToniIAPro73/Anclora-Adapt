@@ -27,7 +27,9 @@ export const validateOutputsAgainstRequest = (
   const missing = relevantRequested.filter(
     (platform) =>
       !normalizedOutputs.some((value) =>
-        value.startsWith(platform === "x" ? "twitter" : platform)
+        value === platform ||
+        value.startsWith(platform) ||
+        value.includes(platform === "x" ? "twitter" : platform)
       )
   );
 
