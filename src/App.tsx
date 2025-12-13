@@ -674,7 +674,10 @@ const App: React.FC = () => {
   // Usuario no necesita pulsar "Ajustar Hardware" explícitamente
   // La app detecta automáticamente las capacidades del sistema
   useEffect(() => {
+    console.log("[HARDWARE DETECTION] Effect triggered. hardwareProfile:", hardwareProfile);
+
     if (hardwareProfile) {
+      console.log("[HARDWARE DETECTION] Hardware already detected, skipping");
       setHardwareDetectionStatus("ready");
       return;
     }
@@ -682,16 +685,25 @@ const App: React.FC = () => {
     let cancelled = false;
 
     const detectHardware = async () => {
+      console.log("[HARDWARE DETECTION] Starting detection...");
       setHardwareDetectionStatus("detecting");
       try {
+        console.log("[HARDWARE DETECTION] Calling apiService.getCapabilities()");
         const profile = await apiService.getCapabilities();
-        if (cancelled) return;
+        console.log("[HARDWARE DETECTION] Got profile:", profile);
+
+        if (cancelled) {
+          console.log("[HARDWARE DETECTION] Request was cancelled");
+          return;
+        }
+
+        console.log("[HARDWARE DETECTION] Calling setHardwareProfile with:", profile);
         setHardwareProfile(profile);
         setHardwareDetectionStatus("ready");
+        console.log("[HARDWARE DETECTION] Success!");
       } catch (error) {
-        // Silencio el error - no es crítico si no se detecta automáticamente
-        // El usuario puede hacerlo manualmente con el botón si lo necesita
-        console.warn("Auto-detection of hardware failed, user can use Adjust Hardware button", error);
+        console.error("[HARDWARE DETECTION] ERROR:", error);
+        console.error("[HARDWARE DETECTION] Error message:", error instanceof Error ? error.message : String(error));
         setHardwareDetectionStatus("error");
       }
     };
@@ -1514,6 +1526,18 @@ const App: React.FC = () => {
     onOpen: () => setIsHelpOpen(true),
     onClose: () => setIsHelpOpen(false),
   };
+
+  // DIAGNÓSTICO TEMPORAL: Verificar valor de hardwareProfile
+  console.log("[APP RENDER] hardwareProfile:", hardwareProfile);
+  if (hardwareProfile) {
+    console.log("[APP RENDER] Hardware detected:", {
+      gpu: hardwareProfile.hardware?.gpu_model,
+      vram: hardwareProfile.hardware?.gpu_vram_gb,
+      ram: hardwareProfile.hardware?.ram_gb,
+    });
+  } else {
+    console.warn("[APP RENDER] NO HARDWARE PROFILE - Is it null/undefined?");
+  }
 
   return (
     <MainLayout

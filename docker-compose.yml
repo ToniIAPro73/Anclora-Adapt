@@ -45,12 +45,12 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://backend:8000}
-        VITE_IMAGE_MODEL_ENDPOINT: ${VITE_IMAGE_MODEL_ENDPOINT:-http://backend:8000/api/image}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+        VITE_IMAGE_MODEL_ENDPOINT: ${VITE_IMAGE_MODEL_ENDPOINT:-http://localhost:8000/api/image}
         VITE_OLLAMA_BASE_URL: ${VITE_OLLAMA_BASE_URL:-http://localhost:11434}
-        VITE_STT_ENDPOINT: ${VITE_STT_ENDPOINT:-http://backend:8000/api/stt}
+        VITE_STT_ENDPOINT: ${VITE_STT_ENDPOINT:-http://localhost:8000/api/stt}
         VITE_TEXT_MODEL_ID: ${VITE_TEXT_MODEL_ID:-mistral}
-        VITE_TTS_ENDPOINT: ${VITE_TTS_ENDPOINT:-http://backend:8000/api/tts}
+        VITE_TTS_ENDPOINT: ${VITE_TTS_ENDPOINT:-http://localhost:8000/api/tts}
     depends_on:
       backend:
         condition: service_healthy
